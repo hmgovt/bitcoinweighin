@@ -1,0 +1,78 @@
+{
+  "lastUpdated": "2026-04-20T11:13:25.225Z",
+  "dateRange": {
+    "first": "2013-01-01",
+    "last": "2026-04-19"
+  },
+  "totalDates": 4857,
+  "fileSizeBytes": 802781,
+  "sources": [
+    {
+      "id": "btc",
+      "type": "stooq",
+      "symbol": "btcusd",
+      "field": "btc"
+    },
+    {
+      "id": "gold",
+      "type": "stooq",
+      "symbol": "xauusd",
+      "field": "xau"
+    },
+    {
+      "id": "silver",
+      "type": "stooq",
+      "symbol": "xagusd",
+      "field": "xag"
+    },
+    {
+      "id": "platinum",
+      "type": "stooq",
+      "symbol": "xptusd",
+      "field": "xpt"
+    },
+    {
+      "id": "copper",
+      "type": "stooq",
+      "symbol": "hg.c",
+      "field": "hg"
+    },
+    {
+      "id": "wheat",
+      "type": "stooq",
+      "symbol": "zw.c",
+      "field": "wheat"
+    },
+    {
+      "id": "coffee",
+      "type": "stooq",
+      "symbol": "kc.c",
+      "field": "coffee"
+    },
+    {
+      "id": "oil_brent",
+      "type": "fred",
+      "symbol": "DCOILBRENTEU",
+      "field": "brent"
+    },
+    {
+      "id": "natgas",
+      "type": "fred",
+      "symbol": "DHHNGSP",
+      "field": "natgas"
+    }
+  ],
+  "fields": [
+    "btc",
+    "btc_supply",
+    "btc",
+    "xau",
+    "xag",
+    "xpt",
+    "hg",
+    "wheat",
+    "coffee",
+    "brent",
+    "natgas"
+  ]
+}

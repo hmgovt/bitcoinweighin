@@ -1,0 +1,42 @@
+{
+  "lastRun": "2026-04-20T11:12:39.222Z",
+  "type": "bootstrap",
+  "sources": {
+    "btc": {
+      "status": "ok",
+      "rows": 4855
+    },
+    "gold": {
+      "status": "ok",
+      "rows": 4854
+    },
+    "silver": {
+      "status": "ok",
+      "rows": 4854
+    },
+    "platinum": {
+      "status": "ok",
+      "rows": 4854
+    },
+    "copper": {
+      "status": "ok",
+      "rows": 4823
+    },
+    "wheat": {
+      "status": "ok",
+      "rows": 4811
+    },
+    "coffee": {
+      "status": "ok",
+      "rows": 4819
+    },
+    "oil_brent": {
+      "status": "ok",
+      "rows": 4785
+    },
+    "natgas": {
+      "status": "ok",
+      "rows": 4814
+    }
+  }
+}
