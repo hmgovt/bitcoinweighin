@@ -40,36 +40,6 @@
 		"pinned": false
 	},
 	{
-		"id": "pizza_day",
-		"label": "🍕 Pizza Day",
-		"category": "history",
-		"description": "Laszlo Hanyecz's 10,000 BTC for two Papa John's pizzas. What would two pizzas have bought across history?",
-		"btc": 10000,
-		"date": "2010-05-22",
-		"dateRule": "suggest",
-		"pinned": true
-	},
-	{
-		"id": "genesis",
-		"label": "Satoshi's first block",
-		"category": "history",
-		"description": "The genesis block reward, mined 3 January 2009.",
-		"btc": 50,
-		"date": "2009-01-03",
-		"dateRule": "suggest",
-		"pinned": false
-	},
-	{
-		"id": "first_halving_reward",
-		"label": "Post-halving block",
-		"category": "history",
-		"description": "A single block reward after the first halving (25 BTC).",
-		"btc": 25,
-		"date": "2012-11-28",
-		"dateRule": "suggest",
-		"pinned": false
-	},
-	{
 		"id": "strategy",
 		"label": "Strategy's stack",
 		"category": "entity",

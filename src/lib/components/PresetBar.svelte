@@ -16,7 +16,6 @@
 
 	const categoryColors: Record<string, string> = {
 		denomination: 'border-zinc-500 text-zinc-300',
-		history: 'border-orange-500/50 text-orange-300',
 		entity: 'border-purple-500/50 text-purple-300',
 		absurdity: 'border-red-500/50 text-red-300',
 	};

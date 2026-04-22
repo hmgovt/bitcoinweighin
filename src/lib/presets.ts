@@ -13,7 +13,7 @@ export interface Preset {
 	id: string;
 	label: string;
 	description: string;
-	category: 'denomination' | 'history' | 'entity' | 'absurdity';
+	category: 'denomination' | 'entity' | 'absurdity';
 	btc: number | 'dynamic';
 	dynamicFn?: string;
 	date?: string;
