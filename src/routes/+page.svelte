@@ -20,6 +20,11 @@
 	let { data } = $props();
 	const prices: PriceData = data.prices;
 
+	// Set default date immediately so SSR has readouts
+	if (!$selectedDate) {
+		selectedDate.set(data.lastDate);
+	}
+
 	function getDayPrices(date: string): DayPrices | undefined {
 		return prices[date];
 	}
