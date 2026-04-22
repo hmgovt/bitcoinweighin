@@ -1,0 +1,14 @@
+{
+	"uranium_fuel_pellet": {
+		"pricePerUnit": 20,
+		"unit": "pellet",
+		"unitMassGrams": 7,
+		"asOfDate": "2025-01-01",
+		"sources": [
+			"World Nuclear Association — 'Economics of Nuclear Power' (world-nuclear.org)",
+			"IAEA/OECD-NEA Red Book 2024"
+		],
+		"methodology": "Composite cost: U3O8 feed at ~$100/lb, conversion to UF6 at ~$20/kgU, SWU at ~$150/SWU, fabrication at ~$300/kgU, yielding ~$3,000/kgU of finished fuel. Divided by 7 g/pellet = ~$20/pellet.",
+		"notes": "Low-enriched uranium (LEU, 3–5% U-235) fuel pellet for PWR reactors. Order-of-magnitude estimate; actual fuel costs vary ±30% by contract terms, enrichment level, and market conditions."
+	}
+}

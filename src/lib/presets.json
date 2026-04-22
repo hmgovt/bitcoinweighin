@@ -1,0 +1,139 @@
+[
+	{
+		"id": "one_sat",
+		"label": "1 sat",
+		"category": "denomination",
+		"description": "The smallest unit. Shows how absurdly divisible BTC is.",
+		"btc": 0.00000001,
+		"pinned": false
+	},
+	{
+		"id": "one_bit",
+		"label": "1 bit",
+		"category": "denomination",
+		"description": "1,000 sats. Loose change.",
+		"btc": 0.00001,
+		"pinned": false
+	},
+	{
+		"id": "one_nakamoto",
+		"label": "1 Nakamoto",
+		"category": "denomination",
+		"description": "1 million sats (0.01 BTC). The daily-reckoning unit for serious stackers.",
+		"btc": 0.01,
+		"pinned": true
+	},
+	{
+		"id": "one_btc",
+		"label": "1 BTC",
+		"category": "denomination",
+		"description": "The canonical frame.",
+		"btc": 1,
+		"pinned": true
+	},
+	{
+		"id": "twenty_one",
+		"label": "21 BTC",
+		"category": "denomination",
+		"description": "A nod to the hard cap.",
+		"btc": 21,
+		"pinned": false
+	},
+	{
+		"id": "pizza_day",
+		"label": "🍕 Pizza Day",
+		"category": "history",
+		"description": "Laszlo Hanyecz's 10,000 BTC for two Papa John's pizzas. What would two pizzas have bought across history?",
+		"btc": 10000,
+		"date": "2010-05-22",
+		"dateRule": "suggest",
+		"pinned": true
+	},
+	{
+		"id": "genesis",
+		"label": "Satoshi's first block",
+		"category": "history",
+		"description": "The genesis block reward, mined 3 January 2009.",
+		"btc": 50,
+		"date": "2009-01-03",
+		"dateRule": "suggest",
+		"pinned": false
+	},
+	{
+		"id": "first_halving_reward",
+		"label": "Post-halving block",
+		"category": "history",
+		"description": "A single block reward after the first halving (25 BTC).",
+		"btc": 25,
+		"date": "2012-11-28",
+		"dateRule": "suggest",
+		"pinned": false
+	},
+	{
+		"id": "strategy",
+		"label": "Strategy's stack",
+		"category": "entity",
+		"description": "What Michael Saylor's company owns.",
+		"btc": "dynamic",
+		"dynamicFn": "entity_strategy",
+		"source": "CoinGecko public treasuries API, updated daily",
+		"pinned": true
+	},
+	{
+		"id": "blackrock_ibit",
+		"label": "BlackRock IBIT",
+		"category": "entity",
+		"description": "The largest spot Bitcoin ETF.",
+		"btc": "dynamic",
+		"dynamicFn": "entity_ibit",
+		"source": "CoinGecko / issuer disclosures",
+		"pinned": true
+	},
+	{
+		"id": "el_salvador",
+		"label": "🇸🇻 El Salvador",
+		"category": "entity",
+		"description": "State holdings of the first nation to make BTC legal tender.",
+		"btc": "dynamic",
+		"dynamicFn": "entity_el_salvador",
+		"source": "Official presidential treasury tracker",
+		"pinned": false
+	},
+	{
+		"id": "us_govt",
+		"label": "🇺🇸 US Government",
+		"category": "entity",
+		"description": "Seized BTC held by the US government. Includes Silk Road, Bitfinex recovery, etc.",
+		"btc": "dynamic",
+		"dynamicFn": "entity_us_govt",
+		"source": "Arkham, bitcointreasuries.net",
+		"pinned": false
+	},
+	{
+		"id": "satoshi_stash",
+		"label": "👻 Satoshi's stash",
+		"category": "entity",
+		"description": "Estimated Bitcoin held in wallets attributed to Satoshi Nakamoto. Untouched since 2010.",
+		"btc": 1100000,
+		"source": "Patoshi pattern analysis, Sergio Demian Lerner",
+		"pinned": true
+	},
+	{
+		"id": "total_supply",
+		"label": "21M BTC — total supply",
+		"category": "absurdity",
+		"description": "Every bitcoin that will ever exist. The ceiling.",
+		"btc": 21000000,
+		"pinned": false
+	},
+	{
+		"id": "market_cap",
+		"label": "🌍 Entire BTC market cap",
+		"category": "absurdity",
+		"description": "The value of all bitcoins currently in circulation. Compare against the world's gold, oil, or any other commodity.",
+		"btc": "dynamic",
+		"dynamicFn": "market_cap",
+		"factOverride": "BTC's market cap could buy about 5.5% of every gram of gold humanity has ever mined — more than the US, Germany, and Italy's central bank holdings combined.",
+		"pinned": true
+	}
+]
