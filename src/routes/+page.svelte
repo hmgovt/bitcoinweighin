@@ -17,16 +17,13 @@
 	import CommoditySection from '$lib/components/CommoditySection.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
 
-	let { data } = $props();
-	const prices: PriceData = data.prices;
-
-	// Set default date immediately so SSR has readouts
-	if (!$selectedDate) {
-		selectedDate.set(data.lastDate);
-	}
+	let prices = $state<PriceData | null>(null);
+	let firstDate = $state('2013-01-01');
+	let lastDate = $state('2026-04-19');
+	let loading = $state(true);
 
 	function getDayPrices(date: string): DayPrices | undefined {
-		return prices[date];
+		return prices?.[date];
 	}
 
 	// ── Slider log-scale helpers ────────────────────────────────
@@ -45,7 +42,6 @@
 	function sliderToBtc(pos: number): number {
 		const log = LOG_MIN + (pos / SLIDER_STEPS) * (LOG_MAX - LOG_MIN);
 		const raw = Math.pow(10, log);
-		// Round to avoid floating point noise
 		if (raw >= 1000) return Math.round(raw);
 		if (raw >= 1) return Math.round(raw * 100) / 100;
 		if (raw >= 0.001) return Math.round(raw * 10000) / 10000;
@@ -55,7 +51,6 @@
 
 	let sliderPos = $state(btcToSlider(1));
 
-	// Sync slider position when btcAmount changes (e.g. from preset)
 	$effect(() => {
 		const newPos = btcToSlider($btcAmount);
 		if (Math.abs(newPos - sliderPos) > 1) {
@@ -79,13 +74,11 @@
 	}
 
 	function handlePresetSelect(id: string) {
-		activatePreset(id, getDayPrices, data.lastDate);
+		activatePreset(id, getDayPrices, lastDate);
 	}
 
-	// Current day prices (reactive)
 	const dayPrices = $derived(getDayPrices($selectedDate));
 
-	// Commodity amounts (reactive)
 	const commodityAmounts = $derived(
 		CORE_COMMODITIES.map((c) => ({
 			commodity: c,
@@ -93,8 +86,20 @@
 		}))
 	);
 
-	onMount(() => {
-		hydrateFromUrl(data.lastDate, getDayPrices);
+	onMount(async () => {
+		const res = await fetch('/prices.json');
+		const data: PriceData = await res.json();
+		prices = data;
+		const dates = Object.keys(data).sort();
+		firstDate = dates[0];
+		lastDate = dates[dates.length - 1];
+		loading = false;
+
+		// Set default date, then hydrate URL params
+		if (!$selectedDate) {
+			selectedDate.set(lastDate);
+		}
+		hydrateFromUrl(lastDate, getDayPrices);
 	});
 </script>
 
@@ -114,68 +119,74 @@
 			<p class="mt-1 text-sm text-zinc-500">The purchasing power of one coin, in things you can hold.</p>
 		</header>
 
-		<!-- Preset pills -->
-		<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
-
-		<!-- Controls -->
-		<div class="mb-6 space-y-4 rounded-lg bg-zinc-900 p-4">
-			<!-- BTC slider -->
-			<div>
-				<label class="mb-1 flex items-center justify-between text-sm">
-					<span class="text-zinc-400">BTC amount</span>
-					<span class="font-mono text-amber-400">{formatBtc($btcAmount)}</span>
-				</label>
-				<input
-					type="range"
-					min="0"
-					max={SLIDER_STEPS}
-					value={sliderPos}
-					oninput={handleSliderInput}
-					class="w-full accent-amber-500"
-				/>
-				<div class="mt-0.5 flex justify-between text-xs text-zinc-600">
-					<span>1 sat</span>
-					<span>21M</span>
-				</div>
+		{#if loading}
+			<div class="flex items-center justify-center py-20">
+				<div class="text-zinc-500 text-sm">Loading price data…</div>
 			</div>
+		{:else}
+			<!-- Preset pills -->
+			<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
 
-			<!-- Date + Unit row -->
-			<div class="flex items-end gap-3">
-				<div class="flex-1">
-					<label class="mb-1 block text-sm text-zinc-400">Date</label>
+			<!-- Controls -->
+			<div class="mb-6 space-y-4 rounded-lg bg-zinc-900 p-4">
+				<!-- BTC slider -->
+				<div>
+					<label class="mb-1 flex items-center justify-between text-sm">
+						<span class="text-zinc-400">BTC amount</span>
+						<span class="font-mono text-amber-400">{formatBtc($btcAmount)}</span>
+					</label>
 					<input
-						type="date"
-						value={$selectedDate}
-						min={data.firstDate}
-						max={data.lastDate}
-						onchange={handleDateChange}
-						class="w-full rounded bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 border border-zinc-700 focus:outline-none focus:border-amber-500"
+						type="range"
+						min="0"
+						max={SLIDER_STEPS}
+						value={sliderPos}
+						oninput={handleSliderInput}
+						class="w-full accent-amber-500"
 					/>
+					<div class="mt-0.5 flex justify-between text-xs text-zinc-600">
+						<span>1 sat</span>
+						<span>21M</span>
+					</div>
 				</div>
-				<button
-					onclick={handleUnitToggle}
-					class="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors cursor-pointer"
-				>
-					{$unitSystem === 'metric' ? 'Metric' : 'Imperial'}
-				</button>
+
+				<!-- Date + Unit row -->
+				<div class="flex items-end gap-3">
+					<div class="flex-1">
+						<label class="mb-1 block text-sm text-zinc-400">Date</label>
+						<input
+							type="date"
+							value={$selectedDate}
+							min={firstDate}
+							max={lastDate}
+							onchange={handleDateChange}
+							class="w-full rounded bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 border border-zinc-700 focus:outline-none focus:border-amber-500"
+						/>
+					</div>
+					<button
+						onclick={handleUnitToggle}
+						class="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors cursor-pointer"
+					>
+						{$unitSystem === 'metric' ? 'Metric' : 'Imperial'}
+					</button>
+				</div>
+
+				{#if dayPrices}
+					<div class="text-xs text-zinc-600">
+						BTC/USD: ${dayPrices.btc.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+						&middot; Supply: {dayPrices.btc_supply?.toLocaleString('en-US')} BTC
+					</div>
+				{/if}
 			</div>
 
-			{#if dayPrices}
-				<div class="text-xs text-zinc-600">
-					BTC/USD: ${dayPrices.btc.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-					&middot; Supply: {dayPrices.btc_supply?.toLocaleString('en-US')} BTC
-				</div>
-			{/if}
-		</div>
-
-		<!-- Commodity sections -->
-		{#each commodityAmounts as { commodity, amount } (commodity.id)}
-			<CommoditySection
-				{commodity}
-				{amount}
-				btcAmount={$btcAmount}
-				unitSys={$unitSystem}
-			/>
-		{/each}
+			<!-- Commodity sections -->
+			{#each commodityAmounts as { commodity, amount } (commodity.id)}
+				<CommoditySection
+					{commodity}
+					{amount}
+					btcAmount={$btcAmount}
+					unitSys={$unitSystem}
+				/>
+			{/each}
+		{/if}
 	</div>
 </div>
