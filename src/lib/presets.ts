@@ -13,25 +13,16 @@ export interface Preset {
 	id: string;
 	label: string;
 	description: string;
-	category: 'denomination' | 'entity' | 'absurdity';
+	category: 'denomination' | 'absurdity';
 	btc: number | 'dynamic';
 	dynamicFn?: string;
 	date?: string;
 	dateRule?: 'freeze' | 'suggest';
-	source?: string;
 	pinned?: boolean;
 	factOverride?: string;
 }
 
 export const PRESETS: Preset[] = presetsData as Preset[];
-
-/** Placeholder entity holdings for Phase 1 */
-const ENTITY_PLACEHOLDERS: Record<string, number> = {
-	entity_strategy: 636505,
-	entity_ibit: 590000,
-	entity_el_salvador: 6206,
-	entity_us_govt: 207189,
-};
 
 /**
  * Resolve a dynamic preset's BTC value.
@@ -43,10 +34,6 @@ export function resolveDynamicBtc(
 	if (dynamicFn === 'market_cap') {
 		if (!dayPrices?.btc_supply) return null;
 		return dayPrices.btc_supply;
-	}
-
-	if (dynamicFn in ENTITY_PLACEHOLDERS) {
-		return ENTITY_PLACEHOLDERS[dynamicFn];
 	}
 
 	return null;

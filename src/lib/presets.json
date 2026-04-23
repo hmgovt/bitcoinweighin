@@ -40,55 +40,6 @@
 		"pinned": false
 	},
 	{
-		"id": "strategy",
-		"label": "Strategy's stack",
-		"category": "entity",
-		"description": "What Michael Saylor's company owns.",
-		"btc": "dynamic",
-		"dynamicFn": "entity_strategy",
-		"source": "CoinGecko public treasuries API, updated daily",
-		"pinned": true
-	},
-	{
-		"id": "blackrock_ibit",
-		"label": "BlackRock IBIT",
-		"category": "entity",
-		"description": "The largest spot Bitcoin ETF.",
-		"btc": "dynamic",
-		"dynamicFn": "entity_ibit",
-		"source": "CoinGecko / issuer disclosures",
-		"pinned": true
-	},
-	{
-		"id": "el_salvador",
-		"label": "🇸🇻 El Salvador",
-		"category": "entity",
-		"description": "State holdings of the first nation to make BTC legal tender.",
-		"btc": "dynamic",
-		"dynamicFn": "entity_el_salvador",
-		"source": "Official presidential treasury tracker",
-		"pinned": false
-	},
-	{
-		"id": "us_govt",
-		"label": "🇺🇸 US Government",
-		"category": "entity",
-		"description": "Seized BTC held by the US government. Includes Silk Road, Bitfinex recovery, etc.",
-		"btc": "dynamic",
-		"dynamicFn": "entity_us_govt",
-		"source": "Arkham, bitcointreasuries.net",
-		"pinned": false
-	},
-	{
-		"id": "satoshi_stash",
-		"label": "👻 Satoshi's stash",
-		"category": "entity",
-		"description": "Estimated Bitcoin held in wallets attributed to Satoshi Nakamoto. Untouched since 2010.",
-		"btc": 1100000,
-		"source": "Patoshi pattern analysis, Sergio Demian Lerner",
-		"pinned": true
-	},
-	{
 		"id": "total_supply",
 		"label": "21M BTC — total supply",
 		"category": "absurdity",
@@ -98,7 +49,7 @@
 	},
 	{
 		"id": "market_cap",
-		"label": "🌍 Entire BTC market cap",
+		"label": "Entire BTC market cap",
 		"category": "absurdity",
 		"description": "The value of all bitcoins currently in circulation. Compare against the world's gold, oil, or any other commodity.",
 		"btc": "dynamic",
