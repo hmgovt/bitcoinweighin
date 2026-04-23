@@ -1,42 +1,34 @@
 {
-  "lastRun": "2026-04-20T11:12:39.222Z",
-  "type": "bootstrap",
+  "lastRun": "2026-04-23T04:43:51.360Z",
+  "type": "daily",
+  "date": "2026-04-22",
   "sources": {
     "btc": {
-      "status": "ok",
-      "rows": 4855
+      "status": "forward-filled"
     },
     "gold": {
-      "status": "ok",
-      "rows": 4854
+      "status": "forward-filled"
     },
     "silver": {
-      "status": "ok",
-      "rows": 4854
+      "status": "forward-filled"
     },
     "platinum": {
-      "status": "ok",
-      "rows": 4854
+      "status": "forward-filled"
     },
     "copper": {
-      "status": "ok",
-      "rows": 4823
+      "status": "forward-filled"
     },
     "wheat": {
-      "status": "ok",
-      "rows": 4811
+      "status": "forward-filled"
     },
     "coffee": {
-      "status": "ok",
-      "rows": 4819
+      "status": "forward-filled"
     },
     "oil_brent": {
-      "status": "ok",
-      "rows": 4785
+      "status": "forward-filled"
     },
     "natgas": {
-      "status": "ok",
-      "rows": 4814
+      "status": "forward-filled"
     }
   }
 }
