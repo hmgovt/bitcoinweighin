@@ -1,7 +1,7 @@
 {
-  "lastRun": "2026-04-23T04:43:51.360Z",
+  "lastRun": "2026-04-24T04:47:30.780Z",
   "type": "daily",
-  "date": "2026-04-22",
+  "date": "2026-04-23",
   "sources": {
     "btc": {
       "status": "forward-filled"
