@@ -79,6 +79,29 @@
 
 	const dayPrices = $derived(getDayPrices($selectedDate));
 
+	function formatUsd(value: number): string {
+		if (value >= 1_000_000_000) {
+			return '$' + (value / 1_000_000_000).toFixed(2) + 'B';
+		}
+		if (value >= 1_000_000) {
+			return '$' + (value / 1_000_000).toFixed(2) + 'M';
+		}
+		return '$' + value.toLocaleString('en-US', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		});
+	}
+
+	function formatDateReadout(dateStr: string): string {
+		if (!dateStr) return '';
+		const d = new Date(dateStr + 'T00:00:00');
+		return d.toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+		});
+	}
+
 	const commodityAmounts = $derived(
 		CORE_COMMODITIES.map((c) => ({
 			commodity: c,
@@ -149,6 +172,18 @@
 					</div>
 				</div>
 
+				<!-- Dollar readout: primary UI element -->
+				{#if dayPrices}
+					<div class="dollar-readout text-center">
+						<div class="dollar-value">
+							{formatUsd($btcAmount * dayPrices.btc)}
+						</div>
+						<div class="dollar-secondary">
+							at {formatUsd(dayPrices.btc)} per BTC on {formatDateReadout($selectedDate)}
+						</div>
+					</div>
+				{/if}
+
 				<!-- Date + Unit row -->
 				<div class="flex items-end gap-3">
 					<div class="flex-1">
@@ -169,13 +204,6 @@
 						{$unitSystem === 'metric' ? 'Metric' : 'Imperial'}
 					</button>
 				</div>
-
-				{#if dayPrices}
-					<div class="text-xs text-zinc-600">
-						BTC/USD: ${dayPrices.btc.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-						&middot; Supply: {dayPrices.btc_supply?.toLocaleString('en-US')} BTC
-					</div>
-				{/if}
 			</div>
 
 			<!-- Commodity sections -->
@@ -190,3 +218,27 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.dollar-readout {
+		padding: 4px 0 8px;
+	}
+
+	.dollar-value {
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		font-size: 1.75rem;
+		font-weight: 600;
+		line-height: 1.2;
+		color: #e4e4e7; /* zinc-200 */
+		letter-spacing: -0.02em;
+	}
+
+	.dollar-secondary {
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		font-size: 0.75rem;
+		color: #71717a; /* zinc-500 */
+		margin-top: 2px;
+	}
+</style>
