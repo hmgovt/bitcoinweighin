@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="380" viewBox="0 0 400 380">
+  <rect width="400" height="380" fill="#713f12" rx="4" stroke="#a16207" stroke-width="3"/>
+  
+  
+  <text x="200" y="181" text-anchor="middle" dominant-baseline="central" fill="#fef3c7" font-family="monospace" font-size="14" font-weight="bold">NUGGET</text>
+    <text x="200" y="199" text-anchor="middle" dominant-baseline="central" fill="#fef3c7" font-family="monospace" font-size="14" font-weight="bold">CLUSTER</text>
+</svg>

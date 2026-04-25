@@ -122,6 +122,7 @@ const gold: Commodity = {
 				referenceAmount: 0.001,
 				suppressCoinRef: true,
 				caption: 'Gold dust on a £1 coin',
+				spritePath: '/sprites/gold/_stubs/dust.svg',
 			},
 			// 2. nugget_cluster (0.1–3 g ≈ 0.003–0.1 oz) — irregular grains on neutral surface
 			{
@@ -130,6 +131,7 @@ const gold: Commodity = {
 				realWorldWidthMetres: 0.02,
 				referenceAmount: 0.05,
 				caption: 'Gold nugget cluster',
+				spritePath: '/sprites/gold/_stubs/nugget_cluster.svg',
 			},
 			// 3. coin (1 oz Britannia, 31 g) — single gold coin
 			{
@@ -138,6 +140,7 @@ const gold: Commodity = {
 				realWorldWidthMetres: 0.032, // Britannia diameter 32.69 mm
 				referenceAmount: 1,
 				countTemplate: '{n} Britannias',
+				spritePath: '/sprites/gold/_stubs/coin.svg',
 			},
 			// 4. tube (20 Britannias, 620 g ≈ 20 oz) — stacked coin tube
 			{
@@ -146,6 +149,7 @@ const gold: Commodity = {
 				realWorldWidthMetres: 0.045, // tube width/diameter
 				referenceAmount: 5,
 				countTemplate: '{n} Britannias in tube',
+				spritePath: '/sprites/gold/_stubs/tube.svg',
 			},
 			// 5. small_bar (100 g LBMA ≈ 3.215 oz) — rendered as bar, scales through this range
 			{
@@ -154,6 +158,7 @@ const gold: Commodity = {
 				realWorldWidthMetres: 0.055,
 				referenceAmount: 20,
 				countTemplate: '{n} × 100 g bars',
+				spritePath: '/sprites/gold/_stubs/small_bar.svg',
 			},
 			// 6. kilo_bar (1 kg ≈ 32.15 oz)
 			{
@@ -162,6 +167,7 @@ const gold: Commodity = {
 				realWorldWidthMetres: 0.117, // 117 × 53 × 9 mm
 				referenceAmount: 32.15,
 				countTemplate: '{n} kilo bars',
+				spritePath: '/sprites/gold/_stubs/kilo_bar.svg',
 			},
 			// 7. good_delivery_single (400 oz / 12.44 kg)
 			{
@@ -170,6 +176,7 @@ const gold: Commodity = {
 				realWorldWidthMetres: 0.25, // ~250 × 80 × 45 mm
 				referenceAmount: 400,
 				countTemplate: '{n} Good Delivery bars',
+				spritePath: '/sprites/gold/_stubs/good_delivery_single.svg',
 			},
 			// 8. bar_pyramid (3–~30 bars, NY Fed vault style) — ISOMETRIC
 			{
@@ -179,6 +186,7 @@ const gold: Commodity = {
 				referenceAmount: 2000,
 				projection: 'isometric',
 				countTemplate: '{n} Good Delivery bars',
+				spritePath: '/sprites/gold/_stubs/bar_pyramid.svg',
 			},
 			// 9. pallet (~30–~240 bars, ~1–3 t) — isometric, tile mode entry
 			{
@@ -190,6 +198,7 @@ const gold: Commodity = {
 				projection: 'isometric',
 				tileConfig: stubTileConfig('gold', 'pallet', { capAtTiles: 80 }),
 				countTemplate: '{bars} bars across {pallets} pallets',
+				spritePath: '/sprites/gold/_stubs/pallet.svg',
 			},
 			// 10. vault_multi_pallet (3–~300 t) — tiled grid of full pallets
 			{
@@ -204,6 +213,7 @@ const gold: Commodity = {
 					capAtTiles: 60,
 				}),
 				countTemplate: '{bars} bars across {pallets} pallets',
+				spritePath: '/sprites/gold/_stubs/vault_multi_pallet.svg',
 			},
 		]),
 		heroScene: 'gold',
