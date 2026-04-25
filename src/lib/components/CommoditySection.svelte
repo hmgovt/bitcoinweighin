@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { Commodity } from '$lib/commodities.js';
 	import type { UnitSystem } from '$lib/stores/url.js';
-	import { computeIntrinsicVolumeCm3, computeMassGrams, computeDisplayWidthMm, pickStage } from '$lib/volume.js';
+	import { computeIntrinsicVolumeCm3, computeMassGrams, computeDisplayWidthMm, pickStage, computeTileState } from '$lib/volume.js';
 	import { formatMass, formatVolume, formatCommodityAmount, unitLabel, formatBtc } from '$lib/format.js';
 	import QualityBadge from './QualityBadge.svelte';
+	import PhysicalRep from './PhysicalRep.svelte';
 
 	let {
 		commodity,
@@ -22,12 +23,6 @@
 	const displayWidthMm = $derived(safeAmount > 0 ? computeDisplayWidthMm(safeAmount, stage) : 0);
 	const massGrams = $derived(safeAmount > 0 ? computeMassGrams(safeAmount, commodity) : null);
 	const volumeCm3 = $derived(safeAmount > 0 ? computeIntrinsicVolumeCm3(safeAmount, commodity) : 0);
-
-	// Aspect ratio for placeholder: use real-world width to approximate
-	const aspectRatio = $derived(Math.max(0.3, Math.min(2, stage.realWorldWidthMetres * 2)));
-
-	// Scale the placeholder box height based on display width, clamped
-	const boxHeight = $derived(Math.max(60, Math.min(400, displayWidthMm * 0.5)));
 </script>
 
 <section id={commodity.id} class="mb-8 rounded-lg bg-zinc-900 p-4 sm:p-6">
@@ -36,24 +31,12 @@
 		<QualityBadge quality={commodity.dataQuality} />
 	</div>
 
-	<!-- Placeholder sprite area -->
-	<div
-		class="relative mb-4 flex items-center justify-center rounded bg-zinc-800 transition-all duration-300"
-		style="height: {boxHeight}px; min-height: 60px;"
-	>
-		{#if safeAmount > 0}
-			<div class="text-center text-zinc-500">
-				<div class="text-sm font-mono">{stage.id.replace(/_/g, ' ')}</div>
-				<div class="text-xs mt-1 text-zinc-600">
-					{Math.round(displayWidthMm)} mm display width
-				</div>
-			</div>
-		{:else}
-			<div class="text-zinc-600 text-sm">No data for this date</div>
-		{/if}
+	<!-- Physical representation scene -->
+	<div class="mb-4 rounded bg-zinc-800">
+		<PhysicalRep {commodity} amount={safeAmount} />
 	</div>
 
-	<!-- Readout strip -->
+	<!-- Readout strip (basic — will be replaced by ReadoutStrip component) -->
 	{#if safeAmount > 0}
 		<div class="flex flex-wrap gap-x-4 gap-y-1 text-sm font-mono text-zinc-300">
 			<span class="text-amber-400">
