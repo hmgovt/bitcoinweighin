@@ -124,15 +124,29 @@ interface Commodity {
   dataQuality: "live" | "indicative" | "historical" | "illustrative";
 }
 
+interface TileConfig {
+  fillStates: string[];                     // 0/25/50/75/100% sprite paths
+  maxGridCols: { mobile: number; desktop: number };
+  capAtTiles: number;                       // past this, comparison card
+}
+
+interface RenderStage {
+  id: string;                  // e.g. "coin", "pallet", "vault_multi_pallet"
+  maxValue: number | null;     // unit amount; null = final stage
+  spritePath: string;          // e.g. "/sprites/silver/stack@2x.webp"
+  spriteWidthPx: number;       // native render width in pixels
+  realWorldWidthMetres: number;// the actual physical width the sprite depicts
+  referenceAmount: number;     // the unit amount depicted in the sprite
+  caption?: string;            // optional override for readout strip
+  renderMode?: "scale" | "tile";              // default "scale"
+  projection?: "three_quarter" | "isometric"; // default "three_quarter"
+  tileConfig?: TileConfig;                    // config for tile-mode stages
+  countTemplate?: string;                     // e.g. "{n} kilo bars" — omit if meaningless
+  suppressCoinRef?: boolean;                  // true = coin baked into sprite, suppress standalone
+}
+
 interface RenderProgression {
-  stages: Array<{
-    id: string;                  // e.g. "coin", "stack", "monster_box"
-    maxValue: number | null;     // unit amount; null = final stage
-    spritePath: string;          // e.g. "/sprites/silver/stack@2x.webp"
-    spriteWidthPx: number;       // native render width in pixels
-    realWorldWidthMetres: number;// the actual physical width the sprite depicts
-    caption?: string;            // optional override for readout strip
-  }>;
+  stages: RenderStage[];
   heroScene?: "gold" | "oil";    // optional Three.js upgrade flag
 }
 ```
@@ -145,30 +159,42 @@ A single Svelte component `<PhysicalRep commodity={c} amount={n} />` that:
 
 1. Computes mass and/or volume from `amount × unitMass` and density (or fluid volume for liquids/gases)
 2. Picks the appropriate stage from `render.stages` based on `amount`
-3. Computes the target physical display width in millimetres: `stageRealWorldWidthMetres × 1000 × (computedVolume / stageReferenceVolume)^(1/3)`
-4. Renders the stage sprite at that physical width using CSS `mm` units (falling back to scaled pixels on devices that ignore physical units)
-5. Renders the **£1 coin reference** at actual physical size (23.43 mm) in the corner, always
-6. Renders the **human silhouette** only when the computed commodity display width exceeds 300 mm; hidden otherwise
-7. Renders a **comparison card** below the scene only when the computed display width exceeds 5000 mm; selected from the comparison library by matching computed mass or volume
-8. At stage boundaries, cross-fades between sprites over 300 ms to avoid popping
-9. Renders a readout strip below: **mass** · **volume** · **one fact** · **comparison card (if present)**
-10. Shows a subtle `(market closed — Friday close)` tag when the current date's value was forward-filled
+3. **Scale mode** (`renderMode: "scale"`, default): computes the target physical display width in millimetres: `stageRealWorldWidthMetres × 1000 × cbrt(amount / referenceAmount)`. Continuous within stage.
+4. **Tile mode** (`renderMode: "tile"`): computes integer tile count + fractional trailing tile. Full tiles use 100% sprite; trailing tile picks nearest fill state from `tileConfig.fillStates` (5 states: 0/25/50/75/100%) and cross-fades. Grid flows left-to-right, top-to-bottom, capped at `tileConfig.maxGridCols` per viewport.
+5. Renders the stage sprite at that physical width using CSS `mm` units (falling back to scaled pixels on devices that ignore physical units)
+6. Renders the **£1 coin reference** at actual physical size (23.43 mm) in the corner — **suppressed** when `stage.suppressCoinRef` is true (e.g. the `dust` stage, where the coin is baked into the sprite)
+7. Renders the **human silhouette** only when the computed commodity display width exceeds 300 mm; hidden otherwise
+8. Renders a **comparison card** below the scene when the computed display width exceeds 5000 mm OR when tile mode hits `tileConfig.capAtTiles`; selected from the comparison library by matching computed mass or volume
+9. At stage boundaries, cross-fades between sprites over 300 ms to avoid popping. **Projection changes** (three_quarter → isometric) use the same 300 ms crossfade — the geometry change reads as "zoom out to institutional view".
+10. Renders a **readout strip** below: **mass** · **volume** · **count** (from `countTemplate`, if present) · **comparison card (if present)**. The readout strip is a **primary continuity signal** — numbers update on every slider tick. Uses `font-variant-numeric: tabular-nums`.
+11. Shows a subtle `(market closed — Friday close)` tag when the current date's value was forward-filled
 
 ### Scaling strategy
 
-Each sprite is rendered at a canonical "reference amount" during production — e.g. the silver "monster_box" sprite depicts exactly 500 ounces. The renderer scales up or down from that reference using the cube-root rule until the next stage threshold is crossed. Stage thresholds should be set so that adjacent stages overlap visually — i.e. the top of "stack" and the bottom of "monster_box" look similar in size — which makes the cross-fade read as continuous rather than jarring.
+**Scale mode** (default): Each sprite is rendered at a canonical "reference amount" during production — e.g. the silver "monster_box" sprite depicts exactly 500 ounces. The renderer scales up or down from that reference using the cube-root rule until the next stage threshold is crossed. Stage thresholds should be set so that adjacent stages overlap visually — i.e. the top of "stack" and the bottom of "monster_box" look similar in size — which makes the cross-fade read as continuous rather than jarring.
 
 The sprite's rendered physical width is derived from its `realWorldWidthMetres` metadata and the computed volume ratio, not from arbitrary CSS. This lets the renderer claim "actual size" for small commodities on calibrated displays and scale proportionally once we're past the viewport-physical threshold.
 
+**Tile mode**: For institutional-scale stages (pallets, vault arrays), the renderer computes integer tile count + fractional trailing tile from `amount / referenceAmount`. Full tiles use the 100% fill sprite; the trailing tile picks the nearest fill state from 5 authored variants (0/25/50/75/100%) and cross-fades between them. Grid flows left-to-right, top-to-bottom, capped at `maxGridCols` per viewport (mobile vs desktop). When `totalTiles > capAtTiles`, the tile grid caps and the comparison card takes over. `capAtTiles` is authored per stage in `tileConfig`.
+
+**Continuity contract**: the user must see *something* change on every slider movement. Three cooperating layers ensure this:
+1. Within scale stages: cube-root scaling is continuous
+2. Within tile stages: fractional fill on trailing tile carries continuity between integer counts
+3. Readout strip: mass, volume, and count always update per slider tick (tabular-figures font, no jitter)
+
 ### Progression examples (sprite stages)
 
-**Gold** (very dense, small visual):
-1. `grain` — loose flake, ref 0.1 g
-2. `coin` — single 1 oz Britannia, ref 31 g
-3. `small_bar` — 100 g LBMA bar, ref 100 g
-4. `kilo_bar` — 1 kg investment bar, ref 1 kg
-5. `good_delivery` — 400 oz LBMA bar, ref 12.4 kg
-6. `bar_stack` — palletised stack, scales upward
+**Gold** (very dense, small visual — 10-stage progression):
+1. `dust` (≤ 0.1 g) — gold flakes rendered *on* the £1 coin. Coin baked into sprite; renderer suppresses standalone coin reference. Three-quarter projection.
+2. `nugget_cluster` (0.1 – 3 g) — irregular grains on neutral surface, coin shown separately. Three-quarter.
+3. `coin` (1 oz Britannia, 31 g) — single gold coin. Three-quarter.
+4. `tube` (20 Britannias, 620 g) — stacked coin tube, fills gap between single coin and bar products. Three-quarter.
+5. `small_bar` (100 g LBMA) — investment bar. Three-quarter.
+6. `kilo_bar` (1 kg) — standard kilo bar. Three-quarter.
+7. `good_delivery_single` (400 oz / 12.44 kg) — single LBMA Good Delivery bar. Three-quarter.
+8. `bar_pyramid` (3 – ~30 bars) — NY Fed vault style pyramid. **Isometric projection starts here.**
+9. `pallet` (~30 – ~240 bars, ~1 – 3 t) — isometric, **tile mode entry point**. 5 fill-state variants (0/25/50/75/100%). `capAtTiles: 80`.
+10. `vault_multi_pallet` (3 – ~300 t) — tiled grid of full pallet sprites. Isometric, tile mode. `capAtTiles: 60`. Past cap, comparison card takes over.
 
 **Silver** (less dense, dramatic jumps):
 1. `coin` — 1 oz round, ref 31 g
@@ -606,12 +632,12 @@ The `btc` range goes to 21 million because the "total supply" preset needs to re
 
 Presets turn specific BTC amounts into named narrative frames. Each one is a shareable URL that loads a specific quantity (and optionally a specific date) to tell a small story. They double as a curation tool — a careful preset list is a better landing experience than a bare slider.
 
-Presets appear as a horizontally-scrollable pill bar above the main BTC slider. Four categories, colour-coded subtly:
+Presets appear as a horizontally-scrollable pill bar above the main BTC slider. Two categories at MVP launch, colour-coded subtly:
 
 - **Denominations** — technical units. 1 sat, 1 bit, 1 Nakamoto, 1 BTC, 21 BTC.
-- **History** — moments pinned to specific dates. Pizza Day, Mt Gox peak, halvings, ETF approval.
-- **Entities** — real-world holders at a point in time. Strategy, BlackRock IBIT, El Salvador, US government, Satoshi's estimated stash.
 - **Absurdity** — the "lol" tier. Total supply (21M BTC), total market cap.
+
+Two further categories — **History** (Pizza Day, halvings, ETF approval) and **Entities** (Strategy, BlackRock IBIT, Satoshi's stash) — were originally planned but have been deferred from MVP. See *Presets deferred from MVP* below for rationale.
 
 ### Schema
 
@@ -662,58 +688,6 @@ interface Preset {
   },
 
   {
-    "id": "pizza_day", "label": "🍕 Pizza Day", "category": "history",
-    "description": "Laszlo Hanyecz's 10,000 BTC for two Papa John's pizzas. What would two pizzas have bought across history?",
-    "btc": 10000, "date": "2010-05-22", "dateRule": "suggest", "pinned": true
-  },
-  {
-    "id": "genesis", "label": "Satoshi's first block", "category": "history",
-    "description": "The genesis block reward, mined 3 January 2009.",
-    "btc": 50, "date": "2009-01-03", "dateRule": "suggest", "pinned": false
-  },
-  {
-    "id": "first_halving_reward", "label": "Post-halving block", "category": "history",
-    "description": "A single block reward after the first halving (25 BTC).",
-    "btc": 25, "date": "2012-11-28", "dateRule": "suggest", "pinned": false
-  },
-
-  {
-    "id": "strategy", "label": "Strategy's stack", "category": "entity",
-    "description": "What Michael Saylor's company owns.",
-    "btc": "dynamic", "dynamicFn": "entity_strategy",
-    "source": "CoinGecko public treasuries API, updated daily",
-    "pinned": true
-  },
-  {
-    "id": "blackrock_ibit", "label": "BlackRock IBIT", "category": "entity",
-    "description": "The largest spot Bitcoin ETF.",
-    "btc": "dynamic", "dynamicFn": "entity_ibit",
-    "source": "CoinGecko / issuer disclosures",
-    "pinned": true
-  },
-  {
-    "id": "el_salvador", "label": "🇸🇻 El Salvador", "category": "entity",
-    "description": "State holdings of the first nation to make BTC legal tender.",
-    "btc": "dynamic", "dynamicFn": "entity_el_salvador",
-    "source": "Official presidential treasury tracker",
-    "pinned": false
-  },
-  {
-    "id": "us_govt", "label": "🇺🇸 US Government", "category": "entity",
-    "description": "Seized BTC held by the US government. Includes Silk Road, Bitfinex recovery, etc.",
-    "btc": "dynamic", "dynamicFn": "entity_us_govt",
-    "source": "Arkham, bitcointreasuries.net",
-    "pinned": false
-  },
-  {
-    "id": "satoshi_stash", "label": "👻 Satoshi's stash", "category": "entity",
-    "description": "Estimated Bitcoin held in wallets attributed to Satoshi Nakamoto. Untouched since 2010.",
-    "btc": 1100000,
-    "source": "Patoshi pattern analysis, Sergio Demian Lerner",
-    "pinned": true
-  },
-
-  {
     "id": "total_supply", "label": "21M BTC — total supply", "category": "absurdity",
     "description": "Every bitcoin that will ever exist. The ceiling.",
     "btc": 21000000,
@@ -728,6 +702,16 @@ interface Preset {
   }
 ]
 ```
+
+### Presets deferred from MVP
+
+The following preset categories were in earlier versions of this spec but have been removed from MVP launch. They'll come back in later phases once specific technical issues are resolved:
+
+**History category — deferred indefinitely.** Presets like Pizza Day (10,000 BTC at 2010-05-22), genesis block (2009-01-03), first halving (2012-11-28) all lock to dates outside the dataset, which starts 2013-01-01. Loading them creates dead-end UX: the user taps Pizza Day expecting drama, sees "no data for 2010", closes the tab. Historical narrative framings like Pizza Day belong in editorial content (the Weigh-In newsletter) where they can be presented with proper context and curated screenshots, not as broken interactive presets. If the commodity dataset is ever extended backwards to cover 2009-2012 (stooq has sparse data for this range), these can be revisited.
+
+**Entity category — deferred to a dedicated phase.** Presets like Strategy's stack, BlackRock IBIT, El Salvador, US Government seizures, Satoshi's estimated stash require live data that changes meaningfully over time. Strategy's holdings have grown from ~636k BTC at spec-writing time to over 800k BTC as of April 2026 — hardcoded values go stale fast, and stale data on flagship presets damages credibility worse than missing presets entirely. Entity presets require the automation pipeline described in the Entity holdings automation section below: CoinGecko's `/companies/public_treasury/bitcoin` endpoint for public companies, bitcointreasuries.net scraping for nation-states and ETFs, with historical holdings by date so the scrubber resolves entities as-of the scrubbed date, not today. This is 4-8 hours of focused Claude Code work and should ship as a dedicated Phase 3.5 before launch, not as part of the initial skeleton.
+
+**Implementation note for renderer:** preset category rendering must skip categories with zero items, so removing History and Entity from MVP doesn't leave empty section headings in the UI. The remaining MVP preset mix is Denominations (one_sat, one_bit, one_nakamoto, one_btc, twenty_one) plus Absurdity (total_supply, market_cap). All are derived from the core dataset with zero external dependencies and zero staleness risk.
 
 ### Dynamic preset resolvers
 
@@ -1028,12 +1012,25 @@ btc-commodity-visualiser/
 - Mobile touch handling (consider dual-range: coarse year + fine date)
 - `prefers-reduced-motion` respected
 
+### Phase 3.5 — Entity holdings automation (half a weekend)
+Bringing forward what was originally planned for Phase 6, because entity presets are too credibility-critical to ship with stale hardcoded values. Strategy's holdings, for example, grew from ~636k BTC to over 800k BTC in the months between spec-writing and build. Hardcoded values on flagship presets would be an instant credibility hit.
+
+- Build scripts/fetch-entity-holdings.ts: daily fetch from CoinGecko's `/companies/public_treasury/bitcoin` endpoint (free with Demo API key) for public companies
+- Scrape bitcointreasuries.net for nation-states and ETFs not in CoinGecko's list. Defensive scraping — fail gracefully, use previous day's values, log failures to `health.json`
+- Produce `public/entities.json` with current holdings plus a history array per entity (seeded manually for major milestone purchases; Strategy has ~80 8-K filings to mine from 2020 onwards; El Salvador purchases are publicly announced; BlackRock IBIT flows come from ETF disclosures)
+- Wire entity preset resolvers (`entity_strategy`, `entity_ibit`, etc.) to read from `entities.json`, returning holdings as-of the scrubber's current date (not always today's value) so historical scrubbing shows historically-accurate entity holdings
+- Re-enable the previously-deferred entity presets in `presets.json`: strategy, blackrock_ibit, el_salvador, us_govt, satoshi_stash
+- Daily GitHub Action update alongside the commodity prices cron
+
+Historical accuracy matters: "Strategy's stack in 2022" should show what they actually held in 2022, not their 2026 pile. This is the small detail that makes the site feel honest rather than gimmicky.
+
 ### Phase 4 — Polish & ship (a few evenings)
 - OG image generation via Cloudflare Workers (pre-render `og-image?btc=1&date=...`)
 - Methodology page (data sources, computation notes, data quality framework)
 - About page with Packaging the Fnords cross-link
 - Dataset page (`/data`) with CC-BY download + citation block
 - Email capture (Plausible/Umami + Buttondown or similar newsletter tool)
+- **Lightning tipjar.** Single line in the footer or methodology page with a Lightning address on the project's own domain (`tim@bitcoinweighin.com` or similar). Use Alby's LNURL delegation via a DNS record or a single `.well-known/lnurlp/[username]` JSON file served statically. Copy to use: *"Tips via Lightning: `tim@bitcoinweighin.com`. Plug the amount into the slider to see what you just sent."* The reflexive "what did I just send?" loop is part of the delight — keep the copy exactly as specified rather than generic "support us" language.
 - Launch: submit to Hacker News, post to crypto Twitter, r/bitcoin, r/dataisbeautiful
 
 ### Phase 5 — Hero scenes + polish (optional, 1 weekend)

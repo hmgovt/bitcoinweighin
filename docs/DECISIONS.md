@@ -1,0 +1,87 @@
+# Decisions
+
+*A running log of architectural and design decisions, most recent first. One line per decision. Add entries as they're made; never edit prior ones.*
+
+---
+
+## Infrastructure and tooling
+
+- **2026-04-20:** SvelteKit adapter is `@sveltejs/adapter-static`, NOT `@sveltejs/adapter-cloudflare`. The site is fully prerendered with no server-side logic; Workers would be overkill.
+- **2026-04-20:** Cloudflare Pages build output directory is `build/` (adapter-static default), not `.svelte-kit/cloudflare` (which was Cloudflare's suggestion based on their framework preset).
+- **2026-04-20:** Hosting on Cloudflare Pages free tier. GitHub Actions free tier for daily cron. Total expected monthly run cost: £0 for infrastructure, ~£10 for domain + analytics.
+- **2026-04-19:** Framework is SvelteKit with TypeScript and Tailwind. Vitest for unit tests, Playwright for visual regression (later phases).
+- **2026-04-19:** Git authentication via SSH keys, not HTTPS-with-token. One-time setup, permanent silent auth.
+- **2026-04-19:** Repo is private on GitHub during build-out. Flip to public later if we want the build-in-public story; SPEC.md stays local-only for now.
+
+## Data pipeline
+
+- **2026-04-19:** BTC price comes from stooq (ticker `btcusd`), same source as the metals and agri commodities. Not CoinGecko. One parser, one failure mode, one rate-limit regime.
+- **2026-04-19:** BTC circulating supply is computed deterministically from block height using the known halving schedule. No API dependency — it's a pure function of the protocol's supply curve.
+- **2026-04-19:** Stooq uses `.c` suffix (continuous contracts), not `.f` as some references suggest. Correct symbols: `hg.c`, `zw.c`, `kc.c`. Claude Code caught this during Phase 0.
+- **2026-04-19:** Historical data range is 2013-01-01 onwards. Pre-2013 data is too thin across commodities to be useful. Accept that Pizza Day (2010-05-22) is outside the dataset — it becomes editorial content, not an interactive preset.
+- **2026-04-19:** Forward-fill commodity values for weekends/holidays when BTC data exists; flag forward-filled dates in meta.json for the UI to show "(market closed)" subtly.
+- **2026-04-19:** Daily refresh via GitHub Actions cron at 02:00 UTC. Data commits go straight to main, trigger Cloudflare redeploy automatically.
+
+## Commodity catalogue
+
+- **2026-04-20:** MVP core is 6 commodities: gold, silver, copper, oil_brent, natgas, uranium_fuel_pellet. Optional additions: platinum, coffee. Everything else deferred to Tier 2 post-launch.
+- **2026-04-20:** Wheat is fetched in Phase 0 and present in prices.json, but deliberately excluded from MVP rendering. Deferred to Tier 2. Data preserved so re-adding is zero data work.
+- **2026-04-20:** No diamonds, ever. Non-fungible (4 Cs determine price), no public spot price (Rapaport is subscription-only), and the lab-grown revolution has made natural diamond prices chaotic. A site built on honest data shouldn't touch this market.
+- **2026-04-20:** Curio cabinet (Tier 3) trimmed to 6 items: U3O8 yellowcake, rhodium, osmium, saffron, tritium, californium-252. Dropped: iridium (redundant with rhodium), vanilla (weak pricing), helium-3 (redundant with tritium), antimatter (caveats dominate), palladium (visually too close to platinum for MVP).
+- **2026-04-20:** Uranium fuel pellet promoted from Tier 3 curio to MVP core commodity. It's the site's philosophical closer — "1 BTC ≈ 4,500 pellets ≈ power for 1,650 UK homes for a year" is the single most shareable frame on the site.
+- **2026-04-20:** Uranium fuel pellet pricing is illustrative (~$20/pellet) based on WNA composite fuel cost methodology. Not a live market price. Clearly labelled `illustrative` in UI with sources on methodology page.
+- **2026-04-20:** Illustrative-priced commodities live in `src/lib/illustrative-prices.json` with mandatory source attribution and as-of date. Separate from `prices.json`. Do not pretend they're live market data.
+
+## Rendering and visuals
+
+- **2026-04-19:** Sprite-based rendering, not realtime 3D. Pre-rendered WebP stills per progression stage, CSS cube-root scaling, cross-fade transitions. Three.js hero scenes only as optional Phase 5 polish for one or two commodities.
+- **2026-04-19:** No rotation of commodity objects. Static sprites only. Rotation adds complexity without product value.
+- **2026-04-20:** Scale reference system: £1 coin at actual physical size (CSS mm units) always; 1.75 m human silhouette only when commodity displayed size >300 mm; text comparison cards for displayed sizes >5 m. No menagerie of mid-range reference objects (no bricks, cars, buses, whales as rendered sprites).
+- **2026-04-20:** Two distinct volume computations: intrinsic material volume (mass ÷ density, for the readout strip) and visual stacking volume (derived from sprite's authored `realWorldWidthMetres` metadata, for display scaling). Related but never confused.
+- **2026-04-20:** Asset production sequencing: attempt Claude Code + Blender MCP first. Hard deadline of one focused weekend. If quality doesn't reach portfolio bar, fall back to £2-3k Upwork/ArtStation outsource. Don't sink weeks trying to make MCP work if it's not clicking.
+- **2026-04-24:** Gold progression expanded from 6 to 10 stages. Sub-gram stages: `dust` (flakes on coin, coin baked into sprite) and `nugget_cluster`. Coin-product stages: `coin`, `tube` (20 Britannias, fills gap between single coin and bar products). Bar stages: `small_bar`, `kilo_bar`, `good_delivery_single`, `bar_pyramid`. Institutional stages: `pallet`, `vault_multi_pallet` — tile mode. Stage thresholds are approximate; will be tuned when real sprites land.
+- **2026-04-24:** `renderMode: "scale" | "tile"` introduced. Scale mode is the existing cube-root continuous scaling. Tile mode computes integer tile count + fractional trailing tile, with 5 authored fill-state sprites per tile (0/25/50/75/100%). Fractional fill provides continuity between integer counts.
+- **2026-04-24:** Isometric projection from `bar_pyramid` (stage 8) upward; three-quarter below. Projection change uses 300 ms crossfade — geometry change reads as "zoom out to institutional view".
+- **2026-04-24:** `capAtTiles` is per-stage, authored in `tileConfig`. Gold pallet: 80 tiles (an 8×10 grid on desktop, the mobile readability limit). Gold vault_multi_pallet: 60 tiles (compact 8×8). Chosen for mobile readability; will tune once stubs are visible.
+- **2026-04-24:** `countTemplate` is per-stage opt-in (e.g. "{n} kilo bars", "{bars} bars across {pallets} pallets"). Stages where a count is meaningless (dust, nugget_cluster) omit it entirely. Avoids a brittle global formatter.
+- **2026-04-24:** Readout strip promoted to primary continuity signal. Uses `font-variant-numeric: tabular-nums` to prevent jitter during drag. Mass, volume, and count always update per slider tick — when the sprite layer is momentarily static, the numbers must be moving.
+- **2026-04-24:** Dollar value promoted to primary UI element: ~2× type size directly under slider. `$XX,XXX.XX` with locale-aware separators, secondary line with per-BTC price and date. Tabular figures. Second-most important number on the page after the slider value.
+- **2026-04-24:** Stub sprites are flat-coloured SVG rectangles at correct aspect ratio (1:1 for three-quarter, ~1.7:1 for isometric) with stage label overlaid. Live in `static/sprites/{commodity}/_stubs/`. Renderer is agnostic to stub vs real sprite — same paths, same contract. Stubs generated by `scripts/generate-stubs.ts`.
+- **2026-04-24:** `dust` stage suppressCoinRef: true — suppresses only the standalone £1 coin element. When stage 2 (nugget_cluster) takes over, the standalone coin returns at 23.43 mm via the unchanged CSS-mm path.
+
+## State and UX
+
+- **2026-04-20:** BTC slider range is 0.00000001 (1 sat) to 21,000,000 (total supply). Logarithmic scale — 15 orders of magnitude distributed evenly across the slider. Single source of truth; no dual-mode clamping.
+- **2026-04-20:** URL is the state source of truth. Slider, date, unit, preset all round-trip via URL params. `history.replaceState` on every state change, debounced to 100ms.
+- **2026-04-20:** MVP presets are denominations (one_sat, one_bit, one_nakamoto, one_btc, twenty_one) plus absurdity (total_supply, market_cap). Seven presets total. All derived from the core dataset; zero external dependencies.
+- **2026-04-20:** History category presets (Pizza Day, genesis block, first halving) deferred indefinitely — they lock to dates outside the dataset. Move Pizza Day etc. to editorial content instead.
+- **2026-04-20:** Entity category presets (Strategy, BlackRock IBIT, El Salvador, US Govt, Satoshi's stash) deferred to new Phase 3.5 because hardcoded values go stale fast. Strategy had 636k BTC at spec-writing, 800k+ by build time. Automate from CoinGecko + bitcointreasuries before launch, not after.
+- **2026-04-20:** Empty preset categories should not render as headings. If MVP has no History or Entity presets, those section labels must not appear.
+
+## Brand and positioning
+
+- **2026-04-19:** Project name is Bitcoin Weigh-In. Domain is bitcoinweighin.com. Converged independently by both human and AI, which was a good sign.
+- **2026-04-19:** Tagline options: "What does a bitcoin weigh?" · "Bitcoin, measured." · "The purchasing power of one coin, in things you can hold." Not locked yet; decide pre-launch.
+- **2026-04-19:** Newsletter name: *The Weigh-In*. Tool and newsletter share brand identity. Separate Buttondown or Beehiiv registration deferred to Phase 4.
+- **2026-04-19:** Brand voice: honest, precise, slightly dry. Never hypey. The name does the rhetorical work; copy should support, not oversell.
+- **2026-04-19:** Dataset license is CC-BY-4.0. Code license is MIT. The dataset license is deliberately permissive — every citation becomes a backlink and an authority signal.
+
+## Monetisation
+
+- **2026-04-19:** Ad networks (Mediavine etc.) are not the business model at launch. Poor RPM fit for single-page tool, crypto topic hurt by advertiser brand-safety rules.
+- **2026-04-19:** Affiliate links per commodity section are the near-term revenue story. Bullion dealers, BTC services. Placed subtly, not obtrusively. Deferred to Phase 6 post-launch once partner relationships exist.
+- **2026-04-19:** Email list is the real asset at exit. Capture aggressively at anchor events and in methodology page. Segmentation by interest (BTC / bullion / macro) over time.
+- **2026-04-20:** Lightning tipjar at `tim@bitcoinweighin.com` via Alby + static `.well-known/lnurlp` file on own domain. Xverse remains separate wallet for Runes/Ordinals/parasite.wtf rewards. Tipjar is a gesture signal, not a revenue line.
+- **2026-04-20:** Tipjar copy is exactly: *"Tips via Lightning: `tim@bitcoinweighin.com`. Plug the amount into the slider to see what you just sent."* The self-referential loop is the delight — do not substitute generic "support us" language.
+
+## Business structure
+
+- **2026-04-19:** Sole trader for now. UK Ltd incorporation only when project clears ~£2-3k/month. Offshore structures deferred until after relocation from UK (which is a separate strategic question, 2-3 year horizon).
+- **2026-04-19:** Separate business bank account from day one (Starling or Monzo Business, free). Clean paper trail matters more than clever structures for a project at this stage.
+
+## Process
+
+- **2026-04-19:** Claude Code sessions are scoped per phase. Each phase gets a fresh session with a specific handoff prompt. Do not let sessions drift across phase boundaries.
+- **2026-04-19:** Handoff prompts always begin with "read the spec and summarise your understanding of [specific sections] before writing code." Single most valuable insurance against session-long misreadings.
+- **2026-04-19:** Small commits, one logical unit per commit, conventional commit messages (`feat:`, `chore:`, `docs:`, `test:`). Four clean commits read better than one "initial dump" both for credibility and future diffing.
+- **2026-04-20:** API keys never appear in chat. Always set via `.env` file (gitignored) locally and repo secrets in GitHub. If Claude Code or Claude asks for a key value directly, that's a mistake — push back.
