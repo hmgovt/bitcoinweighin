@@ -20,7 +20,7 @@ import { fetchStooq, fetchFRED, type FetchResult } from './fetchers.js';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
 const NDJSON_PATH = join(ROOT, 'data', 'prices.ndjson');
-const HEALTH_PATH = join(ROOT, 'public', 'health.json');
+const HEALTH_PATH = join(ROOT, 'static', 'health.json');
 
 async function main() {
 	const targetDate = yesterday();

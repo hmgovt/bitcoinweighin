@@ -122,8 +122,8 @@ async function main() {
 	console.log(`Wrote ${lines.length} rows (skipped ${skipped} dates without BTC data)`);
 
 	// Write health.json
-	const healthPath = join(ROOT, 'public', 'health.json');
-	if (!existsSync(join(ROOT, 'public'))) mkdirSync(join(ROOT, 'public'), { recursive: true });
+	const healthPath = join(ROOT, 'static', 'health.json');
+	if (!existsSync(join(ROOT, 'static'))) mkdirSync(join(ROOT, 'static'), { recursive: true });
 	writeFileSync(
 		healthPath,
 		JSON.stringify(
@@ -136,7 +136,7 @@ async function main() {
 			2
 		)
 	);
-	console.log('Wrote public/health.json');
+	console.log('Wrote static/health.json');
 
 	// Summary
 	console.log('\n=== Bootstrap Summary ===');

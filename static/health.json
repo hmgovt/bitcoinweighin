@@ -1,42 +1,61 @@
 {
-  "lastRun": "2026-04-20T11:12:39.222Z",
-  "type": "bootstrap",
+  "lastRun": "2026-04-25T15:37:57.518Z",
+  "type": "daily",
+  "date": "2026-04-24",
   "sources": {
     "btc": {
       "status": "ok",
-      "rows": 4855
+      "httpStatus": 200,
+      "rowCount": 1,
+      "url": "https://stooq.com/q/d/l/?s=btcusd&d1=20260424&d2=20260424&i=d&apikey=***"
     },
     "gold": {
       "status": "ok",
-      "rows": 4854
+      "httpStatus": 200,
+      "rowCount": 1,
+      "url": "https://stooq.com/q/d/l/?s=xauusd&d1=20260424&d2=20260424&i=d&apikey=***"
     },
     "silver": {
       "status": "ok",
-      "rows": 4854
+      "httpStatus": 200,
+      "rowCount": 1,
+      "url": "https://stooq.com/q/d/l/?s=xagusd&d1=20260424&d2=20260424&i=d&apikey=***"
     },
     "platinum": {
       "status": "ok",
-      "rows": 4854
+      "httpStatus": 200,
+      "rowCount": 1,
+      "url": "https://stooq.com/q/d/l/?s=xptusd&d1=20260424&d2=20260424&i=d&apikey=***"
     },
     "copper": {
       "status": "ok",
-      "rows": 4823
+      "httpStatus": 200,
+      "rowCount": 1,
+      "url": "https://stooq.com/q/d/l/?s=hg.c&d1=20260424&d2=20260424&i=d&apikey=***"
     },
     "wheat": {
       "status": "ok",
-      "rows": 4811
+      "httpStatus": 200,
+      "rowCount": 1,
+      "url": "https://stooq.com/q/d/l/?s=zw.c&d1=20260424&d2=20260424&i=d&apikey=***"
     },
     "coffee": {
       "status": "ok",
-      "rows": 4819
+      "httpStatus": 200,
+      "rowCount": 1,
+      "url": "https://stooq.com/q/d/l/?s=kc.c&d1=20260424&d2=20260424&i=d&apikey=***"
     },
     "oil_brent": {
-      "status": "ok",
-      "rows": 4785
+      "status": "forward-filled",
+      "httpStatus": 200,
+      "rowCount": 0,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-04-23&observation_end=2026-04-23&api_key=***&file_type=json"
     },
     "natgas": {
-      "status": "ok",
-      "rows": 4814
+      "status": "forward-filled",
+      "httpStatus": 200,
+      "rowCount": 0,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DHHNGSP&observation_start=2026-04-23&observation_end=2026-04-23&api_key=***&file_type=json"
     }
   }
 }

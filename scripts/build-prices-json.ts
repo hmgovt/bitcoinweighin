@@ -1,6 +1,8 @@
 /**
- * Pivots data/prices.ndjson into public/prices.json (keyed by ISO date)
- * and writes public/meta.json with provenance info.
+ * Pivots data/prices.ndjson into static/prices.json (keyed by ISO date)
+ * and writes static/meta.json with provenance info. SvelteKit's
+ * adapter-static ships everything under static/, so this is the
+ * directory the deployed site actually serves from.
  *
  * Usage: npx tsx scripts/build-prices-json.ts
  */
@@ -14,8 +16,8 @@ import { fileURLToPath } from 'url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
 const NDJSON_PATH = join(ROOT, 'data', 'prices.ndjson');
-const PRICES_PATH = join(ROOT, 'public', 'prices.json');
-const META_PATH = join(ROOT, 'public', 'meta.json');
+const PRICES_PATH = join(ROOT, 'static', 'prices.json');
+const META_PATH = join(ROOT, 'static', 'meta.json');
 
 function main() {
 	console.log('=== Building prices.json from NDJSON ===\n');
@@ -55,7 +57,7 @@ function main() {
 	}
 
 	// Write prices.json
-	if (!existsSync(join(ROOT, 'public'))) mkdirSync(join(ROOT, 'public'), { recursive: true });
+	if (!existsSync(join(ROOT, 'static'))) mkdirSync(join(ROOT, 'static'), { recursive: true });
 	const jsonStr = JSON.stringify(prices);
 	writeFileSync(PRICES_PATH, jsonStr);
 
