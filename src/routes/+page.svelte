@@ -17,9 +17,11 @@
 	import CommoditySection from '$lib/components/CommoditySection.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
 
+	let { data } = $props();
+
 	let prices = $state<PriceData | null>(null);
-	let firstDate = $state('2013-01-01');
-	let lastDate = $state('2026-04-19');
+	let firstDate = $state(data.firstDate);
+	let lastDate = $state(data.lastDate);
 	let loading = $state(true);
 
 	function getDayPrices(date: string): DayPrices | undefined {
