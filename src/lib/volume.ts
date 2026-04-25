@@ -5,7 +5,7 @@
  * 2. computeDisplayWidthMm — visual sprite scaling for rendering
  */
 
-import type { Commodity, RenderStage } from './commodities.js';
+import type { Commodity, RenderStage, TileConfig } from './commodities.js';
 
 /**
  * Compute the intrinsic material volume in cm³.
@@ -79,4 +79,51 @@ export function pickStage(amount: number, commodity: Commodity): RenderStage {
 	}
 	// Fallback to last stage
 	return stages[stages.length - 1];
+}
+
+// ── Tile-mode helpers ──────────────────────────────────────────
+
+export interface TileState {
+	/** Number of fully-filled tiles */
+	fullTiles: number;
+	/** Fractional fill of the trailing tile (0–1) */
+	trailingFill: number;
+	/** Index into fillStates array for the trailing tile */
+	trailingFillIndex: number;
+	/** Total tile count (fullTiles + trailingFill) */
+	totalTiles: number;
+	/** Whether we've hit the tile cap and should show comparison card */
+	capped: boolean;
+}
+
+/**
+ * Compute tile state for a tile-mode stage.
+ *
+ * The tile count is the ratio of the current amount to the stage's
+ * referenceAmount (each tile represents one referenceAmount).
+ */
+export function computeTileState(amount: number, stage: RenderStage): TileState {
+	if (!stage.tileConfig) {
+		return { fullTiles: 0, trailingFill: 0, trailingFillIndex: 0, totalTiles: 0, capped: false };
+	}
+
+	const totalTiles = amount / stage.referenceAmount;
+	const cap = stage.tileConfig.capAtTiles;
+	const capped = totalTiles > cap;
+	const effectiveTiles = capped ? cap : totalTiles;
+
+	const fullTiles = Math.floor(effectiveTiles);
+	const trailingFill = effectiveTiles - fullTiles;
+
+	// Map trailing fill to nearest fill-state index (5 states: 0, 0.25, 0.5, 0.75, 1.0)
+	const fillCount = stage.tileConfig.fillStates.length;
+	const trailingFillIndex = Math.round(trailingFill * (fillCount - 1));
+
+	return {
+		fullTiles,
+		trailingFill,
+		trailingFillIndex,
+		totalTiles,
+		capped,
+	};
 }

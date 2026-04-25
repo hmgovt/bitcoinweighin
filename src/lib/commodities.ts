@@ -5,6 +5,15 @@
  * Optional: platinum (between copper & oil), coffee (between platinum & oil)
  */
 
+export interface TileConfig {
+	/** Sprite paths for 0/25/50/75/100% fill states */
+	fillStates: string[];
+	/** Max grid columns per viewport */
+	maxGridCols: { mobile: number; desktop: number };
+	/** Past this many tiles, switch to comparison card */
+	capAtTiles: number;
+}
+
 export interface RenderStage {
 	id: string;
 	maxValue: number | null; // unit amount; null = final stage
@@ -13,6 +22,16 @@ export interface RenderStage {
 	realWorldWidthMetres: number;
 	referenceAmount: number; // the unit amount depicted in the sprite
 	caption?: string;
+	/** "scale" = existing cube-root scaling; "tile" = integer grid + fractional trailing */
+	renderMode?: 'scale' | 'tile';
+	/** Camera angle — "three_quarter" for small/medium, "isometric" for institutional */
+	projection?: 'three_quarter' | 'isometric';
+	/** Config for tile-mode stages */
+	tileConfig?: TileConfig;
+	/** Template for count readout, e.g. "{n} kilo bars". Omit if count is meaningless. */
+	countTemplate?: string;
+	/** If true, suppress the standalone £1 coin reference (coin baked into sprite) */
+	suppressCoinRef?: boolean;
 }
 
 export interface RenderProgression {
@@ -49,19 +68,34 @@ export interface Commodity {
 
 function placeholderStages(
 	commodityId: string,
-	stages: Array<{
-		id: string;
-		maxValue: number | null;
-		realWorldWidthMetres: number;
-		referenceAmount: number;
-		caption?: string;
-	}>
+	stages: Array<
+		Omit<RenderStage, 'spritePath' | 'spriteWidthPx'> & {
+			spritePath?: string;
+			spriteWidthPx?: number;
+		}
+	>
 ): RenderStage[] {
 	return stages.map((s) => ({
-		...s,
 		spritePath: `/sprites/${commodityId}/${s.id}@2x.webp`,
 		spriteWidthPx: 1600,
+		...s,
 	}));
+}
+
+/** Build tile fill-state paths for stub sprites */
+function stubTileConfig(
+	commodityId: string,
+	stageId: string,
+	opts: { maxGridCols?: { mobile: number; desktop: number }; capAtTiles: number }
+): TileConfig {
+	const fills = ['0', '25', '50', '75', '100'];
+	return {
+		fillStates: fills.map(
+			(f) => `/sprites/${commodityId}/_stubs/${stageId}_fill_${f}.svg`
+		),
+		maxGridCols: opts.maxGridCols ?? { mobile: 5, desktop: 10 },
+		capAtTiles: opts.capAtTiles,
+	};
 }
 
 // ---------------------------------------------------------------------------
@@ -80,12 +114,97 @@ const gold: Commodity = {
 	priceField: 'xau',
 	render: {
 		stages: placeholderStages('gold', [
-			{ id: 'grain', maxValue: 0.5, realWorldWidthMetres: 0.005, referenceAmount: 0.003215 },
-			{ id: 'coin', maxValue: 5, realWorldWidthMetres: 0.032, referenceAmount: 1 },
-			{ id: 'small_bar', maxValue: 40, realWorldWidthMetres: 0.055, referenceAmount: 3.215 },
-			{ id: 'kilo_bar', maxValue: 400, realWorldWidthMetres: 0.08, referenceAmount: 32.15 },
-			{ id: 'good_delivery', maxValue: 5000, realWorldWidthMetres: 0.25, referenceAmount: 400 },
-			{ id: 'bar_stack', maxValue: null, realWorldWidthMetres: 1.2, referenceAmount: 4000 },
+			// 1. dust (≤0.1 g ≈ 0.003 oz) — gold flakes rendered ON the £1 coin
+			{
+				id: 'dust',
+				maxValue: 0.003,
+				realWorldWidthMetres: 0.024, // coin diameter — sprite includes the coin
+				referenceAmount: 0.001,
+				suppressCoinRef: true,
+				caption: 'Gold dust on a £1 coin',
+			},
+			// 2. nugget_cluster (0.1–3 g ≈ 0.003–0.1 oz) — irregular grains on neutral surface
+			{
+				id: 'nugget_cluster',
+				maxValue: 0.1,
+				realWorldWidthMetres: 0.02,
+				referenceAmount: 0.05,
+				caption: 'Gold nugget cluster',
+			},
+			// 3. coin (1 oz Britannia, 31 g) — single gold coin
+			{
+				id: 'coin',
+				maxValue: 1.5,
+				realWorldWidthMetres: 0.032, // Britannia diameter 32.69 mm
+				referenceAmount: 1,
+				countTemplate: '{n} Britannias',
+			},
+			// 4. tube (20 Britannias, 620 g ≈ 20 oz) — stacked coin tube
+			{
+				id: 'tube',
+				maxValue: 8,
+				realWorldWidthMetres: 0.045, // tube width/diameter
+				referenceAmount: 5,
+				countTemplate: '{n} Britannias in tube',
+			},
+			// 5. small_bar (100 g LBMA ≈ 3.215 oz) — rendered as bar, scales through this range
+			{
+				id: 'small_bar',
+				maxValue: 50,
+				realWorldWidthMetres: 0.055,
+				referenceAmount: 20,
+				countTemplate: '{n} × 100 g bars',
+			},
+			// 6. kilo_bar (1 kg ≈ 32.15 oz)
+			{
+				id: 'kilo_bar',
+				maxValue: 200,
+				realWorldWidthMetres: 0.117, // 117 × 53 × 9 mm
+				referenceAmount: 32.15,
+				countTemplate: '{n} kilo bars',
+			},
+			// 7. good_delivery_single (400 oz / 12.44 kg)
+			{
+				id: 'good_delivery_single',
+				maxValue: 1500,
+				realWorldWidthMetres: 0.25, // ~250 × 80 × 45 mm
+				referenceAmount: 400,
+				countTemplate: '{n} Good Delivery bars',
+			},
+			// 8. bar_pyramid (3–~30 bars, NY Fed vault style) — ISOMETRIC
+			{
+				id: 'bar_pyramid',
+				maxValue: 12000,
+				realWorldWidthMetres: 0.5,
+				referenceAmount: 2000,
+				projection: 'isometric',
+				countTemplate: '{n} Good Delivery bars',
+			},
+			// 9. pallet (~30–~240 bars, ~1–3 t) — isometric, tile mode entry
+			{
+				id: 'pallet',
+				maxValue: 300000,
+				realWorldWidthMetres: 1.2,
+				referenceAmount: 9600, // ~24 bars per pallet
+				renderMode: 'tile',
+				projection: 'isometric',
+				tileConfig: stubTileConfig('gold', 'pallet', { capAtTiles: 80 }),
+				countTemplate: '{bars} bars across {pallets} pallets',
+			},
+			// 10. vault_multi_pallet (3–~300 t) — tiled grid of full pallets
+			{
+				id: 'vault_multi_pallet',
+				maxValue: null,
+				realWorldWidthMetres: 1.2, // same pallet sprite, tiled
+				referenceAmount: 96000, // ~10 pallets
+				renderMode: 'tile',
+				projection: 'isometric',
+				tileConfig: stubTileConfig('gold', 'vault_multi_pallet', {
+					maxGridCols: { mobile: 4, desktop: 8 },
+					capAtTiles: 60,
+				}),
+				countTemplate: '{bars} bars across {pallets} pallets',
+			},
 		]),
 		heroScene: 'gold',
 	},
