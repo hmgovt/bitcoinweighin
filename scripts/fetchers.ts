@@ -4,6 +4,13 @@
 
 import { formatDateCompact, type SourceConfig } from './sources.js';
 
+export interface FetchResult {
+	data: Map<string, number>;
+	httpStatus: number;
+	rowCount: number;
+	url: string; // with secrets redacted
+}
+
 const RETRY_DELAYS = [1000, 3000, 5000];
 
 async function fetchWithRetry(url: string, label: string): Promise<Response> {
@@ -29,15 +36,19 @@ async function fetchWithRetry(url: string, label: string): Promise<Response> {
 	throw new Error(`Exhausted retries for ${label}`);
 }
 
+function redactUrl(url: string): string {
+	return url.replace(/apikey=[^&]*/g, 'apikey=***').replace(/api_key=[^&]*/g, 'api_key=***');
+}
+
 /**
  * Fetch from stooq CSV endpoint.
- * Returns Map<ISO date, close price>.
+ * Returns FetchResult with data, HTTP status, row count, and redacted URL.
  */
 export async function fetchStooq(
 	source: SourceConfig,
 	startDate: Date,
 	endDate: Date
-): Promise<Map<string, number>> {
+): Promise<FetchResult> {
 	const d1 = formatDateCompact(startDate);
 	const d2 = formatDateCompact(endDate);
 	const apiKey = process.env.STOOQ_API_KEY || '';
@@ -64,7 +75,7 @@ export async function fetchStooq(
 	}
 
 	console.log(`  → ${data.size} rows for ${source.symbol}`);
-	return data;
+	return { data, httpStatus: res.status, rowCount: data.size, url: redactUrl(url) };
 }
 
 /**
@@ -75,7 +86,7 @@ export async function fetchFRED(
 	source: SourceConfig,
 	startDate: Date,
 	endDate: Date
-): Promise<Map<string, number>> {
+): Promise<FetchResult> {
 	const apiKey = process.env.FRED_API_KEY;
 	if (!apiKey) {
 		throw new Error('FRED_API_KEY environment variable is required');
@@ -97,6 +108,6 @@ export async function fetchFRED(
 	}
 
 	console.log(`  → ${data.size} rows for ${source.symbol}`);
-	return data;
+	return { data, httpStatus: res.status, rowCount: data.size, url: redactUrl(url) };
 }
 

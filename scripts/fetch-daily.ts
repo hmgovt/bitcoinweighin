@@ -15,7 +15,7 @@ import {
 	formatDateISO,
 	btcCirculatingSupply,
 } from './sources.js';
-import { fetchStooq, fetchFRED } from './fetchers.js';
+import { fetchStooq, fetchFRED, type FetchResult } from './fetchers.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -42,29 +42,29 @@ async function main() {
 	}
 
 	const row: Record<string, any> = { date: dateStr, btc_supply: btcCirculatingSupply(dateStr) };
-	const health: Record<string, { status: string; error?: string }> = {};
+	const health: Record<string, { status: string; httpStatus?: number; rowCount?: number; url?: string; error?: string }> = {};
 
 	for (const source of SOURCES) {
 		console.log(`Fetching ${source.id}...`);
 		try {
-			let data: Map<string, number>;
+			let result: FetchResult;
 			if (source.type === 'stooq') {
-				data = await fetchStooq(source, targetDate, targetDate);
+				result = await fetchStooq(source, targetDate, targetDate);
 			} else {
-				data = await fetchFRED(source, targetDate, targetDate);
+				result = await fetchFRED(source, targetDate, targetDate);
 			}
 
-			const val = data.get(dateStr);
+			const val = result.data.get(dateStr);
 			if (val !== undefined) {
 				row[source.field] = val;
-				health[source.id] = { status: 'ok' };
+				health[source.id] = { status: 'ok', httpStatus: result.httpStatus, rowCount: result.rowCount, url: result.url };
 			} else {
 				// Weekend/holiday — forward-fill from last known
 				const lines = readFileSync(NDJSON_PATH, 'utf-8').trim().split('\n');
 				const lastRow = JSON.parse(lines[lines.length - 1]);
 				if (lastRow[source.field] !== undefined) {
 					row[source.field] = lastRow[source.field];
-					health[source.id] = { status: 'forward-filled' };
+					health[source.id] = { status: 'forward-filled', httpStatus: result.httpStatus, rowCount: result.rowCount, url: result.url };
 				}
 			}
 		} catch (err: any) {

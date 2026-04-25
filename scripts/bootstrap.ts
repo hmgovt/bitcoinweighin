@@ -20,7 +20,7 @@ import {
 	interpolateSmallGaps,
 	btcCirculatingSupply,
 } from './sources.js';
-import { fetchStooq, fetchFRED } from './fetchers.js';
+import { fetchStooq, fetchFRED, type FetchResult } from './fetchers.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -44,23 +44,23 @@ async function main() {
 	for (const source of SOURCES) {
 		console.log(`Fetching ${source.id} (${source.type}:${source.symbol})...`);
 		try {
-			let data: Map<string, number>;
+			let result: FetchResult;
 			if (source.type === 'stooq') {
-				data = await fetchStooq(source, startDate, endDate);
+				result = await fetchStooq(source, startDate, endDate);
 			} else if (source.type === 'fred') {
-				data = await fetchFRED(source, startDate, endDate);
+				result = await fetchFRED(source, startDate, endDate);
 			} else {
 				throw new Error(`Unknown source type: ${source.type}`);
 			}
 
 			// Interpolate small gaps (≤3 days) before forward-fill
-			const interpolated = interpolateSmallGaps(data, dates);
+			const interpolated = interpolateSmallGaps(result.data, dates);
 			if (interpolated.length > 0) {
 				console.log(`  Interpolated ${interpolated.length} gap days`);
 			}
 
-			allData[source.field] = data;
-			health[source.id] = { status: 'ok', rows: data.size };
+			allData[source.field] = result.data;
+			health[source.id] = { status: 'ok', rows: result.data.size };
 
 			// Rate limit between sources
 			await new Promise((r) => setTimeout(r, 1500));
