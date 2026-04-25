@@ -1,6 +1,6 @@
 # Bitcoin Weigh-In — Project Status
 
-*Last updated: 24 April 2026*
+*Last updated: 25 April 2026*
 
 ## What this is
 
@@ -78,3 +78,4 @@ A static site visualising what bitcoin's purchasing power looks like across phys
 - **April 19-20:** Phase 0 complete. Data pipeline shipped, 18/18 tests passing.
 - **April 20:** Phase 1 complete. Staging URL live. MVP preset mix revised to remove broken History and stale Entity categories.
 - **April 24:** Renderer update session. Gold progression redesigned from 6 to 10 stages. Tile-mode rendering for institutional scales. Scale + tile renderer components built with stub sprites. Readout strip promoted to primary continuity signal. Dollar readout promoted to primary UI element. All gold stages render end-to-end with stubs; real asset production is the next session.
+- **April 25:** Data pipeline bugfix. Stooq started requiring an API key, which had been silently forward-filling all stooq sources for ~5 days. Added `STOOQ_API_KEY` to `.env`, GitHub secrets, the workflow yaml, and the URL construction in `fetchers.ts` (and `bootstrap.ts` for consistency). Extended `health.json` with `httpStatus`, `rowCount`, and redacted `url` per source so future failures surface their cause. Added a weekday guard so a fully-failed trading-day fetch exits non-zero rather than committing forward-filled data quietly.

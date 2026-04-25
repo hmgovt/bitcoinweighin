@@ -21,6 +21,9 @@
 - **2026-04-19:** Historical data range is 2013-01-01 onwards. Pre-2013 data is too thin across commodities to be useful. Accept that Pizza Day (2010-05-22) is outside the dataset — it becomes editorial content, not an interactive preset.
 - **2026-04-19:** Forward-fill commodity values for weekends/holidays when BTC data exists; flag forward-filled dates in meta.json for the UI to show "(market closed)" subtly.
 - **2026-04-19:** Daily refresh via GitHub Actions cron at 02:00 UTC. Data commits go straight to main, trigger Cloudflare redeploy automatically.
+- **2026-04-25:** Stooq introduced an API key requirement for CSV downloads post-bootstrap. `STOOQ_API_KEY` is now required in `.env` locally and as a GitHub repo secret for the daily cron. URL construction appends `&apikey=${STOOQ_API_KEY}`; the same change applies to `bootstrap.ts` so a re-run remains possible.
+- **2026-04-25:** `health.json` schema extended: each source entry now records `httpStatus`, `rowCount`, and a redacted `url` (apikey/api_key values replaced with `***`). The trigger was a five-day silent forward-fill caused by stooq's new auth requirement — the prior `{ "status": "forward-filled" }` payload gave no indication whether a source was rate-limited, broken, or simply quiet on a weekend.
+- **2026-04-25:** Workflow guard: `fetch-daily` exits non-zero when *every* source returns 0 rows on a weekday (Mon–Fri UTC). Weekend forward-fill is expected and stays silent; the guard fires only on the "infrastructure has changed under us" signal so it surfaces as a red ✗ on Actions plus an email notification rather than another silent commit.
 
 ## Commodity catalogue
 
