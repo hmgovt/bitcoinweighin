@@ -56,6 +56,7 @@ A static site visualising what bitcoin's purchasing power looks like across phys
 - Incorporation — stay as sole trader for now; UK Ltd only if project clears ~£2-3k/month; offshore structures deferred until relocation. Good record-keeping from day one via separate business bank account.
 - Newsletter — *The Weigh-In* as working name; tool and newsletter share brand. Reserve Buttondown/Beehiiv name soon.
 - Project migration from single chat to Claude Project — in progress; this status doc plus SPEC.md plus DECISIONS.md form the ongoing knowledge base.
+- `btcCirculatingSupply` timezone bug — the function uses `new Date(y, m-1, d)` (local time) for both genesis and target, so during BST it computes one day fewer than the cron's UTC runtime. Surfaced during the 2026-04-25 stooq back-fill: local computed `19905600` for 2026-04-23 vs cron's correct `19906050`. Cron values are authoritative; local re-runs need manual fix-up. Worth a small fix to switch to `Date.UTC(y, m-1, d)` so local and cron agree.
 
 ## Infrastructure
 
