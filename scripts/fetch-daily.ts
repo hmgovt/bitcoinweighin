@@ -108,6 +108,21 @@ async function main() {
 		)
 	);
 	console.log('Updated health.json');
+
+	// Weekday guard: if every source returned 0 rows on a weekday, exit non-zero
+	// so GitHub Actions shows a red ✗ and sends a notification.
+	const dayOfWeek = targetDate.getUTCDay(); // 0=Sun, 6=Sat
+	const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+	const allZeroRows = Object.values(health).every(
+		(h) => h.rowCount === 0 || h.rowCount === undefined
+	);
+	if (isWeekday && allZeroRows) {
+		console.error(
+			`\nERROR: All sources returned 0 rows on a weekday (${dateStr}). ` +
+			`This likely indicates an auth or upstream issue. Check health.json for details.`
+		);
+		process.exit(1);
+	}
 }
 
 main().catch((err) => {
