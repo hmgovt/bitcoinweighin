@@ -24,6 +24,7 @@ jobs:
       - name: Fetch daily prices
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          STOOQ_API_KEY: ${{ secrets.STOOQ_API_KEY }}
         run: npm run fetch-daily
 
       - name: Build prices.json
