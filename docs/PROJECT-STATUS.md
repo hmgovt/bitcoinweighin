@@ -8,55 +8,59 @@ A static site visualising what bitcoin's purchasing power looks like across phys
 
 ## Current phase
 
-**Phase 2b — Renderer integration in progress.** Renderer logic for scale mode, tile mode, reference system (coin, silhouette, comparison cards), and readout strip are implemented with stub sprites. Gold progression expanded to 10 stages. Dollar readout promoted to primary UI element. Waiting on real sprite production (separate asset session).
+**Phase 2a/2b complete for gold under cube-mode pivot.** The renderer now branches on `commodity.renderStyle`. Gold renders as a single cube of intrinsic substance volume against a cycling library of 19 scale references (grain of sand → Empire State Building). Tile-mode rendering remains in the schema but is unused by any commodity at launch. The gold cube sprite was authored via headless Blender Python with the locked-in PBR material from the prior bar-progression session. Other commodities (silver, copper, oil, gas, fuel pellet, coffee) keep their existing progression-mode rendering for now; vessel- and bulk-mode renderers are stubs that throw "not implemented" until the next handoff.
 
 ## Phases complete
 
-**Phase 0 — Data pipeline.** Full daily commodity price history 2013-01-01 to present (4,857 days) from stooq (metals, agri, BTC) and FRED (oil, natural gas). BTC circulating supply computed deterministically from block-height/halving schedule. `prices.json` at 0.77 MB raw / 0.17 MB gzipped. 18 unit tests passing. GitHub Action daily cron configured. FRED_API_KEY set as repo secret.
+**Phase 0 — Data pipeline.** Full daily commodity price history 2013-01-01 to present from stooq (metals, agri, BTC) and FRED (oil, natural gas). BTC circulating supply computed deterministically from block-height/halving schedule. `prices.json` at 0.77 MB raw / 0.17 MB gzipped. 18 unit tests passing. GitHub Action daily cron configured with `STOOQ_API_KEY` and `FRED_API_KEY` repo secrets. Stooq introduced an API key requirement post-bootstrap; auth fix landed 2026-04-25 along with diagnostic improvements to `health.json` and a workflow guard against silent failure modes.
 
-**Phase 1 — Skeleton.** SvelteKit with `@sveltejs/adapter-static` deployed to Cloudflare Pages. Six commodity sections rendering as grey placeholder boxes with live mass/volume readouts. Logarithmic BTC slider (0.00000001 to 21,000,000), date picker, metric/imperial unit toggle, preset pill bar. URL state wired end-to-end. `illustrative-prices.json` loaded for uranium fuel pellet. Commodity catalogue, volume computation (intrinsic + visual), and preset resolvers all working.
+**Phase 1 — Skeleton.** SvelteKit with `@sveltejs/adapter-static` deployed to Cloudflare Pages. URL state wired end-to-end. Logarithmic BTC slider (1 sat to 21M), date picker, metric/imperial unit toggle, preset pill bar with denominations and absurdity categories. Dollar readout is a primary UI element directly under the slider with tier-aware formatting (M/B/T) at extreme amounts. Readout strip carries continuity with mass, volume, and an optional per-commodity count line in tabular figures.
 
-**Phase 2b — Renderer logic (partial).** Gold progression expanded to 10 stages with stub sprites. Renderer components built: `PhysicalRep.svelte` (orchestrator), `SpriteStage.svelte` (scale + tile mode), `CoinReference.svelte` (£1 at 23.43mm, suppressible), `HumanSilhouette.svelte` (1.75m, threshold-gated), `ComparisonCard.svelte` (text-only, mass/volume lookup). `ReadoutStrip.svelte` with tabular-figures font and `countTemplate` rendering. Dollar readout promoted to primary UI element under slider (~2× type size, tabular-nums). `RenderStage` schema extended with `renderMode`, `projection`, `tileConfig`, `countTemplate`, `suppressCoinRef`. Tile-mode computation (`computeTileState`) with integer + fractional fill. 20 stub SVGs generated for gold (10 stages + 10 fill variants). All other commodities still use placeholder paths (renderer gracefully falls back).
+**Phase 2a — Cube-mode asset production (gold).** Gitignore fixed to track `assets/blender/**/*.blend` and the `scripts/blender/` Python pipeline. `assets/materials-reference.md` created with iterated PBR values locked. Three-quarter camera rig (`scripts/blender/rig_three_quarter.py` + `assets/blender/_rigs/three_quarter.blend`) committed. Gold cube sprite at canonical 100 mm edge length plus contact shadow rendered to `static/sprites/gold/cube@2x.png` and `cube-shadow@2x.png`. Reference library: 19 SVG silhouettes at `static/sprites/references/`.
+
+**Phase 2b — Cube renderer integration.** `Commodity` schema extended with `renderStyle: "cube" | "progression" | "vessel" | "bulk"` and `cubeSpritePath` / `cubeShadowPath`. New components: `CubeRenderer.svelte`, `ScaleReference.svelte`. `PhysicalRep.svelte` is now a dispatcher branching on renderStyle. Gold migrated to `renderStyle: "cube"`; its 10-stage `RenderProgression` removed. `ReadoutStrip` made cube-aware (skips stage-derived metadata for cube-mode commodities). The standalone `CoinReference` and `HumanSilhouette` components remain in place for progression-mode consumers; their visual logic is duplicated by the `pound_coin` and `person` entries in the reference library, which is the path cube-mode takes.
 
 ## What's next
 
-**Phase 2a — Asset production (gold).** Produce real gold sprites for 10 stages per the stub contract. Separate session per DECISIONS.md 2026-04-20 (Claude Code + Blender MCP first, hard deadline one weekend, fall back to outsource). Asset session receives its own handoff with stub contract and materials reference.
+**Phase 2c — Vessel and bulk vocabularies.** Oil and gas progressions reframed around tankers and LNG carriers (Aframax, VLCC, Q-Max class), playing on the existing standardised vessel-class capacities. Coffee retains the bag/sack progression. Fuel pellet retains its existing per-stage progression as the philosophical closer. Wheat stays Tier 2.
 
-**Phase 2b — Renderer integration (remaining commodities).** Apply the same 10-stage pattern to silver, copper, oil, natgas, uranium. Each commodity gets its own stub set, then real assets. Gold pipeline must be proven first.
+**Phase 2d (optional) — Migrate silver / platinum / copper to cube mode.** Re-render the cube geometry with silver / platinum / copper PBR materials per the locked table. About an hour of additional render time per material. Adds 3 more cube sprites + 3 shadows. Their `renderStyle` flips from `progression` to `cube` once their sprites land.
 
 **Phase 3 — Scrubber and anchor events.** Timeline scrubber at bottom of viewport, play/pause/speed controls, anchor event dots with caption cards on crossing. Dual-range mobile design.
 
-**Phase 3.5 — Entity holdings automation.** *(newly added, originally planned for Phase 6)* Build automated pipeline for entity preset holdings from CoinGecko `/companies/public_treasury/bitcoin` and bitcointreasuries.net scraping. Historical holdings by date so scrubber resolves entities as-of the scrubbed date. Re-enable entity presets that were deferred from MVP.
+**Phase 3.5 — Entity holdings automation.** Build automated pipeline for entity preset holdings from CoinGecko `/companies/public_treasury/bitcoin` and bitcointreasuries.net scraping. Historical holdings by date so scrubber resolves entities as-of the scrubbed date. Re-enable entity presets that were deferred from MVP.
 
 **Phase 4 — Polish and launch.** Methodology page, `/data` page with CC-BY dataset download, dynamic OG image generation via Cloudflare Workers, about page, email capture, Lightning tipjar at `tim@bitcoinweighin.com` via Alby + static `.well-known/lnurlp` file. Launch: HN Show, crypto Twitter, r/bitcoin, r/dataisbeautiful.
 
 **Phase 5 (optional).** Three.js hero scenes for gold and oil. Subtle idle animation, not interactive.
 
-**Phase 6 (post-launch, ongoing).** Curio cabinet Tier 3 commodities (U3O8 yellowcake, rhodium, osmium, saffron, tritium, californium-252). Affiliate integrations. Weigh-In newsletter cadence.
+**Phase 6 (post-launch, ongoing).** Curio cabinet Tier 3 commodities (U3O8 yellowcake, rhodium, osmium, saffron, tritium, californium-252) — all candidates for cube mode given they're dense fungible substances. Affiliate integrations. Weigh-In newsletter cadence.
 
 ## Key decisions locked
 
+- **Cube mode for metals (2026-04-25):** Gold and other dense fungible metals are rendered as a single cube of intrinsic substance volume, sized via cube-root scaling, against a cycling library of scale references from grain of sand to Empire State Building. Reverses the prior 10-stage progression. More honest, continuous (no stage transitions), roughly half the asset budget for the metals family.
+- **Two visual vocabularies (2026-04-25):** Cubes for metals, vessels and packaging for fluids and bulk solids. The fuel pellet keeps its existing per-stage progression as the philosophical closer of the tour.
+- **Scale reference library (2026-04-25):** New `src/lib/scale-references.json` with 19 entries spanning grain of sand to Empire State Building. Supersedes the per-commodity human silhouette and £1-coin components for cube-mode commodities; progression-mode commodities continue to use the standalone components for now.
+- **Blender pipeline via Python (2026-04-25):** Asset rendering driven by versioned Python scripts in `scripts/blender/` invoked headless. The MCP server approach attempted in a prior session did not work out; Python scripts are the working route.
+- **PBR material values authoritative in `assets/materials-reference.md` (2026-04-25):** The earlier SPEC.md table held design-time guesses (e.g. roughness 0.12 for gold) which did not survive iteration. The materials reference file holds iterated production values (gold roughness 0.20 with procedural variation 0.15–0.28).
 - **Framework:** SvelteKit with `@sveltejs/adapter-static` (not `-cloudflare`); output dir is `build/` not `.svelte-kit/cloudflare`. Fully prerendered static site, no Workers needed.
 - **Hosting:** Cloudflare Pages. Free tier.
 - **BTC slider range:** 0.00000001 (1 sat) to 21,000,000 (total supply), logarithmic scale.
 - **MVP commodity mix:** 6 core (gold, silver, copper, oil_brent, natgas, uranium_fuel_pellet) plus 2 optional (platinum, coffee). Wheat fetched in data but deliberately excluded from MVP rendering. No diamonds ever (non-fungible, no public spot price).
 - **Uranium fuel pellet:** illustrative pricing at ~$20/pellet based on WNA composite fuel cost (~$3,000/kgU ÷ 7 g). Lives in `src/lib/illustrative-prices.json`, not `prices.json`. Source attribution mandatory.
-- **Scale references:** £1 coin at actual physical size (CSS mm units) + 1.75 m human silhouette (shown only when commodity sprite >300 mm displayed) + text comparison cards for extreme scales (>5 m). No menagerie of mid-range reference objects.
-- **Sprite production:** pre-rendered WebP at 2× density, no rotation, cube-root CSS scaling. Claude Code + Blender MCP as primary production route; £2-3k outsource as fallback.
 - **MVP presets:** denominations + absurdity only (7 total). History and Entity categories deferred to Phase 3.5 and editorial content respectively.
-- **BTC price source:** stooq (ticker `btcusd`) alongside the other commodities, not CoinGecko. One source, one parser, one failure mode.
+- **BTC price source:** stooq (ticker `btcusd`) alongside the other commodities, not CoinGecko. One source, one parser, one failure mode. Stooq API key required since 2026-04-25.
 - **Circulating supply:** computed from block height deterministically, no API dependency.
 - **Data license:** CC-BY-4.0 for the prices dataset. MIT for the code.
 - **Lightning tipjar:** Alby with custom domain at `tim@bitcoinweighin.com` via static `.well-known/lnurlp` file. Xverse remains separate for Runes/Ordinals/parasite.wtf rewards. Copy: *"Tips via Lightning: tim@bitcoinweighin.com. Plug the amount into the slider to see what you just sent."*
 
 ## Open threads
 
-- Phase 2a execution route — attempt Claude Code + Blender MCP first; if quality doesn't reach portfolio bar after a weekend, switch to outsource. Hard deadline to avoid sinking time.
+- Silver / platinum / copper cube migration deferred until their per-material renders are authored. Until then, those commodities stay on `renderStyle: "progression"` against their existing stub stages.
+- Vessel and bulk renderers are stubbed in `PhysicalRep.svelte` (throw "not implemented"). No commodity uses these renderStyles yet — they're reserved for the next handoff.
 - Mobile scrubber precision — 13 years of daily data can't be dragged accurately on a ~400px timeline. Dual-range design (coarse year + fine day) likely required.
 - Incorporation — stay as sole trader for now; UK Ltd only if project clears ~£2-3k/month; offshore structures deferred until relocation. Good record-keeping from day one via separate business bank account.
 - Newsletter — *The Weigh-In* as working name; tool and newsletter share brand. Reserve Buttondown/Beehiiv name soon.
-- Project migration from single chat to Claude Project — in progress; this status doc plus SPEC.md plus DECISIONS.md form the ongoing knowledge base.
-- `btcCirculatingSupply` timezone bug — the function uses `new Date(y, m-1, d)` (local time) for both genesis and target, so during BST it computes one day fewer than the cron's UTC runtime. Surfaced during the 2026-04-25 stooq back-fill: local computed `19905600` for 2026-04-23 vs cron's correct `19906050`. Cron values are authoritative; local re-runs need manual fix-up. Worth a small fix to switch to `Date.UTC(y, m-1, d)` so local and cron agree.
 
 ## Infrastructure
 
@@ -66,6 +70,7 @@ A static site visualising what bitcoin's purchasing power looks like across phys
 | GitHub repo `hmgovt/bitcoinweighin` | Private, live |
 | Cloudflare Pages project | Provisioned, deploying from `main` |
 | FRED API key | Generated, stored in password manager, set as repo secret |
+| Stooq API key | Generated 2026-04-25, set as repo secret and in local `.env` |
 | CoinGecko Demo API key | Generated (not yet needed for MVP) |
 | Staging URL | bitcoinweighin.pages.dev |
 | Custom domain mapping | Not yet configured |
@@ -78,5 +83,6 @@ A static site visualising what bitcoin's purchasing power looks like across phys
 - **April 19:** Initial spec drafted across extensive conversation. Name chosen (Bitcoin Weigh-In, convergent with user's independent thinking). Domain registered.
 - **April 19-20:** Phase 0 complete. Data pipeline shipped, 18/18 tests passing.
 - **April 20:** Phase 1 complete. Staging URL live. MVP preset mix revised to remove broken History and stale Entity categories.
-- **April 24:** Renderer update session. Gold progression redesigned from 6 to 10 stages. Tile-mode rendering for institutional scales. Scale + tile renderer components built with stub sprites. Readout strip promoted to primary continuity signal. Dollar readout promoted to primary UI element. All gold stages render end-to-end with stubs; real asset production is the next session.
-- **April 25:** Data pipeline bugfix. Stooq started requiring an API key, which had been silently forward-filling all stooq sources for ~5 days. Added `STOOQ_API_KEY` to `.env`, GitHub secrets, the workflow yaml, and the URL construction in `fetchers.ts` (and `bootstrap.ts` for consistency). Extended `health.json` with `httpStatus`, `rowCount`, and redacted `url` per source so future failures surface their cause. Added a weekday guard so a fully-failed trading-day fetch exits non-zero rather than committing forward-filled data quietly.
+- **April 24:** Renderer update landed: dollar readout promoted to primary UI, readout strip wired as continuity signal, schema extended with `renderMode` and `projection` fields. 10-stage gold progression authored against stub sprites.
+- **April 25 (data):** Stooq auth fix — silent forward-fill diagnosed and resolved, `health.json` and workflow guards improved.
+- **April 25 (cube-mode pivot):** 10-stage gold progression and tile-mode for pallets reversed. Gold migrated to single-cube + cycling-reference rendering. Reference library introduced (19 entries). Python-driven Blender pipeline established and committed (it had been gitignored, losing the prior session's work). Gold cube sprite + shadow rendered. PhysicalRep refactored to a renderStyle dispatcher.
