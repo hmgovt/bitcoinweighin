@@ -112,6 +112,21 @@ export interface ScaleReference {
 	spritePath: string;
 	description: string;
 	culturalNote?: string;
+	/**
+	 * Which bounding-box dimension `realSizeMetres` refers to. Read by the
+	 * Blender render scripts to scale the imported source to the canonical
+	 * 0.5 m longest dimension (lighting-rig consistency per
+	 * `assets/materials-reference.md`). Defaults to "longest" when omitted;
+	 * existing 19 entries omit the field and inherit that default.
+	 */
+	measurementAxis?: 'length' | 'height' | 'longest';
+	/**
+	 * Optional path to an animated .gltf for the easter-egg renderer. When
+	 * present, the reference renderer can swap the static sprite for a
+	 * <model-viewer> element on hover / sustained tap / `?easter=doge`.
+	 * References without this field stay static-only.
+	 */
+	animatedModelPath?: string;
 }
 
 /**
