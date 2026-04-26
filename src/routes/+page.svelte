@@ -140,18 +140,22 @@
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950 text-zinc-100">
-	<div class="mx-auto max-w-2xl px-4 py-6 sm:py-10">
-		<!-- Header -->
+	<!-- Header + controls column: text-driven, stays narrow at all widths. -->
+	<div class="mx-auto max-w-2xl px-4 pt-6 sm:pt-10">
 		<header class="mb-6 text-center">
 			<h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Bitcoin Weigh-In</h1>
 			<p class="mt-1 text-sm text-zinc-500">The purchasing power of one coin, in things you can hold.</p>
 		</header>
+	</div>
 
-		{#if loading}
+	{#if loading}
+		<div class="mx-auto max-w-2xl px-4 pb-6 sm:pb-10">
 			<div class="flex items-center justify-center py-20">
 				<div class="text-zinc-500 text-sm">Loading price data…</div>
 			</div>
-		{:else}
+		</div>
+	{:else}
+		<div class="mx-auto max-w-2xl px-4">
 			<!-- Preset pills -->
 			<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
 
@@ -210,8 +214,17 @@
 					</button>
 				</div>
 			</div>
+		</div>
 
-			<!-- Commodity sections -->
+		<!--
+			Commodity panels: visualisation-driven, expand at desktop widths to
+			give the cube and reference more pixels to occupy. Mobile stays at
+			max-w-2xl (672px) so the panel keeps filling the viewport. From md:
+			(768px) up, the panels widen up to 1400px — capped to prevent
+			absurd stretching on ultrawide displays. CubeRenderer's
+			ResizeObserver picks up the new width automatically.
+		-->
+		<div class="mx-auto max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
 			{#each commodityAmounts as { commodity, amount } (commodity.id)}
 				<CommoditySection
 					{commodity}
@@ -220,8 +233,8 @@
 					unitSys={$unitSystem}
 				/>
 			{/each}
-		{/if}
-	</div>
+		</div>
+	{/if}
 </div>
 
 <style>

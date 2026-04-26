@@ -68,9 +68,22 @@
 	const viewportMm = $derived(
 		(viewportPx > 0 ? viewportPx : VIEWPORT_FALLBACK_PX) / PX_PER_MM
 	);
-	const sceneScale = $derived(
-		sceneRealMm > viewportMm ? viewportMm / sceneRealMm : 1
+
+	// On mobile, cap sceneScale at 1 so the £1 coin renders at true
+	// 23.43 mm — the "actual size" promise. On desktop, the panel
+	// widens past the cube's true CSS-mm size, leaving the cube
+	// stranded in the centre of an empty canvas; allow upscale up to
+	// MAX_SCENE_SCALE_DESKTOP so the visualisation fills the canvas.
+	// The ScaleReference badge in ScaleReference.svelte:43 still gates
+	// on `sceneScale === 1`, so the "actual size" callout disappears
+	// on desktop where the upscale breaks the true-size guarantee —
+	// which is intentional.
+	const DESKTOP_THRESHOLD_PX = 700;
+	const MAX_SCENE_SCALE_DESKTOP = 2.0;
+	const maxSceneScale = $derived(
+		viewportPx >= DESKTOP_THRESHOLD_PX ? MAX_SCENE_SCALE_DESKTOP : 1
 	);
+	const sceneScale = $derived(Math.min(maxSceneScale, viewportMm / sceneRealMm));
 
 	const cubeCssMm = $derived(cubeEdgeMm * sceneScale);
 
