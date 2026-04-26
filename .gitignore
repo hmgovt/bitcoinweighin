@@ -42,6 +42,14 @@ tmp/
 *.blend@
 *.blend.backup
 
+# Animal-reference .blend files are derived state, not source: the gltf
+# importer packs the HDRI and the model's textures into the .blend,
+# producing files >50 MB per animal. The source-of-truth is the .gltf at
+# assets/blender/references/{id}/scene.gltf plus the render script at
+# scripts/blender/{id}.py — anyone can re-render. Keeping the .blend on
+# disk locally for inspection but excluding from git.
+assets/blender/references/*/render.blend
+
 # HDRIs are large CC0 inputs — fetched per-machine, not committed. Document source in assets/blender/README.md.
 *.exr
 
