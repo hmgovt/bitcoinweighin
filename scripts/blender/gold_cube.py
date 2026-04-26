@@ -174,7 +174,16 @@ bpy.context.scene.camera = cam_obj
 cam_data.type = 'PERSP'
 cam_data.lens = 50
 
-dist = 1.0
+# Camera distance was 1.0 in the original render, which framed the
+# cube edge-to-edge with effectively zero transparent margin. The
+# bottom and left edges were truncated against the PNG canvas, so
+# CSS scaling could never recover a clean silhouette. Pulled back to
+# 1.55 so the cube occupies roughly 65–70% of the canvas with clear
+# transparent margin on all four sides. The shadow render below
+# inherits this same camera, so cube and shadow stay framed
+# identically — drift between the two would misalign the contact
+# shadow underneath the cube on the page.
+dist = 1.55
 az = math.radians(30)
 el = math.radians(25)
 cam_target = Vector((0, 0, EDGE / 2))
