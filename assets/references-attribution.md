@@ -16,9 +16,9 @@ Sizing values are sourced from authoritative references (Wikipedia, breed standa
 - **realSizeMetres:** 0.4
 - **measurementAxis:** height
 - **Sizing source:** Japanese Shiba Inu breed standard, shoulder height 38–41 cm. 0.4 m chosen as canonical mid-range value.
-- **Model source:** [TBD — pending user confirmation of Sketchfab page]
+- **Model source:** [Animated Dog, Shiba Inu](https://sketchfab.com/3d-models/animated-dog-shiba-inu-9abfce885a834399b2c3ccaed51cd474) by [quander](https://sketchfab.com/quander) on Sketchfab
 - **License:** CC BY 4.0
-- **Required attribution:** [TBD]
+- **Required attribution:** This work is based on "Animated Dog, Shiba Inu" (https://sketchfab.com/3d-models/animated-dog-shiba-inu-9abfce885a834399b2c3ccaed51cd474) by quander (https://sketchfab.com/quander) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 - **Local path:** `assets/blender/references/shiba_inu/`
 - **Format:** glTF (animated)
 - **Notes:** Animated source; static sprite rendered from a specific frame chosen for the alert sitting pose. Same `.gltf` is also served at `static/models/references/shiba_inu/scene.gltf` for the easter egg playback (hover, sustained tap, or `?easter=doge` URL parameter).

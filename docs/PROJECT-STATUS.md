@@ -1,6 +1,6 @@
 # Bitcoin Weigh-In — Project Status
 
-*Last updated: 25 April 2026*
+*Last updated: 26 April 2026*
 
 ## What this is
 
@@ -20,7 +20,11 @@ A static site visualising what bitcoin's purchasing power looks like across phys
 
 **Phase 2b — Cube renderer integration.** `Commodity` schema extended with `renderStyle: "cube" | "progression" | "vessel" | "bulk"` and `cubeSpritePath` / `cubeShadowPath`. New components: `CubeRenderer.svelte`, `ScaleReference.svelte`. `PhysicalRep.svelte` is now a dispatcher branching on renderStyle. Gold migrated to `renderStyle: "cube"`; its 10-stage `RenderProgression` removed. `ReadoutStrip` made cube-aware (skips stage-derived metadata for cube-mode commodities). The standalone `CoinReference` and `HumanSilhouette` components remain in place for progression-mode consumers; their visual logic is duplicated by the `pound_coin` and `person` entries in the reference library, which is the path cube-mode takes.
 
+**Phase 2b.1 — Animal reference library, proof-of-concept (Shiba Inu).** First photoreal animal reference shipped. Static sprite rendered through the canonical Blender pipeline (`scripts/blender/shiba_inu.py`, parameterised template for the other 11 animals). Animated `.gltf` served from `static/models/references/shiba_inu/` for an opt-in easter egg: `<model-viewer>` swaps in for the static sprite on hover (≥200 ms desktop), sustained tap (≥500 ms mobile), or the `?easter=doge` URL parameter; all three respect `prefers-reduced-motion: reduce`. Library `@google/model-viewer` and the `.gltf` are dynamically imported on first trigger so neither costs anything on initial page load. `ScaleReference` schema gained two optional fields (`measurementAxis`, `animatedModelPath`) — the existing 19 silhouette entries inherit defaults and are unchanged.
+
 ## What's next
+
+**Phase 2b.2 — Remaining 11 animal references.** Source CC-BY-4.0 or CC0 glTF/glb models for blue whale, sperm whale, humpback whale, elephant, horse, large dog, cat, mouse, bee, ant, flea (queue and sizing in `assets/references-attribution.md`). Each one inherits the Shiba's render pattern: copy `scripts/blender/shiba_inu.py`, edit the CONFIG block, run. The whales/elephant slots futureproof the slider's high end where the Statue of Liberty / Eiffel Tower / Empire State already cover the city-scale band; the bee/ant/flea slots replace the existing silhouette entries with photoreal renders if good source models exist.
 
 **Phase 2c — Vessel and bulk vocabularies.** Oil and gas progressions reframed around tankers and LNG carriers (Aframax, VLCC, Q-Max class), playing on the existing standardised vessel-class capacities. Coffee retains the bag/sack progression. Fuel pellet retains its existing per-stage progression as the philosophical closer. Wheat stays Tier 2.
 

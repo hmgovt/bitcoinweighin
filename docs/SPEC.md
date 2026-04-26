@@ -81,9 +81,16 @@ interface ScaleReference {
   id: string;
   displayName: string;
   realSizeMetres: number;     // edge or characteristic dimension
-  spritePath: string;         // SVG or PNG
+  spritePath: string;         // SVG, PNG, or WebP (animal references)
   description: string;        // accessibility
   culturalNote?: string;      // optional readout caption
+  measurementAxis?: "length" | "height" | "longest";
+                              // which bbox dimension realSizeMetres
+                              // refers to; consumed by the Blender
+                              // render scripts. Defaults to "longest".
+  animatedModelPath?: string; // optional .gltf path for the easter-egg
+                              // renderer (lazy-loaded <model-viewer>).
+                              // References without it stay static-only.
 }
 ```
 
@@ -99,6 +106,7 @@ Reference entries from smallest to largest:
 | pound_coin | £1 coin | 0.0234 |
 | espresso_cup | Espresso cup | 0.06 |
 | football | Football | 0.22 |
+| shiba_inu | Shiba Inu | 0.4 |
 | microwave | Microwave oven | 0.5 |
 | person | Person | 1.75 |
 | refrigerator | Refrigerator | 1.8 |
@@ -117,9 +125,23 @@ The `pound_coin` and `person` entries replace the previously-separate £1 coin a
 
 ### Reference sprite style
 
-References are not photoreal. They're clean line-art silhouettes filled with a single muted neutral colour (`var(--color-text-secondary)` or similar), rendered with enough detail to be instantly recognisable but no more. Isotype-style pictograms. SVG preferred for scalability and small file size; PNG @ 2× acceptable where SVG would be unwieldy (some specific objects).
+Two coexisting styles:
 
-The flea is deliberately the joke entry at the small end. The Eiffel Tower and Empire State Building are deliberately the cultural-canon entries at the large end. Together they bookend the slider with humour and recognisability.
+**Object references (silhouettes).** The objects in the library — flea, sugar cube, espresso cup, microwave, shipping container, Eiffel Tower, etc. — are clean line-art silhouettes filled with a single muted neutral colour (`var(--color-text-secondary)` or similar), with enough detail to be instantly recognisable but no more. Isotype-style pictograms. SVG preferred for scalability and small file size; PNG @ 2× acceptable where SVG would be unwieldy.
+
+**Animal references (photoreal).** Animals in the library — Shiba Inu, blue whale, elephant, horse, dog, cat, mouse, bee, ant, flea — are rendered through the same Blender pipeline as the gold cube (canonical: `scripts/blender/gold_cube.py`). Same camera rig, HDRI, three-light setup, intrinsic transparent margin, separate contact-shadow PNG. Each animal's source `.gltf` (or `.blend`) lives at `assets/blender/references/{id}/`. Output is WebP at the same 1600×1600 canvas as the cube. Where the source is animated, a copy of the `.gltf` is also served from `static/models/references/{id}/scene.gltf` for the easter-egg path described below.
+
+The Eiffel Tower and Empire State Building are deliberately the cultural-canon entries at the large end. The Shiba Inu is the first animal entry, with 11 more queued (see `assets/references-attribution.md`). Together they bookend the slider with humour and recognisability.
+
+### Easter egg — animated references
+
+References with an `animatedModelPath` field render the static sprite by default and swap to a `<model-viewer>` element loading the animated `.gltf` when triggered. Three trigger paths, all gated by `prefers-reduced-motion: reduce` (when set, the static sprite always wins):
+
+- **Hover (desktop):** pointer dwell on the reference for ≥200 ms.
+- **Sustained tap (mobile):** touch held for ≥500 ms; auto-reverts after 8 s.
+- **URL parameter:** `?easter=doge` auto-animates whenever an animated reference is the active library entry.
+
+`@google/model-viewer` and the `.gltf` are both lazy-loaded — neither hits the network on initial page load. Implementation: `src/lib/components/ScaleReference.svelte`. References without `animatedModelPath` are unaffected by all of the above.
 
 ### Cube sprite specifications
 
@@ -421,8 +443,11 @@ btc-commodity-visualiser/
 ├── assets/
 │   ├── blender/                          # tracked, gitignore allows .blend through
 │   │   ├── _rigs/three_quarter.blend
-│   │   └── gold/cube.blend
+│   │   ├── gold/cube.blend
+│   │   └── references/                   # animal-reference sources
+│   │       └── shiba_inu/                # scene.gltf, scene.bin, textures/, render.blend, notes.md, license.txt
 │   ├── materials-reference.md            # canonical PBR values
+│   ├── references-attribution.md         # animal-reference inventory + CC-BY attribution strings
 │   └── style-guide.md
 ├── src/
 │   ├── lib/
@@ -443,14 +468,22 @@ btc-commodity-visualiser/
 │   ├── routes/{...}
 │   └── app.html
 ├── static/
-│   └── sprites/
-│       ├── gold/cube@2x.webp              # cube-mode
-│       ├── references/                    # NEW: shared reference library
-│       │   ├── pound_coin.svg
-│       │   ├── person.svg
-│       │   ├── eiffel_tower.svg
-│       │   └── ...
-│       └── oil_brent/                     # progression-mode per existing pattern
+│   ├── sprites/
+│   │   ├── gold/cube@2x.webp              # cube-mode
+│   │   ├── references/                    # shared reference library
+│   │   │   ├── pound_coin.svg
+│   │   │   ├── person.svg
+│   │   │   ├── eiffel_tower.svg
+│   │   │   ├── shiba_inu.webp             # animal references: rendered photoreal
+│   │   │   ├── shiba_inu-shadow.png       # contact shadow alongside the sprite
+│   │   │   └── ...
+│   │   └── oil_brent/                     # progression-mode per existing pattern
+│   └── models/
+│       └── references/
+│           └── shiba_inu/                 # animated .gltf for the easter-egg path
+│               ├── scene.gltf
+│               ├── scene.bin
+│               └── textures/
 └── ...
 ```
 
