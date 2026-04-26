@@ -1,34 +1,54 @@
 # Dependencies
-   node_modules/
-   .pnp
-   .pnp.js
-   
-   # Build outputs
-   dist/
-   build/
-   .svelte-kit/
-   
-   # Environment variables
-   .env
-   .env.local
-   .env.*.local
-   
-   # Logs
-   npm-debug.log*
-   yarn-debug.log*
-   yarn-error.log*
-   
-   # Editor / OS
-   .DS_Store
-   .vscode/
-   .idea/
-   *.swp
-   Thumbs.db
-   
-   # Testing
-   coverage/
-   .nyc_output
-   
-   # Temporary
-   *.tmp
-   tmp/
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.svelte-kit/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+.claude/
+*.swp
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output
+
+# Temporary
+*.tmp
+tmp/
+
+# Blender — track .blend source files and Python pipeline, exclude backups and large binary inputs
+# .blend files ARE tracked (intentionally allowed through). Blender numbered backups (.blend1 etc.) and autosaves are not.
+*.blend1
+*.blend2
+*.blend3
+*.blend@
+*.blend.backup
+
+# HDRIs are large CC0 inputs — fetched per-machine, not committed. Document source in assets/blender/README.md.
+*.exr
+
+# Exploratory render iterations from the prior asset session (bars/coins, now superseded by cube mode).
+# Intentionally not tracked — preserved on disk in case they're useful for the future "show me bars" toggle.
+static/sprites/gold/_smoke_test*.png
+static/sprites/gold/bar_test_*.png
+static/sprites/gold/coin_test*.png
+static/sprites/gold/grain_test*.png
+static/sprites/gold/good_delivery_single@2x.png
