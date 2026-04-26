@@ -55,7 +55,16 @@
 	const PX_PER_MM = 3.7795275591; // CSS px per mm at 96 dpi
 
 	const refMm = $derived(reference.realSizeMetres * 1000);
-	const sceneRealMm = $derived(Math.max(cubeEdgeMm, refMm) * 1.6 + 20);
+	// The flex row lays cube and reference *side by side*, so the scene
+	// needs room for the SUM of their widths plus gap and breathing
+	// room — not the max. Using max() understates required width when
+	// cube and reference are similar magnitude (e.g. ~1.7 m cube vs
+	// refrigerator, ~4.5 m cube vs family car), leaving sceneScale at 1
+	// while the row overflows .cube-scene's overflow:hidden parent.
+	// `justify-content: center` then distributes the overflow equally
+	// and clips the cube's left edge symmetrically with the reference's
+	// right edge.
+	const sceneRealMm = $derived((cubeEdgeMm + refMm) * 1.2 + 20);
 	const viewportMm = $derived(
 		(viewportPx > 0 ? viewportPx : VIEWPORT_FALLBACK_PX) / PX_PER_MM
 	);
