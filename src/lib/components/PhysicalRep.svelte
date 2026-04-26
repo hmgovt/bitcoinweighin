@@ -1,12 +1,22 @@
 <script lang="ts">
 	/**
-	 * PhysicalRep — orchestrates the full physical representation scene.
+	 * PhysicalRep — dispatches to the renderer that matches the commodity's
+	 * `renderStyle`. Branches:
 	 *
-	 * Computes stage, display width, tile state. Renders:
-	 * - SpriteStage (scale or tile mode, with crossfade)
-	 * - CoinReference (£1 coin at actual physical size, unless suppressed)
-	 * - HumanSilhouette (shown when display width > 300 mm)
-	 * - ComparisonCard (shown when display width > 5000 mm or tile cap hit)
+	 *   "cube"        → CubeRenderer (single cube + cycling reference library)
+	 *   "progression" → SpriteStage with cross-fade, coin reference, silhouette,
+	 *                   and comparison-card fallback at extreme sizes
+	 *   "vessel"      → not yet implemented (next handoff)
+	 *   "bulk"        → not yet implemented (next handoff)
+	 *
+	 * Cube mode delegates entirely to CubeRenderer.svelte. Progression mode
+	 * keeps its prior behaviour: stage selection, tile-mode rendering for
+	 * institutional scales, the £1 coin and human silhouette as scale
+	 * references, and ComparisonCard text fallback above 5 m display width.
+	 *
+	 * The £1 coin and human silhouette are *also* available as entries
+	 * (`pound_coin`, `person`) in the cube-mode reference library. Cube mode
+	 * does not use the standalone CoinReference / HumanSilhouette components.
 	 */
 
 	import type { Commodity } from '$lib/commodities.js';
@@ -23,6 +33,7 @@
 	import CoinReference from './CoinReference.svelte';
 	import HumanSilhouette from './HumanSilhouette.svelte';
 	import ComparisonCard from './ComparisonCard.svelte';
+	import CubeRenderer from './CubeRenderer.svelte';
 
 	let {
 		commodity,
@@ -33,86 +44,63 @@
 	} = $props();
 
 	const COMPARISON_THRESHOLD_MM = 5000;
-
-	const stage = $derived(pickStage(amount, commodity));
-	const isTileMode = $derived((stage.renderMode ?? 'scale') === 'tile');
-
-	const displayWidthMm = $derived(
-		amount > 0 ? computeDisplayWidthMm(amount, stage) : 0
-	);
-
-	const tileState: TileState | null = $derived.by(() => {
-		if (!isTileMode || amount <= 0) return null;
-		return computeTileState(amount, stage);
-	});
-
-	// Comparison card triggers: display > 5m OR tile cap hit
-	const showComparison = $derived(
-		displayWidthMm > COMPARISON_THRESHOLD_MM ||
-		(tileState?.capped ?? false)
-	);
-
-	const massGrams = $derived(amount > 0 ? computeMassGrams(amount, commodity) : null);
-	const volumeCm3 = $derived(amount > 0 ? computeIntrinsicVolumeCm3(amount, commodity) : 0);
-
-	const massComparisonText = $derived(
-		showComparison && massGrams ? getComparisonByMass(massGrams / 1000) : null
-	);
-	const volumeComparisonText = $derived(
-		showComparison ? getComparisonByVolume(volumeCm3 / 1_000_000) : null
-	);
-
-	const suppressCoin = $derived(stage.suppressCoinRef === true);
-
-	// Track previous stage for crossfade
-	let prevStageId = $state('');
-	let transitioning = $state(false);
-
-	$effect(() => {
-		if (stage.id !== prevStageId && prevStageId !== '') {
-			transitioning = true;
-			const timeout = setTimeout(() => {
-				transitioning = false;
-			}, 300);
-			prevStageId = stage.id;
-			return () => clearTimeout(timeout);
-		}
-		prevStageId = stage.id;
-	});
 </script>
 
-<div class="physical-rep">
-	{#if amount > 0}
-		<div class="scene-area">
-			<!-- Coin reference (left-aligned, suppressed for dust stage) -->
-			<CoinReference suppressed={suppressCoin} />
+{#if commodity.renderStyle === 'cube'}
+	<CubeRenderer {commodity} {amount} />
+{:else if commodity.renderStyle === 'progression'}
+	{@const stage = pickStage(amount, commodity)}
+	{@const isTileMode = (stage.renderMode ?? 'scale') === 'tile'}
+	{@const displayWidthMm = amount > 0 ? computeDisplayWidthMm(amount, stage) : 0}
+	{@const tileState = isTileMode && amount > 0 ? computeTileState(amount, stage) : null}
+	{@const showComparison =
+		displayWidthMm > COMPARISON_THRESHOLD_MM || (tileState?.capped ?? false)}
+	{@const massGrams = amount > 0 ? computeMassGrams(amount, commodity) : null}
+	{@const volumeCm3 = amount > 0 ? computeIntrinsicVolumeCm3(amount, commodity) : 0}
+	{@const massComparisonText =
+		showComparison && massGrams ? getComparisonByMass(massGrams / 1000) : null}
+	{@const volumeComparisonText =
+		showComparison ? getComparisonByVolume(volumeCm3 / 1_000_000) : null}
+	{@const suppressCoin = stage.suppressCoinRef === true}
 
-			<!-- Sprite / tile area -->
-			<div class="sprite-area" class:transitioning>
-				{#key stage.id}
-					<SpriteStage
-						{stage}
-						{displayWidthMm}
-						{tileState}
-					/>
-				{/key}
+	<div class="physical-rep">
+		{#if amount > 0}
+			<div class="scene-area">
+				<CoinReference suppressed={suppressCoin} />
+				<div class="sprite-area">
+					{#key stage.id}
+						<SpriteStage {stage} {displayWidthMm} {tileState} />
+					{/key}
+				</div>
+				<HumanSilhouette {displayWidthMm} />
 			</div>
-
-			<!-- Human silhouette (right edge) -->
-			<HumanSilhouette {displayWidthMm} />
-		</div>
-
-		<!-- Comparison card -->
-		<ComparisonCard
-			massText={massComparisonText}
-			volumeText={volumeComparisonText}
-		/>
-	{:else}
-		<div class="flex items-center justify-center py-8 text-sm text-zinc-600">
-			No data for this date
-		</div>
-	{/if}
-</div>
+			<ComparisonCard
+				massText={massComparisonText}
+				volumeText={volumeComparisonText}
+			/>
+		{:else}
+			<div class="empty-state">No data for this date</div>
+		{/if}
+	</div>
+{:else if commodity.renderStyle === 'vessel'}
+	<!-- TODO(handoff: vessel renderer) -->
+	<div class="not-implemented">
+		<p><strong>{commodity.displayName}</strong>: vessel-mode renderer not yet implemented.</p>
+		<p class="hint">
+			Coming in the next handoff (oil tankers + LNG carriers — Aframax, VLCC, Q-Max).
+		</p>
+	</div>
+{:else if commodity.renderStyle === 'bulk'}
+	<!-- TODO(handoff: bulk renderer) -->
+	<div class="not-implemented">
+		<p><strong>{commodity.displayName}</strong>: bulk-mode renderer not yet implemented.</p>
+		<p class="hint">Coming in a future handoff.</p>
+	</div>
+{:else}
+	<div class="not-implemented">
+		Unknown renderStyle: {commodity.renderStyle}
+	</div>
+{/if}
 
 <style>
 	.physical-rep {
@@ -135,10 +123,35 @@
 		align-items: center;
 		justify-content: center;
 		min-width: 0;
-		transition: opacity 300ms ease;
 	}
 
-	.sprite-area.transitioning {
-		opacity: 0.6;
+	.empty-state {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 32px 0;
+		font-size: 0.875rem;
+		color: #71717a;
+	}
+
+	.not-implemented {
+		padding: 32px 16px;
+		text-align: center;
+		font-size: 0.875rem;
+		color: #a1a1aa;
+		background: repeating-linear-gradient(
+			45deg,
+			rgba(100, 100, 100, 0.04),
+			rgba(100, 100, 100, 0.04) 10px,
+			transparent 10px,
+			transparent 20px
+		);
+		border-radius: 0.375rem;
+	}
+
+	.hint {
+		margin-top: 6px;
+		font-size: 0.75rem;
+		color: #71717a;
 	}
 </style>

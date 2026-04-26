@@ -13,8 +13,17 @@
 
 	const SILHOUETTE_HEIGHT_MM = 1750; // 1.75 m in mm
 	const SHOW_THRESHOLD_MM = 300;
+	// Above this commodity width the silhouette is dwarfed and the
+	// ComparisonCard text takes over as the reference. Keeping it on screen
+	// would also reserve >2000px of fixed flex column on a typical DPI,
+	// which squeezes the sprite/tile-grid to zero width inside the
+	// scene-area's `overflow: hidden` flex layout. Matches
+	// COMPARISON_THRESHOLD_MM in PhysicalRep.svelte.
+	const HIDE_THRESHOLD_MM = 5000;
 
-	const visible = $derived(displayWidthMm >= SHOW_THRESHOLD_MM);
+	const visible = $derived(
+		displayWidthMm >= SHOW_THRESHOLD_MM && displayWidthMm < HIDE_THRESHOLD_MM
+	);
 
 	// Scale silhouette relative to the commodity: both share the same mm coordinate system
 	// The silhouette SVG is drawn in a 200×600 viewBox, displayed at its true physical height

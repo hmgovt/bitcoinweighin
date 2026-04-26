@@ -40,18 +40,22 @@
 		unitSys: UnitSystem;
 	} = $props();
 
-	const stage = $derived(pickStage(amount, commodity));
+	const isCubeMode = $derived(commodity.renderStyle === 'cube');
+
+	// Stage logic only applies to progression-mode commodities.
+	const stage = $derived.by(() => (isCubeMode ? null : pickStage(amount, commodity)));
 	const massGrams = $derived(amount > 0 ? computeMassGrams(amount, commodity) : null);
 	const volumeCm3 = $derived(amount > 0 ? computeIntrinsicVolumeCm3(amount, commodity) : 0);
 
 	const tileState: TileState | null = $derived.by(() => {
+		if (!stage) return null;
 		if ((stage.renderMode ?? 'scale') !== 'tile' || amount <= 0) return null;
 		return computeTileState(amount, stage);
 	});
 
-	// Render the countTemplate if present
+	// Render the countTemplate if present (progression-mode only).
 	const countText = $derived.by(() => {
-		if (!stage.countTemplate || amount <= 0) return null;
+		if (!stage || !stage.countTemplate || amount <= 0) return null;
 
 		const template = stage.countTemplate;
 
