@@ -124,120 +124,26 @@ function stubTileConfig(
 const gold: Commodity = {
 	id: 'gold',
 	displayName: 'Gold',
-	renderStyle: 'progression',
+	renderStyle: 'cube',
 	unit: 'troy_oz',
 	unitMassGrams: 31.1035,
 	densityGPerCm3: 19.3,
+	cubeSpritePath: '/sprites/gold/cube@2x.png',
+	// cubeShadowPath: TODO — re-render with cube as Holdout / camera-invisible so
+	// the PNG contains only the shadow on the catcher plane. The current shadow
+	// pass also contains the cube (because it's still visible to the camera),
+	// which double-renders the cube when stacked behind the main sprite. Until
+	// that re-render lands, ship without the contact shadow — the HDRI alone
+	// gives the cube enough form.
 	sourceId: 'gold',
 	sourceName: 'stooq (XAUUSD)',
 	dataQuality: 'live',
 	priceField: 'xau',
-	render: {
-		stages: placeholderStages('gold', [
-			// 1. dust (≤0.1 g ≈ 0.003 oz) — gold flakes rendered ON the £1 coin
-			{
-				id: 'dust',
-				maxValue: 0.003,
-				realWorldWidthMetres: 0.024, // coin diameter — sprite includes the coin
-				referenceAmount: 0.001,
-				suppressCoinRef: true,
-				caption: 'Gold dust on a £1 coin',
-				spritePath: '/sprites/gold/_stubs/dust.svg',
-			},
-			// 2. nugget_cluster (0.1–3 g ≈ 0.003–0.1 oz) — irregular grains on neutral surface
-			{
-				id: 'nugget_cluster',
-				maxValue: 0.1,
-				realWorldWidthMetres: 0.02,
-				referenceAmount: 0.05,
-				caption: 'Gold nugget cluster',
-				spritePath: '/sprites/gold/_stubs/nugget_cluster.svg',
-			},
-			// 3. coin (1 oz Britannia, 31 g) — single gold coin
-			{
-				id: 'coin',
-				maxValue: 1.5,
-				realWorldWidthMetres: 0.032, // Britannia diameter 32.69 mm
-				referenceAmount: 1,
-				countTemplate: '{n} Britannias',
-				spritePath: '/sprites/gold/_stubs/coin.svg',
-			},
-			// 4. tube (20 Britannias, 620 g ≈ 20 oz) — stacked coin tube
-			{
-				id: 'tube',
-				maxValue: 8,
-				realWorldWidthMetres: 0.045, // tube width/diameter
-				referenceAmount: 5,
-				countTemplate: '{n} Britannias in tube',
-				spritePath: '/sprites/gold/_stubs/tube.svg',
-			},
-			// 5. small_bar (100 g LBMA ≈ 3.215 oz) — rendered as bar, scales through this range
-			{
-				id: 'small_bar',
-				maxValue: 50,
-				realWorldWidthMetres: 0.055,
-				referenceAmount: 20,
-				countTemplate: '{n} × 100 g bars',
-				spritePath: '/sprites/gold/_stubs/small_bar.svg',
-			},
-			// 6. kilo_bar (1 kg ≈ 32.15 oz)
-			{
-				id: 'kilo_bar',
-				maxValue: 200,
-				realWorldWidthMetres: 0.117, // 117 × 53 × 9 mm
-				referenceAmount: 32.15,
-				countTemplate: '{n} kilo bars',
-				spritePath: '/sprites/gold/_stubs/kilo_bar.svg',
-			},
-			// 7. good_delivery_single (400 oz / 12.44 kg)
-			{
-				id: 'good_delivery_single',
-				maxValue: 1500,
-				realWorldWidthMetres: 0.25, // ~250 × 80 × 45 mm
-				referenceAmount: 400,
-				countTemplate: '{n} Good Delivery bars',
-				spritePath: '/sprites/gold/_stubs/good_delivery_single.svg',
-			},
-			// 8. bar_pyramid (3–~30 bars, NY Fed vault style) — ISOMETRIC
-			{
-				id: 'bar_pyramid',
-				maxValue: 12000,
-				realWorldWidthMetres: 0.5,
-				referenceAmount: 2000,
-				projection: 'isometric',
-				countTemplate: '{n} Good Delivery bars',
-				spritePath: '/sprites/gold/_stubs/bar_pyramid.svg',
-			},
-			// 9. pallet (~30–~240 bars, ~1–3 t) — isometric, tile mode entry
-			{
-				id: 'pallet',
-				maxValue: 300000,
-				realWorldWidthMetres: 1.2,
-				referenceAmount: 9600, // ~24 bars per pallet
-				renderMode: 'tile',
-				projection: 'isometric',
-				tileConfig: stubTileConfig('gold', 'pallet', { capAtTiles: 80 }),
-				countTemplate: '{bars} bars across {pallets} pallets',
-				spritePath: '/sprites/gold/_stubs/pallet.svg',
-			},
-			// 10. vault_multi_pallet (3–~300 t) — tiled grid of full pallets
-			{
-				id: 'vault_multi_pallet',
-				maxValue: null,
-				realWorldWidthMetres: 1.2, // same pallet sprite, tiled
-				referenceAmount: 96000, // ~10 pallets
-				renderMode: 'tile',
-				projection: 'isometric',
-				tileConfig: stubTileConfig('gold', 'vault_multi_pallet', {
-					maxGridCols: { mobile: 4, desktop: 8 },
-					capAtTiles: 60,
-				}),
-				countTemplate: '{bars} bars across {pallets} pallets',
-				spritePath: '/sprites/gold/_stubs/vault_multi_pallet.svg',
-			},
-		]),
-		heroScene: 'gold',
-	},
+	// 10-stage progression definition removed under cube-mode pivot (2026-04-25).
+	// Tile-mode rendering remains in the schema (RenderStage.renderMode/tileConfig)
+	// for potential future use by other commodities, but is unused by gold.
+	// Stub sprites live in static/sprites/gold/_stubs/ — preserved on disk for
+	// the potential future "show me bars instead" toggle.
 	facts: [
 		{ template: 'about {n} standard wedding rings (~4 g each)', divisor_kg: 0.004 },
 		{ template: '{n} Good Delivery bars (400 oz each)', divisor_kg: 12.4 },

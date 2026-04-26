@@ -175,15 +175,15 @@ describe('computeDisplayWidthMm', () => {
 
 describe('pickStage', () => {
 	it('picks first stage for small amounts', () => {
-		const gold = getCommodity('gold')!;
-		const stage = pickStage(0.1, gold);
-		expect(stage.id).toBe('grain');
+		const silver = getCommodity('silver')!;
+		const stage = pickStage(1, silver);
+		expect(stage.id).toBe('coin');
 	});
 
 	it('picks last stage for large amounts', () => {
-		const gold = getCommodity('gold')!;
-		const stage = pickStage(100000, gold);
-		expect(stage.id).toBe('bar_stack');
+		const silver = getCommodity('silver')!;
+		const stage = pickStage(1_000_000, silver);
+		expect(stage.id).toBe('pallet');
 	});
 
 	it('picks correct mid-range stage', () => {
@@ -193,9 +193,68 @@ describe('pickStage', () => {
 	});
 
 	it('picks stage at exact boundary', () => {
-		const gold = getCommodity('gold')!;
-		// maxValue of coin stage is 5
-		const stage = pickStage(5, gold);
+		const silver = getCommodity('silver')!;
+		// maxValue of coin stage is 25
+		const stage = pickStage(25, silver);
 		expect(stage.id).toBe('coin');
+	});
+
+	it('throws for cube-mode commodity (no progression)', () => {
+		const gold = getCommodity('gold')!;
+		expect(() => pickStage(1, gold)).toThrow(/no render progression/);
+	});
+});
+
+describe('computeCubeEdgeMm', () => {
+	it('returns 0 for non-positive amount', async () => {
+		const { computeCubeEdgeMm } = await import('../src/lib/volume.js');
+		const gold = getCommodity('gold')!;
+		expect(computeCubeEdgeMm(0, gold)).toBe(0);
+		expect(computeCubeEdgeMm(-1, gold)).toBe(0);
+	});
+
+	it('computes gold cube edge from intrinsic volume (cube root)', async () => {
+		const { computeCubeEdgeMm } = await import('../src/lib/volume.js');
+		const gold = getCommodity('gold')!;
+		// 1 oz gold ≈ 1.611 cm³ → cbrt ≈ 1.172 cm = 11.72 mm
+		expect(computeCubeEdgeMm(1, gold)).toBeCloseTo(11.72, 1);
+	});
+
+	it('scales as cube root of amount', async () => {
+		const { computeCubeEdgeMm } = await import('../src/lib/volume.js');
+		const gold = getCommodity('gold')!;
+		const e1 = computeCubeEdgeMm(1, gold);
+		const e1000 = computeCubeEdgeMm(1000, gold);
+		// 1000× volume → 10× edge
+		expect(e1000 / e1).toBeCloseTo(10, 2);
+	});
+});
+
+describe('pickClosestReference', () => {
+	const refs = [
+		{ id: 'a', displayName: 'A', realSizeMetres: 0.001, spritePath: '', description: '' },
+		{ id: 'b', displayName: 'B', realSizeMetres: 0.1, spritePath: '', description: '' },
+		{ id: 'c', displayName: 'C', realSizeMetres: 10, spritePath: '', description: '' },
+		{ id: 'd', displayName: 'D', realSizeMetres: 1000, spritePath: '', description: '' },
+	];
+
+	it('picks closest on log scale', async () => {
+		const { pickClosestReference } = await import('../src/lib/volume.js');
+		// 1 mm cube → matches 1 mm ref (a)
+		expect(pickClosestReference(1, refs).id).toBe('a');
+		// 100 mm cube = 0.1 m → matches b
+		expect(pickClosestReference(100, refs).id).toBe('b');
+		// 5 m cube = 5000 mm → between c (10 m) and d (1000 m); log-closer to c
+		expect(pickClosestReference(5000, refs).id).toBe('c');
+	});
+
+	it('returns first reference for non-positive cube edge', async () => {
+		const { pickClosestReference } = await import('../src/lib/volume.js');
+		expect(pickClosestReference(0, refs).id).toBe('a');
+	});
+
+	it('throws on empty library', async () => {
+		const { pickClosestReference } = await import('../src/lib/volume.js');
+		expect(() => pickClosestReference(10, [])).toThrow(/empty reference library/);
 	});
 });
