@@ -69,8 +69,16 @@ export function computeDisplayWidthMm(amount: number, stage: RenderStage): numbe
 
 /**
  * Pick the appropriate render stage for a given commodity amount.
+ *
+ * Throws if called for a cube-mode commodity — those don't have stages.
+ * Callers must guard on commodity.renderStyle before calling.
  */
 export function pickStage(amount: number, commodity: Commodity): RenderStage {
+	if (!commodity.render) {
+		throw new Error(
+			`pickStage called for ${commodity.id} which has no render progression (renderStyle: ${commodity.renderStyle})`
+		);
+	}
 	const stages = commodity.render.stages;
 	for (const stage of stages) {
 		if (stage.maxValue === null || amount <= stage.maxValue) {
@@ -80,6 +88,62 @@ export function pickStage(amount: number, commodity: Commodity): RenderStage {
 	// Fallback to last stage
 	return stages[stages.length - 1];
 }
+
+// ── Cube-mode helpers ──────────────────────────────────────────
+
+/**
+ * Compute the edge length in millimetres of a cube whose volume equals
+ * the intrinsic substance volume of the given amount of commodity.
+ *
+ * Used by cube-mode commodities (gold, silver, platinum, copper, ...).
+ * Continuous across the full slider range — no stages, no thresholds.
+ */
+export function computeCubeEdgeMm(amount: number, commodity: Commodity): number {
+	if (amount <= 0) return 0;
+	const volumeCm3 = computeIntrinsicVolumeCm3(amount, commodity);
+	// cm³ → cm → mm
+	return Math.cbrt(volumeCm3) * 10;
+}
+
+export interface ScaleReference {
+	id: string;
+	displayName: string;
+	realSizeMetres: number;
+	spritePath: string;
+	description: string;
+	culturalNote?: string;
+}
+
+/**
+ * Pick the reference whose realSizeMetres is closest to the cube edge
+ * length (in metres) on a logarithmic scale.
+ *
+ * Library is assumed sorted ascending by realSizeMetres.
+ */
+export function pickClosestReference(
+	cubeEdgeMm: number,
+	references: ScaleReference[]
+): ScaleReference {
+	if (references.length === 0) {
+		throw new Error('pickClosestReference: empty reference library');
+	}
+	if (cubeEdgeMm <= 0) return references[0];
+
+	const cubeMetres = cubeEdgeMm / 1000;
+	const cubeLog = Math.log10(cubeMetres);
+
+	let best = references[0];
+	let bestDist = Math.abs(Math.log10(best.realSizeMetres) - cubeLog);
+	for (let i = 1; i < references.length; i++) {
+		const dist = Math.abs(Math.log10(references[i].realSizeMetres) - cubeLog);
+		if (dist < bestDist) {
+			best = references[i];
+			bestDist = dist;
+		}
+	}
+	return best;
+}
+
 
 // ── Tile-mode helpers ──────────────────────────────────────────
 

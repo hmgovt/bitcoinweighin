@@ -48,11 +48,30 @@ export interface FactTemplate {
 export interface Commodity {
 	id: string;
 	displayName: string;
+	/**
+	 * Rendering vocabulary.
+	 * - "cube": single cube sprite at intrinsic volume against the shared scale-reference library. Dense fungible metals.
+	 * - "progression": per-stage sprites with cross-fade transitions. The current default for everything else.
+	 * - "vessel" / "bulk": reserved for future per-vocabulary renderers. Currently throw "not implemented" in the dispatcher.
+	 */
+	renderStyle: 'cube' | 'progression' | 'vessel' | 'bulk';
 	unit: 'troy_oz' | 'lb' | 'barrel' | 'mmbtu' | 'gram' | 'kg' | 'pellet';
 	unitMassGrams?: number;
 	densityGPerCm3?: number;
 	bulkDensityKgPerM3?: number;
-	render: RenderProgression;
+	/**
+	 * Stage definitions — required for "progression"-style commodities.
+	 * Cube-mode commodities set this undefined; the renderer ignores it and reads
+	 * `densityGPerCm3` + `unitMassGrams` directly. Reserved for revival under a
+	 * future "show me bars instead" toggle.
+	 */
+	render?: RenderProgression;
+	/**
+	 * Cube sprite path — required when `renderStyle === "cube"`.
+	 * The sprite is identical at every amount; only its CSS size changes.
+	 */
+	cubeSpritePath?: string;
+	cubeShadowPath?: string;
 	facts: FactTemplate[];
 	affiliate?: { url: string; label: string; disclosure: string };
 	sourceId: string;
@@ -105,6 +124,7 @@ function stubTileConfig(
 const gold: Commodity = {
 	id: 'gold',
 	displayName: 'Gold',
+	renderStyle: 'progression',
 	unit: 'troy_oz',
 	unitMassGrams: 31.1035,
 	densityGPerCm3: 19.3,
@@ -227,6 +247,7 @@ const gold: Commodity = {
 const silver: Commodity = {
 	id: 'silver',
 	displayName: 'Silver',
+	renderStyle: 'progression',
 	unit: 'troy_oz',
 	unitMassGrams: 31.1035,
 	densityGPerCm3: 10.49,
@@ -252,6 +273,7 @@ const silver: Commodity = {
 const copper: Commodity = {
 	id: 'copper',
 	displayName: 'Copper',
+	renderStyle: 'progression',
 	unit: 'lb',
 	unitMassGrams: 453.592,
 	densityGPerCm3: 8.96,
@@ -278,6 +300,7 @@ const copper: Commodity = {
 const oil_brent: Commodity = {
 	id: 'oil_brent',
 	displayName: 'Brent crude',
+	renderStyle: 'progression',
 	unit: 'barrel',
 	densityGPerCm3: 0.835,
 	sourceId: 'oil_brent',
@@ -304,6 +327,7 @@ const oil_brent: Commodity = {
 const natgas: Commodity = {
 	id: 'natgas',
 	displayName: 'Natural gas',
+	renderStyle: 'progression',
 	unit: 'mmbtu',
 	densityGPerCm3: 0.000717,
 	sourceId: 'natgas',
@@ -327,6 +351,7 @@ const natgas: Commodity = {
 const uranium_fuel_pellet: Commodity = {
 	id: 'uranium_fuel_pellet',
 	displayName: 'Nuclear fuel pellet (LEU UO₂)',
+	renderStyle: 'progression',
 	unit: 'pellet',
 	unitMassGrams: 7,
 	densityGPerCm3: 10.97,
@@ -359,6 +384,7 @@ const uranium_fuel_pellet: Commodity = {
 const platinum: Commodity = {
 	id: 'platinum',
 	displayName: 'Platinum',
+	renderStyle: 'progression',
 	unit: 'troy_oz',
 	unitMassGrams: 31.1035,
 	densityGPerCm3: 21.45,
@@ -382,6 +408,7 @@ const platinum: Commodity = {
 const coffee: Commodity = {
 	id: 'coffee',
 	displayName: 'Arabica coffee',
+	renderStyle: 'progression',
 	unit: 'lb',
 	unitMassGrams: 453.592,
 	bulkDensityKgPerM3: 380,

@@ -1,0 +1,137 @@
+[
+  {
+    "id": "grain_of_sand",
+    "displayName": "Grain of sand",
+    "realSizeMetres": 0.0005,
+    "spritePath": "/sprites/references/grain_of_sand.svg",
+    "description": "A single grain of medium sand",
+    "culturalNote": "About half a millimetre across"
+  },
+  {
+    "id": "pinhead",
+    "displayName": "Pinhead",
+    "realSizeMetres": 0.001,
+    "spritePath": "/sprites/references/pinhead.svg",
+    "description": "The head of a sewing pin"
+  },
+  {
+    "id": "flea",
+    "displayName": "Flea",
+    "realSizeMetres": 0.002,
+    "spritePath": "/sprites/references/flea.svg",
+    "description": "An adult flea, about 2 mm long"
+  },
+  {
+    "id": "pencil_tip",
+    "displayName": "Pencil tip",
+    "realSizeMetres": 0.005,
+    "spritePath": "/sprites/references/pencil_tip.svg",
+    "description": "The sharpened tip of a pencil"
+  },
+  {
+    "id": "sugar_cube",
+    "displayName": "Sugar cube",
+    "realSizeMetres": 0.016,
+    "spritePath": "/sprites/references/sugar_cube.svg",
+    "description": "A standard 16 mm sugar cube"
+  },
+  {
+    "id": "pound_coin",
+    "displayName": "£1 coin",
+    "realSizeMetres": 0.0234,
+    "spritePath": "/sprites/references/pound_coin.svg",
+    "description": "A British one-pound coin, 23.43 mm in diameter",
+    "culturalNote": "Actual size"
+  },
+  {
+    "id": "espresso_cup",
+    "displayName": "Espresso cup",
+    "realSizeMetres": 0.06,
+    "spritePath": "/sprites/references/espresso_cup.svg",
+    "description": "A standard espresso cup"
+  },
+  {
+    "id": "football",
+    "displayName": "Football",
+    "realSizeMetres": 0.22,
+    "spritePath": "/sprites/references/football.svg",
+    "description": "A size-5 football, 22 cm in diameter"
+  },
+  {
+    "id": "microwave",
+    "displayName": "Microwave oven",
+    "realSizeMetres": 0.5,
+    "spritePath": "/sprites/references/microwave.svg",
+    "description": "A countertop microwave oven"
+  },
+  {
+    "id": "person",
+    "displayName": "Person",
+    "realSizeMetres": 1.75,
+    "spritePath": "/sprites/references/person.svg",
+    "description": "A 1.75 m tall person"
+  },
+  {
+    "id": "refrigerator",
+    "displayName": "Refrigerator",
+    "realSizeMetres": 1.8,
+    "spritePath": "/sprites/references/refrigerator.svg",
+    "description": "A standard upright refrigerator"
+  },
+  {
+    "id": "family_car",
+    "displayName": "Family car",
+    "realSizeMetres": 4.5,
+    "spritePath": "/sprites/references/family_car.svg",
+    "description": "A typical four-door family car, 4.5 m long"
+  },
+  {
+    "id": "shipping_container",
+    "displayName": "Shipping container",
+    "realSizeMetres": 6.1,
+    "spritePath": "/sprites/references/shipping_container.svg",
+    "description": "A 20-foot ISO shipping container"
+  },
+  {
+    "id": "two_storey_house",
+    "displayName": "Two-storey house",
+    "realSizeMetres": 8.0,
+    "spritePath": "/sprites/references/two_storey_house.svg",
+    "description": "A typical two-storey detached house"
+  },
+  {
+    "id": "double_decker_bus",
+    "displayName": "London double-decker bus",
+    "realSizeMetres": 11.0,
+    "spritePath": "/sprites/references/double_decker_bus.svg",
+    "description": "A London double-decker bus, 11 m long"
+  },
+  {
+    "id": "ten_storey_building",
+    "displayName": "10-storey building",
+    "realSizeMetres": 30.0,
+    "spritePath": "/sprites/references/ten_storey_building.svg",
+    "description": "A 10-storey office or apartment building"
+  },
+  {
+    "id": "statue_of_liberty",
+    "displayName": "Statue of Liberty",
+    "realSizeMetres": 93.0,
+    "spritePath": "/sprites/references/statue_of_liberty.svg",
+    "description": "The Statue of Liberty, 93 m to torch tip"
+  },
+  {
+    "id": "eiffel_tower",
+    "displayName": "Eiffel Tower",
+    "realSizeMetres": 330.0,
+    "spritePath": "/sprites/references/eiffel_tower.svg",
+    "description": "The Eiffel Tower, 330 m to antenna tip"
+  },
+  {
+    "id": "empire_state_building",
+    "displayName": "Empire State Building",
+    "realSizeMetres": 381.0,
+    "spritePath": "/sprites/references/empire_state_building.svg",
+    "description": "The Empire State Building, 381 m to roof"
+  }
+]
