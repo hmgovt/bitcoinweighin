@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 300" fill="#aaa" stroke="#333" stroke-width="1">
+  <!-- base block (5 storey) -->
+  <rect x="10" y="240" width="80" height="50"/>
+  <!-- second tier -->
+  <rect x="18" y="200" width="64" height="40"/>
+  <!-- third tier -->
+  <rect x="26" y="160" width="48" height="40"/>
+  <!-- main shaft -->
+  <rect x="32" y="80" width="36" height="80"/>
+  <!-- step at top of shaft -->
+  <rect x="34" y="68" width="32" height="12"/>
+  <rect x="36" y="58" width="28" height="10"/>
+  <!-- crown -->
+  <polygon points="40,58 60,58 56,40 44,40"/>
+  <!-- antenna mast -->
+  <line x1="50" y1="40" x2="50" y2="6" stroke-width="2"/>
+  <circle cx="50" cy="6" r="2" fill="#333"/>
+  <!-- horizontal bands -->
+  <line x1="32" y1="100" x2="68" y2="100" stroke="#333" stroke-width="0.6"/>
+  <line x1="32" y1="120" x2="68" y2="120" stroke="#333" stroke-width="0.6"/>
+  <line x1="32" y1="140" x2="68" y2="140" stroke="#333" stroke-width="0.6"/>
+  <!-- window grid suggestion on shaft -->
+  <g fill="#ccd6e0" stroke="none">
+    <rect x="36" y="86" width="3" height="6"/><rect x="42" y="86" width="3" height="6"/><rect x="48" y="86" width="3" height="6"/><rect x="54" y="86" width="3" height="6"/><rect x="60" y="86" width="3" height="6"/>
+    <rect x="36" y="106" width="3" height="6"/><rect x="42" y="106" width="3" height="6"/><rect x="48" y="106" width="3" height="6"/><rect x="54" y="106" width="3" height="6"/><rect x="60" y="106" width="3" height="6"/>
+    <rect x="36" y="126" width="3" height="6"/><rect x="42" y="126" width="3" height="6"/><rect x="48" y="126" width="3" height="6"/><rect x="54" y="126" width="3" height="6"/><rect x="60" y="126" width="3" height="6"/>
+    <rect x="36" y="146" width="3" height="6"/><rect x="42" y="146" width="3" height="6"/><rect x="48" y="146" width="3" height="6"/><rect x="54" y="146" width="3" height="6"/><rect x="60" y="146" width="3" height="6"/>
+  </g>
+</svg>

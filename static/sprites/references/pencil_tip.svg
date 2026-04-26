@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="#888">
+  <!-- pencil shaft -->
+  <rect x="30" y="10" width="40" height="55" rx="2"/>
+  <!-- conical wood -->
+  <polygon points="30,65 70,65 50,90" fill="#bdbdbd"/>
+  <!-- graphite tip -->
+  <polygon points="42,80 58,80 50,98" fill="#3a3a3a"/>
+</svg>

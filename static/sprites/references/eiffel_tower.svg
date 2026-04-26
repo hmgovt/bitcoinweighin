@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" fill="none" stroke="#5a4a3a" stroke-width="2">
+  <!-- four legs at base -->
+  <path d="M30 290 Q60 200 86 138" />
+  <path d="M170 290 Q140 200 114 138" />
+  <path d="M62 290 Q78 220 92 144" />
+  <path d="M138 290 Q122 220 108 144" />
+  <!-- first platform (arch level) -->
+  <path d="M40 230 Q100 220 160 230" stroke-width="1.5"/>
+  <line x1="40" y1="230" x2="40" y2="240" stroke-width="1.5"/>
+  <line x1="160" y1="230" x2="160" y2="240" stroke-width="1.5"/>
+  <!-- arch decoration -->
+  <path d="M50 254 Q100 226 150 254" stroke-width="1"/>
+  <!-- second platform -->
+  <path d="M62 184 L138 184" stroke-width="1.5"/>
+  <line x1="62" y1="178" x2="62" y2="190" stroke-width="1.5"/>
+  <line x1="138" y1="178" x2="138" y2="190" stroke-width="1.5"/>
+  <!-- mid-section lattice -->
+  <line x1="76" y1="184" x2="92" y2="138"/>
+  <line x1="124" y1="184" x2="108" y2="138"/>
+  <line x1="92" y1="138" x2="108" y2="138"/>
+  <!-- third platform -->
+  <line x1="86" y1="138" x2="114" y2="138" stroke-width="1.5"/>
+  <line x1="86" y1="132" x2="86" y2="144" stroke-width="1.5"/>
+  <line x1="114" y1="132" x2="114" y2="144" stroke-width="1.5"/>
+  <!-- top section -->
+  <line x1="92" y1="138" x2="100" y2="58"/>
+  <line x1="108" y1="138" x2="100" y2="58"/>
+  <!-- antenna -->
+  <line x1="100" y1="58" x2="100" y2="20" stroke-width="2"/>
+  <circle cx="100" cy="18" r="2.5" fill="#5a4a3a"/>
+  <!-- crossbeams -->
+  <line x1="92" y1="120" x2="108" y2="120"/>
+  <line x1="94" y1="100" x2="106" y2="100"/>
+  <line x1="96" y1="80" x2="104" y2="80"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" fill="#888" stroke="#333" stroke-width="1.5">
+  <!-- car body -->
+  <path d="M14 70 L26 70 L34 44 Q60 32 100 32 Q140 32 168 44 L180 50 L188 52 L188 70 L172 70 Q172 80 160 80 Q148 80 148 70 L52 70 Q52 80 40 80 Q28 80 28 70 Z" fill="#9a9a9a"/>
+  <!-- windows -->
+  <path d="M40 50 L48 36 Q70 30 96 30 L96 50 Z" fill="#cce" stroke="#333" stroke-width="1"/>
+  <path d="M104 30 Q132 30 156 42 L162 50 L104 50 Z" fill="#cce" stroke="#333" stroke-width="1"/>
+  <line x1="100" y1="30" x2="100" y2="50"/>
+  <!-- wheels -->
+  <circle cx="40" cy="76" r="10" fill="#222"/>
+  <circle cx="40" cy="76" r="4" fill="#888"/>
+  <circle cx="160" cy="76" r="10" fill="#222"/>
+  <circle cx="160" cy="76" r="4" fill="#888"/>
+</svg>

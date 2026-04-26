@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="#888" stroke="#333" stroke-width="1.5">
+  <!-- body -->
+  <rect x="8" y="28" width="84" height="48" rx="3" fill="#aaa"/>
+  <!-- door -->
+  <rect x="14" y="34" width="50" height="36" rx="1" fill="#444"/>
+  <!-- door window inside -->
+  <rect x="18" y="38" width="42" height="28" rx="1" fill="#222"/>
+  <!-- control panel -->
+  <rect x="68" y="34" width="20" height="36" rx="1" fill="#666"/>
+  <circle cx="78" cy="42" r="3" fill="#ddd"/>
+  <line x1="71" y1="50" x2="85" y2="50"/>
+  <line x1="71" y1="56" x2="85" y2="56"/>
+  <line x1="71" y1="62" x2="85" y2="62"/>
+</svg>

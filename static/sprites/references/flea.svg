@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="#888">
+  <!-- body -->
+  <path d="M30 60 Q35 32 55 32 Q75 32 78 55 Q78 70 65 75 L40 75 Q26 73 30 60 Z"/>
+  <!-- legs -->
+  <path d="M40 75 L28 92" stroke="#888" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M52 78 L42 95" stroke="#888" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M64 78 L66 95" stroke="#888" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M70 70 L86 86" stroke="#888" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- antennae -->
+  <path d="M55 32 L48 16" stroke="#888" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M62 33 L66 16" stroke="#888" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="#888">
+  <!-- saucer -->
+  <ellipse cx="50" cy="80" rx="42" ry="6"/>
+  <!-- cup body -->
+  <path d="M28 40 Q28 70 50 75 Q72 70 72 40 Z"/>
+  <!-- handle -->
+  <path d="M72 50 Q88 50 88 60 Q88 70 72 65" fill="none" stroke="#888" stroke-width="3"/>
+  <!-- coffee surface -->
+  <ellipse cx="50" cy="42" rx="22" ry="4" fill="#5a3a20"/>
+</svg>

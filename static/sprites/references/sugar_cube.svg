@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#888" stroke-width="3">
+  <!-- isometric cube faces -->
+  <polygon points="20,40 50,22 80,40 50,58" fill="#aaa"/>
+  <polygon points="20,40 20,75 50,93 50,58" fill="#888"/>
+  <polygon points="80,40 80,75 50,93 50,58" fill="#9a9a9a"/>
+</svg>
