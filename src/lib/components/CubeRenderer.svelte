@@ -76,6 +76,17 @@
 	}
 
 	onMount(() => {
+		// Preload every reference sprite at mount so boundary crossings during
+		// a slider drag swap atomically from cache instead of triggering a
+		// network round-trip per first encounter. The {#key reference.id}
+		// block tears down the old <img> on every swap, so without preload
+		// the new <img>'s 280 ms fade-in races against the asset fetch and
+		// the user sees a blank reference slot until the request lands.
+		for (const ref of REFERENCES) {
+			const img = new Image();
+			img.src = ref.spritePath;
+		}
+
 		if (!sceneEl) return;
 		const ro = new ResizeObserver((entries) => {
 			for (const entry of entries) {
