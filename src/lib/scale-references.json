@@ -63,7 +63,6 @@
     "realSizeMetres": 0.4,
     "measurementAxis": "height",
     "spritePath": "/sprites/references/shiba_inu.webp",
-    "animatedModelPath": "/models/references/shiba_inu/scene.gltf",
     "description": "A Shiba Inu dog, 40 cm at the shoulder"
   },
   {
