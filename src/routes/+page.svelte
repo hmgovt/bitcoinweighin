@@ -135,7 +135,7 @@
 	<title>Bitcoin Weigh-In — What does a bitcoin weigh?</title>
 	<meta
 		name="description"
-		content="The purchasing power of bitcoin, measured in commodities you can hold. Gold, silver, copper, oil, natural gas, and nuclear fuel — at true relative scale."
+		content="The purchasing power of bitcoin, measured in commodities you can hold. Gold, silver, copper, oil, and nuclear fuel — at true relative scale."
 	/>
 </svelte:head>
 

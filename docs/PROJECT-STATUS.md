@@ -1,6 +1,6 @@
 # Bitcoin Weigh-In — Project Status
 
-*Last updated: 26 April 2026*
+*Last updated: 29 April 2026*
 
 ## What this is
 
@@ -8,11 +8,11 @@ A static site visualising what bitcoin's purchasing power looks like across phys
 
 ## Current phase
 
-**Phase 2a/2b complete for gold under cube-mode pivot.** The renderer now branches on `commodity.renderStyle`. Gold renders as a single cube of intrinsic substance volume against a cycling library of 19 scale references (grain of sand → Empire State Building). Tile-mode rendering remains in the schema but is unused by any commodity at launch. The gold cube sprite was authored via headless Blender Python with the locked-in PBR material from the prior bar-progression session. Other commodities (silver, copper, oil, gas, fuel pellet, coffee) keep their existing progression-mode rendering for now; vessel- and bulk-mode renderers are stubs that throw "not implemented" until the next handoff.
+**Phase 2a/2b complete for gold and silver under cube-mode pivot.** The renderer branches on `commodity.renderStyle`. Gold and silver each render as a single cube of intrinsic substance volume against the cycling 19-entry scale-reference library. Tile-mode rendering remains in the schema but is unused. Gold and silver cube sprites authored via headless Blender Python from the locked PBR materials in `assets/materials-reference.md`. Other commodities (copper, oil, fuel pellet, coffee) keep progression-mode rendering for now; vessel- and bulk-mode renderers are stubs that throw "not implemented" until the next handoff. **Natural gas removed from MVP 2026-04-29.**
 
 ## Phases complete
 
-**Phase 0 — Data pipeline.** Full daily commodity price history 2013-01-01 to present from stooq (metals, agri, BTC) and FRED (oil, natural gas). BTC circulating supply computed deterministically from block-height/halving schedule. `prices.json` at 0.77 MB raw / 0.17 MB gzipped. 18 unit tests passing. GitHub Action daily cron configured with `STOOQ_API_KEY` and `FRED_API_KEY` repo secrets. Stooq introduced an API key requirement post-bootstrap; auth fix landed 2026-04-25 along with diagnostic improvements to `health.json` and a workflow guard against silent failure modes.
+**Phase 0 — Data pipeline.** Full daily commodity price history 2013-01-01 to present from stooq (metals, agri, BTC) and FRED (oil). BTC circulating supply computed deterministically from block-height/halving schedule. `prices.json` at 0.77 MB raw / 0.17 MB gzipped. 18 unit tests passing. GitHub Action daily cron configured with `STOOQ_API_KEY` and `FRED_API_KEY` repo secrets. Stooq introduced an API key requirement post-bootstrap; auth fix landed 2026-04-25 along with diagnostic improvements to `health.json` and a workflow guard against silent failure modes.
 
 **Phase 1 — Skeleton.** SvelteKit with `@sveltejs/adapter-static` deployed to Cloudflare Pages. URL state wired end-to-end. Logarithmic BTC slider (1 sat to 21M), date picker, metric/imperial unit toggle, preset pill bar with denominations and absurdity categories. Dollar readout is a primary UI element directly under the slider with tier-aware formatting (M/B/T) at extreme amounts. Readout strip carries continuity with mass, volume, and an optional per-commodity count line in tabular figures.
 
@@ -26,9 +26,9 @@ A static site visualising what bitcoin's purchasing power looks like across phys
 
 **Phase 2b.2 — Remaining 11 animal references.** Source CC-BY-4.0 or CC0 glTF/glb models for blue whale, sperm whale, humpback whale, elephant, horse, large dog, cat, mouse, bee, ant, flea (queue and sizing in `assets/references-attribution.md`). Each one inherits the Shiba's render pattern: copy `scripts/blender/shiba_inu.py`, edit the CONFIG block, run. The whales/elephant slots futureproof the slider's high end where the Statue of Liberty / Eiffel Tower / Empire State already cover the city-scale band; the bee/ant/flea slots replace the existing silhouette entries with photoreal renders if good source models exist.
 
-**Phase 2c — Vessel and bulk vocabularies.** Oil and gas progressions reframed around tankers and LNG carriers (Aframax, VLCC, Q-Max class), playing on the existing standardised vessel-class capacities. Coffee retains the bag/sack progression. Fuel pellet retains its existing per-stage progression as the philosophical closer. Wheat stays Tier 2.
+**Phase 2c — Vessel and bulk vocabularies.** Oil progression reframed around tankers (Aframax, VLCC), playing on the standardised vessel-class capacities. Coffee retains the bag/sack progression. Fuel pellet retains its existing per-stage progression as the philosophical closer. Wheat stays Tier 2.
 
-**Phase 2d (optional) — Migrate silver / platinum / copper to cube mode.** Re-render the cube geometry with silver / platinum / copper PBR materials per the locked table. About an hour of additional render time per material. Adds 3 more cube sprites + 3 shadows. Their `renderStyle` flips from `progression` to `cube` once their sprites land.
+**Phase 2d — Migrate platinum and copper to cube mode.** Silver landed 2026-04-29; platinum and copper still pending. Copy `scripts/blender/silver_cube.py`, swap PBR values per `assets/materials-reference.md`, render. About an hour per material. Their `renderStyle` flips from `progression` to `cube` once their sprites land.
 
 **Phase 3 — Scrubber and anchor events.** Timeline scrubber at bottom of viewport, play/pause/speed controls, anchor event dots with caption cards on crossing. Dual-range mobile design.
 
@@ -50,7 +50,7 @@ A static site visualising what bitcoin's purchasing power looks like across phys
 - **Framework:** SvelteKit with `@sveltejs/adapter-static` (not `-cloudflare`); output dir is `build/` not `.svelte-kit/cloudflare`. Fully prerendered static site, no Workers needed.
 - **Hosting:** Cloudflare Pages. Free tier.
 - **BTC slider range:** 0.00000001 (1 sat) to 21,000,000 (total supply), logarithmic scale.
-- **MVP commodity mix:** 6 core (gold, silver, copper, oil_brent, natgas, uranium_fuel_pellet) plus 2 optional (platinum, coffee). Wheat fetched in data but deliberately excluded from MVP rendering. No diamonds ever (non-fungible, no public spot price).
+- **MVP commodity mix:** 5 core (gold, silver, copper, oil_brent, uranium_fuel_pellet) plus 2 optional (platinum, coffee). Wheat fetched in data but deliberately excluded from MVP rendering. Natural gas removed 2026-04-29. No diamonds ever (non-fungible, no public spot price).
 - **Uranium fuel pellet:** illustrative pricing at ~$20/pellet based on WNA composite fuel cost (~$3,000/kgU ÷ 7 g). Lives in `src/lib/illustrative-prices.json`, not `prices.json`. Source attribution mandatory.
 - **MVP presets:** denominations + absurdity only (7 total). History and Entity categories deferred to Phase 3.5 and editorial content respectively.
 - **BTC price source:** stooq (ticker `btcusd`) alongside the other commodities, not CoinGecko. One source, one parser, one failure mode. Stooq API key required since 2026-04-25.

@@ -1,7 +1,7 @@
 /**
  * MVP commodity catalogue for Bitcoin Weigh-In.
  *
- * Ordering: gold → silver → copper → oil_brent → natgas → uranium_fuel_pellet
+ * Ordering: gold → silver → copper → oil_brent → uranium_fuel_pellet
  * Optional: platinum (between copper & oil), coffee (between platinum & oil)
  */
 
@@ -55,7 +55,7 @@ export interface Commodity {
 	 * - "vessel" / "bulk": reserved for future per-vocabulary renderers. Currently throw "not implemented" in the dispatcher.
 	 */
 	renderStyle: 'cube' | 'progression' | 'vessel' | 'bulk';
-	unit: 'troy_oz' | 'lb' | 'barrel' | 'mmbtu' | 'gram' | 'kg' | 'pellet';
+	unit: 'troy_oz' | 'lb' | 'barrel' | 'gram' | 'kg' | 'pellet';
 	unitMassGrams?: number;
 	densityGPerCm3?: number;
 	bulkDensityKgPerM3?: number;
@@ -129,12 +129,7 @@ const gold: Commodity = {
 	unitMassGrams: 31.1035,
 	densityGPerCm3: 19.3,
 	cubeSpritePath: '/sprites/gold/cube@2x.png',
-	// cubeShadowPath: TODO — re-render with cube as Holdout / camera-invisible so
-	// the PNG contains only the shadow on the catcher plane. The current shadow
-	// pass also contains the cube (because it's still visible to the camera),
-	// which double-renders the cube when stacked behind the main sprite. Until
-	// that re-render lands, ship without the contact shadow — the HDRI alone
-	// gives the cube enough form.
+	cubeShadowPath: '/sprites/gold/cube-shadow@2x.png',
 	sourceId: 'gold',
 	sourceName: 'stooq (XAUUSD)',
 	dataQuality: 'live',
@@ -153,23 +148,16 @@ const gold: Commodity = {
 const silver: Commodity = {
 	id: 'silver',
 	displayName: 'Silver',
-	renderStyle: 'progression',
+	renderStyle: 'cube',
 	unit: 'troy_oz',
 	unitMassGrams: 31.1035,
 	densityGPerCm3: 10.49,
+	cubeSpritePath: '/sprites/silver/cube@2x.png',
+	cubeShadowPath: '/sprites/silver/cube-shadow@2x.png',
 	sourceId: 'silver',
 	sourceName: 'stooq (XAGUSD)',
 	dataQuality: 'live',
 	priceField: 'xag',
-	render: {
-		stages: placeholderStages('silver', [
-			{ id: 'coin', maxValue: 25, realWorldWidthMetres: 0.039, referenceAmount: 1 },
-			{ id: 'tube', maxValue: 200, realWorldWidthMetres: 0.045, referenceAmount: 20 },
-			{ id: 'monster_box', maxValue: 1500, realWorldWidthMetres: 0.3, referenceAmount: 500 },
-			{ id: 'shoebox_pile', maxValue: 10000, realWorldWidthMetres: 0.4, referenceAmount: 1125 },
-			{ id: 'pallet', maxValue: null, realWorldWidthMetres: 1.2, referenceAmount: 10000 },
-		]),
-	},
 	facts: [
 		{ template: '{n} 1-oz American Silver Eagles', divisor_kg: 0.0311035 },
 		{ template: '{n} US Mint "monster boxes" (500 oz each)', divisor_kg: 15.55 },
@@ -227,30 +215,6 @@ const oil_brent: Commodity = {
 	facts: [
 		{ template: 'roughly {n} full tanks for a mid-size car (~50 L)', divisor_litres: 50 },
 		{ template: 'fuel for {n} transatlantic flights (~150,000 L each)', divisor_litres: 150000 },
-	],
-};
-
-const natgas: Commodity = {
-	id: 'natgas',
-	displayName: 'Natural gas',
-	renderStyle: 'progression',
-	unit: 'mmbtu',
-	densityGPerCm3: 0.000717,
-	sourceId: 'natgas',
-	sourceName: 'FRED (DHHNGSP)',
-	dataQuality: 'live',
-	priceField: 'natgas',
-	render: {
-		stages: placeholderStages('natgas', [
-			{ id: 'cube_small', maxValue: 10, realWorldWidthMetres: 3, referenceAmount: 1 },
-			{ id: 'cube_medium', maxValue: 100, realWorldWidthMetres: 7, referenceAmount: 10 },
-			{ id: 'cube_large', maxValue: 1000, realWorldWidthMetres: 15, referenceAmount: 100 },
-			{ id: 'cube_xlarge', maxValue: null, realWorldWidthMetres: 30, referenceAmount: 1000 },
-		]),
-	},
-	facts: [
-		{ template: 'enough to heat {n} average UK homes for a year (~12,000 kWh)', divisor_litres: 33900000 },
-		{ template: '≈ {n} Olympic swimming pools of gas at atmospheric pressure', divisor_litres: 2500000 },
 	],
 };
 
@@ -346,7 +310,6 @@ export const CORE_COMMODITIES: Commodity[] = [
 	silver,
 	copper,
 	oil_brent,
-	natgas,
 	uranium_fuel_pellet,
 ];
 

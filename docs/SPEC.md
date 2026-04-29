@@ -41,7 +41,7 @@ Applies to: gold, silver, platinum, copper, palladium, rhodium, osmium.
 
 **Progression mode** — for everything cube mode doesn't fit. Per-substance authored stages with cross-fade transitions, the £1 coin and human silhouette as scale references, and text comparison cards as fallback at extreme sizes.
 
-Applies to: oil (drum → tanker → fleet), natural gas (cube wireframe → LNG carrier → fleet), coffee (cup → bag → jute sack → warehouse), fuel pellet (single → handful → rod's worth → shoebox → pallet), and any future bulk or fluid commodity.
+Applies to: oil (drum → tanker → fleet), coffee (cup → bag → jute sack → warehouse), fuel pellet (single → handful → rod's worth → shoebox → pallet), and any future bulk or fluid commodity.
 
 The two vocabularies are internally coherent and never mix within a single commodity section. The renderer branches on `commodity.renderStyle`.
 
@@ -180,13 +180,7 @@ Both reframed around real-world maritime infrastructure with standardised capaci
 - `vlcc` — Very Large Crude Carrier, ref ~2,000,000 barrels (distinct silhouette from Aframax)
 - `tanker_fleet` — multiple VLCCs in side-profile horizon shot, tile-mode-eligible
 
-**Natural gas:**
-- `wireframe_cube` — translucent cyan wireframe with vapour animation, household-scale and below
-- `lng_carrier_moss` — single LNG carrier with distinctive Moss-type spherical tanks (~170,000 m³ liquid, ~3.5M MMBtu equivalent)
-- `lng_qmax` — Q-Max class carrier, ~266,000 m³ capacity
-- `lng_fleet` — multiple carriers, tile-mode-eligible
-
-The vessel-class encoding is honest: real shipping uses these classifications and capacities. The sprite library is small (one Aframax, one VLCC, one Moss-type LNG, one Q-Max) and the rest is replication.
+The vessel-class encoding is honest: real shipping uses these classifications and capacities. The sprite library is small (one Aframax, one VLCC) and the rest is replication.
 
 ### Coffee, fuel pellet, and other progression commodities
 
@@ -204,7 +198,6 @@ The uranium fuel pellet retains its existing progression: single pellet → hand
 | `silver` | Silver | cube | troy oz | 10.49 | stooq `xagusd` |
 | `copper` | Copper | cube | lb | 8.96 | stooq `hg.c` |
 | `oil_brent` | Brent crude | progression (vessel) | barrel | 0.835 | FRED `DCOILBRENTEU` |
-| `natgas` | Natural gas | progression (vessel) | MMBtu | 0.000717 at STP | FRED `DHHNGSP` |
 | `uranium_fuel_pellet` | Nuclear fuel pellet | progression | pellet (7 g) | 10.97 | illustrative |
 
 **MVP optional:**
@@ -214,7 +207,7 @@ The uranium fuel pellet retains its existing progression: single pellet → hand
 | `platinum` | Platinum | cube | troy oz | 21.45 | stooq `xptusd` |
 | `coffee` | Arabica coffee | progression (bulk) | lb | 0.38 (bulk roasted) | stooq `kc.c` |
 
-**Ordering rationale:** gold (cube, universally familiar) → silver (cube, denser visual contrast) → copper (cube, industrial) → oil (vessel, fluid) → natural gas (vessel, invisible substance made tangible via LNG carriers) → uranium fuel pellet (progression, philosophical closer). The cube-mode commodities sit together at the start of the tour, fluids in the middle, the fuel pellet's distinctive non-cube vocabulary at the end.
+**Ordering rationale:** gold (cube, universally familiar) → silver (cube, denser visual contrast) → copper (cube, industrial) → oil (vessel, fluid) → uranium fuel pellet (progression, philosophical closer). The cube-mode commodities sit together at the start of the tour, fluids in the middle, the fuel pellet's distinctive non-cube vocabulary at the end.
 
 **Deliberately excluded from MVP:** wheat, corn, soybeans, sugar, cocoa. Agri commodities share a "sack of brown stuff" visual problem — they read redundantly. Coffee gets a spot for its distinct visual vocabulary; the rest are skipped. Can be added in Tier 2 if post-launch data shows demand.
 
@@ -229,7 +222,7 @@ interface Commodity {
   id: string;
   displayName: string;
   renderStyle: "cube" | "progression";
-  unit: "troy_oz" | "lb" | "barrel" | "mmbtu" | "gram" | "kg" | "pellet";
+  unit: "troy_oz" | "lb" | "barrel" | "gram" | "kg" | "pellet";
   unitMassGrams?: number;            // mass per unit; required for cube mode
   densityGPerCm3?: number;           // solid density; required for cube mode
   bulkDensityKgPerM3?: number;       // for bulk agri; takes precedence over solid density
@@ -258,10 +251,6 @@ Two distinct volume concepts, used in different places and never confused.
 function computeIntrinsicVolumeCm3(amount: number, commodity: Commodity): number {
   if (commodity.unit === "barrel") {
     return amount * 158987; // 1 US barrel = 158,987 cm³
-  }
-  
-  if (commodity.unit === "mmbtu") {
-    return amount * 28_300_000; // 1 MMBtu natural gas ≈ 28.3 m³ at STP
   }
   
   if (commodity.unitMassGrams && commodity.densityGPerCm3) {
@@ -297,7 +286,6 @@ Values used in the Commodity schema. All figures are standard textbook reference
 | Osmium | 22.59 | Densest naturally-occurring element |
 | UO2 (fuel pellet) | 10.97 | Sintered ceramic |
 | Crude oil (Brent) | 0.835 | API ~38°; varies 0.79–0.87 by grade |
-| Natural gas (methane) | 0.000717 at STP | At atmospheric pressure |
 | Coffee beans (roasted) | 0.38 (bulk) | Bulk density, not particle density |
 | Coffee beans (green) | 0.65 (bulk) | |
 

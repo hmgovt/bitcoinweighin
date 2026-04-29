@@ -19,11 +19,6 @@ export function computeIntrinsicVolumeCm3(amount: number, commodity: Commodity):
 		return amount * 158_987;
 	}
 
-	// Gas: volume at STP. 1 MMBtu ≈ 28.3 m³ at STP
-	if (commodity.unit === 'mmbtu') {
-		return amount * 28_300_000;
-	}
-
 	// Mass-based with solid density
 	if (commodity.unitMassGrams && commodity.densityGPerCm3) {
 		const massGrams = amount * commodity.unitMassGrams;
@@ -45,7 +40,7 @@ export function computeIntrinsicVolumeCm3(amount: number, commodity: Commodity):
  */
 export function computeMassGrams(amount: number, commodity: Commodity): number | null {
 	if (!commodity.unitMassGrams) {
-		// Volume-native commodities (oil, natgas) don't have a simple mass-per-unit
+		// Volume-native commodities (oil) don't have a simple mass-per-unit
 		if (commodity.unit === 'barrel' && commodity.densityGPerCm3) {
 			// 1 barrel = 158.987 litres = 158,987 cm³
 			return amount * 158_987 * commodity.densityGPerCm3;

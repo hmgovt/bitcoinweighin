@@ -28,7 +28,6 @@ export const SOURCES: SourceConfig[] = [
 
 	// Energy (FRED)
 	{ id: 'oil_brent', type: 'fred', symbol: 'DCOILBRENTEU', field: 'brent' },
-	{ id: 'natgas', type: 'fred', symbol: 'DHHNGSP', field: 'natgas' },
 ];
 
 export const START_DATE = '2013-01-01';

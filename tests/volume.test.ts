@@ -43,13 +43,6 @@ describe('computeIntrinsicVolumeCm3', () => {
 		expect(vol).toBe(79_493.5);
 	});
 
-	it('computes natural gas volume at STP', () => {
-		const natgas = getCommodity('natgas')!;
-		// 1 MMBtu ≈ 28.3 m³ = 28,300,000 cm³
-		const vol = computeIntrinsicVolumeCm3(1, natgas);
-		expect(vol).toBe(28_300_000);
-	});
-
 	it('computes uranium fuel pellet volume from density', () => {
 		const pellet = getCommodity('uranium_fuel_pellet')!;
 		// 1 pellet = 7 g / 10.97 g/cm³ ≈ 0.638 cm³
@@ -101,12 +94,6 @@ describe('computeMassGrams', () => {
 		// 1 barrel = 158,987 cm³ × 0.835 g/cm³ ≈ 132,754 g
 		const mass = computeMassGrams(1, oil);
 		expect(mass).toBeCloseTo(132_754, -2);
-	});
-
-	it('returns null for natgas (gaseous)', () => {
-		const natgas = getCommodity('natgas')!;
-		// natgas has no unitMassGrams and unit is mmbtu (not barrel)
-		expect(computeMassGrams(1, natgas)).toBeNull();
 	});
 
 	it('computes uranium pellet mass', () => {
@@ -175,33 +162,39 @@ describe('computeDisplayWidthMm', () => {
 
 describe('pickStage', () => {
 	it('picks first stage for small amounts', () => {
-		const silver = getCommodity('silver')!;
-		const stage = pickStage(1, silver);
-		expect(stage.id).toBe('coin');
+		const copper = getCommodity('copper')!;
+		const stage = pickStage(0.001, copper);
+		expect(stage.id).toBe('penny');
 	});
 
 	it('picks last stage for large amounts', () => {
-		const silver = getCommodity('silver')!;
-		const stage = pickStage(1_000_000, silver);
-		expect(stage.id).toBe('pallet');
+		const copper = getCommodity('copper')!;
+		const stage = pickStage(1_000_000, copper);
+		expect(stage.id).toBe('ingot_pile');
 	});
 
 	it('picks correct mid-range stage', () => {
-		const silver = getCommodity('silver')!;
-		const stage = pickStage(100, silver);
-		expect(stage.id).toBe('tube');
+		const copper = getCommodity('copper')!;
+		// brick_stack maxValue 500, bar_1lb maxValue 50, so 100 → brick_stack
+		const stage = pickStage(100, copper);
+		expect(stage.id).toBe('brick_stack');
 	});
 
 	it('picks stage at exact boundary', () => {
-		const silver = getCommodity('silver')!;
-		// maxValue of coin stage is 25
-		const stage = pickStage(25, silver);
-		expect(stage.id).toBe('coin');
+		const copper = getCommodity('copper')!;
+		// wire_coil maxValue is 5
+		const stage = pickStage(5, copper);
+		expect(stage.id).toBe('wire_coil');
 	});
 
 	it('throws for cube-mode commodity (no progression)', () => {
 		const gold = getCommodity('gold')!;
 		expect(() => pickStage(1, gold)).toThrow(/no render progression/);
+	});
+
+	it('throws for silver now that it is cube-mode', () => {
+		const silver = getCommodity('silver')!;
+		expect(() => pickStage(1, silver)).toThrow(/no render progression/);
 	});
 });
 

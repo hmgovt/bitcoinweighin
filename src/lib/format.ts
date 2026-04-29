@@ -83,7 +83,6 @@ export function unitLabel(unit: string): string {
 		case 'troy_oz': return 'troy oz';
 		case 'lb': return 'lb';
 		case 'barrel': return 'bbl';
-		case 'mmbtu': return 'MMBtu';
 		case 'gram': return 'g';
 		case 'kg': return 'kg';
 		case 'pellet': return 'pellets';
