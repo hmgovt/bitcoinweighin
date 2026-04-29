@@ -1,10 +1,12 @@
-"""Gold Cube — production render for cube-mode pivot (2026-04-25).
+"""Gold Cube — production render (2026-04-29 re-tune).
 
-Authors a 100 mm gold cube against the locked PBR material from
-gold_good_delivery_single_final.py (warm yellow, procedural noise +
-bump, micro-variation in roughness 0.15–0.28). Slight edge bevel
-prevents the "razor-sharp" plastic look. Renders main sprite +
-contact shadow. Saves .blend source file.
+Authors a 100 mm gold cube tuned for premium-mint bullion polish.
+Warm yellow base (1.0, 0.77, 0.34), procedural noise + bump, with
+the macro roughness range tightened from cast (0.15–0.28) to
+mirror-polish (0.05–0.12) so the front face catches sharp studio
+highlights — the "PAMP fortune bar" feel rather than LBMA satin
+cast. Slight edge bevel prevents the razor-sharp plastic look.
+Renders main sprite + contact shadow. Saves .blend source file.
 
 Run headless:
   /Applications/Blender.app/Contents/MacOS/Blender \\
@@ -70,10 +72,10 @@ nodes = mat.node_tree.nodes
 links = mat.node_tree.links
 bsdf = nodes["Principled BSDF"]
 
-# Warm yellow base, fully metallic, soft-cast roughness
+# Warm yellow base, fully metallic, mirror-polish roughness
 bsdf.inputs["Base Color"].default_value = (1.0, 0.77, 0.34, 1.0)
 bsdf.inputs["Metallic"].default_value = 1.0
-bsdf.inputs["Roughness"].default_value = 0.20
+bsdf.inputs["Roughness"].default_value = 0.08
 bsdf.inputs["Specular"].default_value = 0.5
 
 tex_coord = nodes.new("ShaderNodeTexCoord")
@@ -92,15 +94,19 @@ bump_node.inputs["Distance"].default_value = 0.0002
 links.new(noise.outputs["Fac"], bump_node.inputs["Height"])
 links.new(bump_node.outputs["Normal"], bsdf.inputs["Normal"])
 
-# Macro roughness variation — gives the cast-gold mottle.
+# Macro roughness variation — kept narrow (0.05–0.12) so the
+# front face reads mirror-polished while the bevels and noise
+# still vary enough to avoid the perfect-plastic look. Was
+# 0.15–0.28 in the cast-feel iteration; tightened 2026-04-29 to
+# match the premium-mint bullion brief.
 rn = nodes.new("ShaderNodeTexNoise")
 rn.inputs["Scale"].default_value = 6.0
 rn.inputs["Detail"].default_value = 4.0
 rm = nodes.new("ShaderNodeMapRange")
 rm.inputs["From Min"].default_value = 0.0
 rm.inputs["From Max"].default_value = 1.0
-rm.inputs["To Min"].default_value = 0.15
-rm.inputs["To Max"].default_value = 0.28
+rm.inputs["To Min"].default_value = 0.05
+rm.inputs["To Max"].default_value = 0.12
 links.new(tex_coord.outputs["Object"], rn.inputs["Vector"])
 links.new(rn.outputs["Fac"], rm.inputs["Value"])
 links.new(rm.outputs["Result"], bsdf.inputs["Roughness"])

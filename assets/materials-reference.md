@@ -9,14 +9,14 @@ The values below were iterated to portfolio quality on `gold_good_delivery_singl
 ```
 Base colour       (1.000, 0.770, 0.340) linear sRGB    # warm yellow
 Metallic          1.0
-Roughness         0.20  (base, varied procedurally)
+Roughness         0.08  (base, varied procedurally)
 Specular          0.5
 Normal            procedural noise → bump
 Bump strength     0.025
 Bump distance     0.0002
 ```
 
-**Procedural roughness:** Noise (scale 6.0, detail 4.0) → MapRange(0–1 → 0.15–0.28) → Roughness. Gives subtle macro variation across the surface; reads as cast gold rather than mirror-polished.
+**Procedural roughness:** Noise (scale 6.0, detail 4.0) → MapRange(0–1 → 0.05–0.12) → Roughness. Tightened 2026-04-29 from the original cast/satin range (0.15–0.28) to a mirror-polish range so the front face catches sharp studio highlights — premium-mint bullion (PAMP / Argor-Heraeus) rather than LBMA cast satin. Silver inherited this same range when authored, and the result confirmed it reads as desirable polish, prompting the gold retune.
 
 **Procedural normal:** Noise (scale 120.0, detail 12.0, roughness 0.6) → Bump (strength 0.025, distance 0.0002) → Normal. Fine-grain micro-texture; only visible at close render distance, prevents the "perfectly smooth plastic" look at thumbnail sizes.
 
