@@ -124,36 +124,9 @@ export interface ScaleReference {
 	animatedModelPath?: string;
 }
 
-/**
- * Pick the reference whose realSizeMetres is closest to the cube edge
- * length (in metres) on a logarithmic scale.
- *
- * Library is assumed sorted ascending by realSizeMetres.
- */
-export function pickClosestReference(
-	cubeEdgeMm: number,
-	references: ScaleReference[]
-): ScaleReference {
-	if (references.length === 0) {
-		throw new Error('pickClosestReference: empty reference library');
-	}
-	if (cubeEdgeMm <= 0) return references[0];
-
-	const cubeMetres = cubeEdgeMm / 1000;
-	const cubeLog = Math.log10(cubeMetres);
-
-	let best = references[0];
-	let bestDist = Math.abs(Math.log10(best.realSizeMetres) - cubeLog);
-	for (let i = 1; i < references.length; i++) {
-		const dist = Math.abs(Math.log10(references[i].realSizeMetres) - cubeLog);
-		if (dist < bestDist) {
-			best = references[i];
-			bestDist = dist;
-		}
-	}
-	return best;
-}
-
+// (`pickClosestReference` was deleted on 2026-05-04 when the cycling
+// reference library was replaced with the universal Shiba; CubeRenderer
+// now reads the single Shiba entry from scale-references.json directly.)
 
 // ── Tile-mode helpers ──────────────────────────────────────────
 

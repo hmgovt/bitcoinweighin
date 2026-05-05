@@ -223,31 +223,6 @@ describe('computeCubeEdgeMm', () => {
 	});
 });
 
-describe('pickClosestReference', () => {
-	const refs = [
-		{ id: 'a', displayName: 'A', realSizeMetres: 0.001, spritePath: '', description: '' },
-		{ id: 'b', displayName: 'B', realSizeMetres: 0.1, spritePath: '', description: '' },
-		{ id: 'c', displayName: 'C', realSizeMetres: 10, spritePath: '', description: '' },
-		{ id: 'd', displayName: 'D', realSizeMetres: 1000, spritePath: '', description: '' },
-	];
-
-	it('picks closest on log scale', async () => {
-		const { pickClosestReference } = await import('../src/lib/volume.js');
-		// 1 mm cube → matches 1 mm ref (a)
-		expect(pickClosestReference(1, refs).id).toBe('a');
-		// 100 mm cube = 0.1 m → matches b
-		expect(pickClosestReference(100, refs).id).toBe('b');
-		// 5 m cube = 5000 mm → between c (10 m) and d (1000 m); log-closer to c
-		expect(pickClosestReference(5000, refs).id).toBe('c');
-	});
-
-	it('returns first reference for non-positive cube edge', async () => {
-		const { pickClosestReference } = await import('../src/lib/volume.js');
-		expect(pickClosestReference(0, refs).id).toBe('a');
-	});
-
-	it('throws on empty library', async () => {
-		const { pickClosestReference } = await import('../src/lib/volume.js');
-		expect(() => pickClosestReference(10, [])).toThrow(/empty reference library/);
-	});
-});
+// `pickClosestReference` test block removed on 2026-05-04 alongside the
+// function itself when CubeRenderer switched from the cycling library
+// to the universal Shiba reference.

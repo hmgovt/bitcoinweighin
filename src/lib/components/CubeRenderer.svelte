@@ -1,30 +1,29 @@
 <script lang="ts">
 	/**
 	 * CubeRenderer — renders a single cube of intrinsic substance volume
-	 * against a cycling library of scale references.
+	 * against the universal Shiba scale reference (40 cm at the shoulder).
 	 *
 	 * The cube sprite is identical at every amount; only its CSS-rendered
-	 * size changes. The closest-by-log-scale reference from the library
-	 * is rendered alongside at its true real-world size in the same
-	 * coordinate system.
+	 * size changes. The Shiba is rendered at its true 40 cm height in the
+	 * same coordinate system. The viewport auto-fits both objects: when
+	 * the cube is sub-millimetre the dog dominates; at multi-metre cube
+	 * sizes the cube dominates and the dog is a recognisable speck. Cube
+	 * vs Shiba ratio is always honest.
 	 *
-	 * The scene auto-fits the viewport: when both objects fit at true
-	 * physical CSS-mm size, they're rendered as such (so the £1 coin
-	 * lands at exactly 23.43 mm). When the cube would exceed the
-	 * viewport, both objects scale down proportionally.
+	 * (The cycling 20-entry reference library used by earlier drafts was
+	 * deleted on 2026-05-04 in favour of the universal Shiba — see
+	 * DECISIONS.md.)
 	 */
 
 	import { onMount } from 'svelte';
 	import type { Commodity } from '$lib/commodities.js';
-	import {
-		computeCubeEdgeMm,
-		pickClosestReference,
-		type ScaleReference,
-	} from '$lib/volume.js';
+	import { computeCubeEdgeMm, type ScaleReference } from '$lib/volume.js';
 	import scaleReferencesData from '$lib/scale-references.json';
 	import ScaleRef from './ScaleReference.svelte';
 
-	const REFERENCES = scaleReferencesData as ScaleReference[];
+	// Single universal reference (the Shiba). Stage 4 of the marathon
+	// session reduced scale-references.json to one entry.
+	const SHIBA = (scaleReferencesData as ScaleReference[])[0];
 
 	let {
 		commodity,
@@ -42,9 +41,7 @@
 	}
 
 	const cubeEdgeMm = $derived(computeCubeEdgeMm(amount, commodity));
-	const reference = $derived(
-		amount > 0 ? pickClosestReference(cubeEdgeMm, REFERENCES) : REFERENCES[0]
-	);
+	const reference = SHIBA;
 
 	// Scene auto-fit: the scene's logical width in real mm is the larger of
 	// (cube edge, reference size) plus breathing room. If that exceeds the
@@ -98,16 +95,10 @@
 	}
 
 	onMount(() => {
-		// Preload every reference sprite at mount so boundary crossings during
-		// a slider drag swap atomically from cache instead of triggering a
-		// network round-trip per first encounter. The {#key reference.id}
-		// block tears down the old <img> on every swap, so without preload
-		// the new <img>'s 280 ms fade-in races against the asset fetch and
-		// the user sees a blank reference slot until the request lands.
-		for (const ref of REFERENCES) {
-			const img = new Image();
-			img.src = ref.spritePath;
-		}
+		// Preload the Shiba sprite so the first render doesn't show a
+		// blank reference slot while the asset fetch lands.
+		const img = new Image();
+		img.src = SHIBA.spritePath;
 
 		if (!sceneEl) return;
 		const ro = new ResizeObserver((entries) => {
@@ -146,12 +137,10 @@
 				/>
 			</div>
 
-			<!-- Reference (with smooth swap on boundary crossing) -->
-			{#key reference.id}
-				<div class="reference-slot fade-in">
-					<ScaleRef {reference} {sceneScale} />
-				</div>
-			{/key}
+			<!-- Universal Shiba reference (no boundary crossings; static slot) -->
+			<div class="reference-slot">
+				<ScaleRef {reference} {sceneScale} />
+			</div>
 		</div>
 
 		<!-- Caption strip -->
