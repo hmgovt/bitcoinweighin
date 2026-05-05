@@ -91,6 +91,7 @@
 - **2026-04-19:** Newsletter name: *The Weigh-In*. Tool and newsletter share brand identity. Separate Buttondown or Beehiiv registration deferred to Phase 4.
 - **2026-04-19:** Brand voice: honest, precise, slightly dry. Never hypey. The name does the rhetorical work; copy should support, not oversell.
 - **2026-04-19:** Dataset license is CC-BY-4.0. Code license is MIT. The dataset license is deliberately permissive — every citation becomes a backlink and an authority signal.
+- **2026-05-04:** US-primacy locked. Dollars and imperial as defaults everywhere — `unit=imperial` is the documented URL-state default (metric and other currencies remain opt-in via `unit=metric` and `currency=` params). Sweep existing UK-flavoured copy: "≈ N UK homes" fact templates → "≈ N US homes"; `£1 coin` references in narrative and old comments stripped or replaced (the standalone coin reference disappears anyway under the universal-Shiba pivot); default mass formatting reads lb/oz primary with kg/g secondary; `formatMass()` and `formatLength()` helpers default to imperial unless `unit=metric` is set. Reasoning: the audience that converts on this site is US-skewed, the headline dollar number under the slider already privileges USD, and UK-flavoured defaults imported from earlier drafts are friction for the larger user. Brand voice unchanged ("honest, precise, slightly dry") — this is a defaults and copy direction, not a tone change.
 
 ## Monetisation
 
