@@ -111,6 +111,60 @@ function formatNum(n: number): string {
 	return n.toPrecision(3);
 }
 
+// ── Solid-volume formatting (cube-mode commodities) ────────────
+
+const CM3_PER_IN3 = 16.387064;
+
+/**
+ * Volume formatting for solid substances. Imperial uses in³ / ft³;
+ * metric uses cm³ / m³. Use this for cube-mode commodity readouts —
+ * the existing `formatVolume` returns gallons / fl-oz which is right
+ * for fluids (oil, coffee) but wrong for metals.
+ */
+export function formatVolumeSolid(cm3: number, unit: UnitSystem): string {
+	if (cm3 <= 0) return unit === 'imperial' ? '0 in³' : '0 cm³';
+	if (unit === 'imperial') {
+		const in3 = cm3 / CM3_PER_IN3;
+		// 1 ft³ = 1728 in³
+		if (in3 < 1728) return `${formatNum(in3)} in³`;
+		return `${formatNum(in3 / 1728)} ft³`;
+	}
+	if (cm3 < 1_000_000) return `${formatNum(cm3)} cm³`;
+	return `${formatNum(cm3 / 1_000_000)} m³`;
+}
+
+// ── Length formatting (cube-edge readout, YAxis labels) ────────
+
+const MM_PER_IN = 25.4;
+
+/**
+ * Length formatting with adaptive ladder.
+ *   Imperial: in / ft / mi (switch at 12 in / 5280 ft).
+ *   Metric:   mm / cm / m / km (switch at 10 mm / 1 m / 1 km).
+ */
+export function formatLength(metres: number, unit: UnitSystem): string {
+	if (metres <= 0) return unit === 'imperial' ? '0 in' : '0 mm';
+	if (unit === 'imperial') {
+		const inches = (metres * 1000) / MM_PER_IN;
+		if (inches < 12) return `${formatNum(inches)} in`;
+		const feet = inches / 12;
+		if (feet < 5280) return `${formatNum(feet)} ft`;
+		return `${formatNum(feet / 5280)} mi`;
+	}
+	const mm = metres * 1000;
+	if (mm < 10) return `${formatNum(mm)} mm`;
+	if (mm < 1000) return `${formatNum(mm / 10)} cm`;
+	if (metres < 1000) return `${formatNum(metres)} m`;
+	return `${formatNum(metres / 1000)} km`;
+}
+
+// ── Two-unit pair formatting ───────────────────────────────────
+
+/** Compose a "primary · secondary" line for cube-mode readout. */
+export function formatPair(primary: string, secondary: string): string {
+	return `${primary} · ${secondary}`;
+}
+
 // ── BTC formatting ──────────────────────────────────────────────
 
 export function formatBtc(btc: number): string {
