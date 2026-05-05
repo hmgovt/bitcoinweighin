@@ -15,9 +15,11 @@ export type UnitSystem = 'metric' | 'imperial';
 // ── Raw stores ──────────────────────────────────────────────────
 export const btcAmount = writable<number>(1);
 export const selectedDate = writable<string>('');
-export const unitSystem = writable<UnitSystem>('metric');
+export const unitSystem = writable<UnitSystem>('imperial');
 export const activePreset = writable<string | null>(null);
 export const scrollToCommodity = writable<string | null>(null);
+/** Pu-238 Geiger crackle opt-in. Default off; persists via ?audio=on. */
+export const audioEnabled = writable<boolean>(false);
 
 // ── URL sync ────────────────────────────────────────────────────
 
@@ -35,13 +37,16 @@ function pushToUrl() {
 		if (date) params.set('date', date);
 
 		const unit = get(unitSystem);
-		if (unit !== 'metric') params.set('unit', unit);
+		if (unit !== 'imperial') params.set('unit', unit);
 
 		const preset = get(activePreset);
 		if (preset) params.set('preset', preset);
 
 		const commodity = get(scrollToCommodity);
 		if (commodity) params.set('commodity', commodity);
+
+		const audio = get(audioEnabled);
+		if (audio) params.set('audio', 'on');
 
 		const qs = params.toString();
 		const url = qs ? `?${qs}` : window.location.pathname;
@@ -55,6 +60,7 @@ if (browser) {
 	selectedDate.subscribe(() => pushToUrl());
 	unitSystem.subscribe(() => pushToUrl());
 	activePreset.subscribe(() => pushToUrl());
+	audioEnabled.subscribe(() => pushToUrl());
 }
 
 /**
@@ -111,6 +117,10 @@ export function hydrateFromUrl(
 	const commodity = params.get('commodity');
 	if (commodity) {
 		scrollToCommodity.set(commodity);
+	}
+
+	if (params.get('audio') === 'on') {
+		audioEnabled.set(true);
 	}
 }
 
