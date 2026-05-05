@@ -1,0 +1,181 @@
+{
+	"gold": [
+		{
+			"id": "iphone_gold",
+			"quantityKg": 0.000034,
+			"displayName": "≈ the gold in one iPhone",
+			"description": "Modern smartphones contain ~34 mg of gold across connectors and PCBs.",
+			"source": "USGS / industry estimates",
+			"priority": 2
+		},
+		{
+			"id": "wedding_ring",
+			"quantityKg": 0.004,
+			"displayName": "≈ a standard wedding ring",
+			"description": "Typical 18k gold wedding band, ~4 g.",
+			"priority": 1
+		},
+		{
+			"id": "olympic_medal",
+			"quantityKg": 0.006,
+			"displayName": "≈ the gold in an Olympic gold medal",
+			"description": "Olympic golds have been silver-and-gold-plated since the 1912 Stockholm games. Actual gold content: ~6 g.",
+			"source": "International Olympic Committee",
+			"priority": 2
+		},
+		{
+			"id": "good_delivery_bar",
+			"quantityKg": 12.44,
+			"displayName": "≈ one Good Delivery bar",
+			"description": "400 troy oz LBMA-standard bar — the institutional unit of the gold market.",
+			"source": "London Bullion Market Association",
+			"priority": 1
+		},
+		{
+			"id": "tutankhamun_coffin",
+			"quantityKg": 110.4,
+			"displayName": "≈ Tutankhamun's innermost coffin",
+			"description": "110.4 kg of solid gold. Egyptian Museum, Cairo.",
+			"priority": 1
+		},
+		{
+			"id": "largest_bar_cast",
+			"quantityKg": 250,
+			"displayName": "≈ the largest gold bar ever cast",
+			"description": "Mitsubishi Materials, 2005, 250 kg.",
+			"priority": 2
+		},
+		{
+			"id": "brinks_mat",
+			"quantityKg": 2700,
+			"displayName": "≈ the Brink's-Mat haul (1983)",
+			"description": "Heathrow robbery, 2.7 tonnes of gold. Most never recovered.",
+			"priority": 1
+		},
+		{
+			"id": "uk_reserves",
+			"quantityKg": 310000,
+			"displayName": "≈ the Bank of England's gold reserves",
+			"description": "Post the 1999–2002 sale of ~395 tonnes at ~$275/oz — 'Brown's Bottom'.",
+			"source": "World Gold Council, Q4 2024",
+			"priority": 1
+		},
+		{
+			"id": "spdr_gld",
+			"quantityKg": 900000,
+			"displayName": "≈ SPDR Gold Trust (GLD) holdings",
+			"description": "Largest gold ETF by assets.",
+			"source": "SPDR Q4 2024",
+			"priority": 2
+		},
+		{
+			"id": "annual_production",
+			"quantityKg": 3200000,
+			"displayName": "≈ one year of global gold production",
+			"description": "Mine output 2024 estimate.",
+			"source": "World Gold Council 2024",
+			"priority": 1
+		},
+		{
+			"id": "us_treasury",
+			"quantityKg": 8133000,
+			"displayName": "≈ US Treasury gold reserves",
+			"description": "Fort Knox, West Point Mint, Denver Mint combined.",
+			"source": "US Treasury annual report",
+			"priority": 1
+		},
+		{
+			"id": "lbma_vaults",
+			"quantityKg": 8800000,
+			"displayName": "≈ all gold in LBMA London vaults",
+			"description": "Roughly 8,500–9,200 tonnes across the LBMA vault network.",
+			"source": "LBMA monthly reports",
+			"priority": 1
+		},
+		{
+			"id": "indian_household",
+			"quantityKg": 25000000,
+			"displayName": "≈ Indian household gold",
+			"description": "The largest private hoard on Earth — roughly 12% of all gold ever mined.",
+			"source": "World Gold Council estimate",
+			"priority": 1
+		},
+		{
+			"id": "all_gold_mined",
+			"quantityKg": 213000000,
+			"displayName": "≈ all gold ever mined",
+			"description": "Fits in a cube ~22 m on a side. Warren Buffett's frame.",
+			"source": "World Gold Council 2024",
+			"priority": 1
+		}
+	],
+	"silver": [
+		{
+			"id": "morgan_dollar",
+			"quantityKg": 0.02406,
+			"displayName": "≈ a Morgan/Peace silver dollar",
+			"description": "US standard silver dollar, 1878–1935.",
+			"priority": 2
+		},
+		{
+			"id": "solar_panel",
+			"quantityKg": 0.020,
+			"displayName": "≈ the silver in one solar panel",
+			"description": "~20 g per panel. Photovoltaic demand has been quietly reshaping the silver market for a decade.",
+			"source": "The Silver Institute",
+			"priority": 1
+		},
+		{
+			"id": "good_delivery_silver",
+			"quantityKg": 31.1,
+			"displayName": "≈ one LBMA silver Good Delivery bar",
+			"description": "1,000 troy oz, the institutional silver wholesale unit.",
+			"priority": 2
+		},
+		{
+			"id": "atocha",
+			"quantityKg": 40000,
+			"displayName": "≈ the Atocha shipwreck recovery",
+			"description": "1622 Spanish galleon, recovered from 1985. ~40 tonnes of silver bars and coins.",
+			"priority": 1
+		},
+		{
+			"id": "hunt_brothers",
+			"quantityKg": 3110000,
+			"displayName": "≈ the Hunt Brothers' 1980 corner",
+			"description": "100 million troy oz directly held (~3,110 tonnes). Drove silver from $6 to $50/oz before Silver Thursday wiped them out.",
+			"priority": 1
+		},
+		{
+			"id": "buffett_silver",
+			"quantityKg": 4040000,
+			"displayName": "≈ Berkshire Hathaway's 1998 silver position",
+			"description": "130 million troy oz (~4,040 tonnes). Buffett's only significant commodity speculation, liquidated by 2006.",
+			"source": "Berkshire 1998 annual report",
+			"priority": 1
+		},
+		{
+			"id": "comstock_total",
+			"quantityKg": 7300000,
+			"displayName": "≈ all silver from the Comstock Lode",
+			"description": "1859–1890s total output. Helped finance the Union in the Civil War.",
+			"priority": 1
+		},
+		{
+			"id": "annual_silver",
+			"quantityKg": 26000000,
+			"displayName": "≈ one year of global silver production",
+			"description": "2024 estimate.",
+			"source": "USGS 2024 / The Silver Institute",
+			"priority": 1
+		},
+		{
+			"id": "all_silver_mined",
+			"quantityKg": 1740000000,
+			"displayName": "≈ all silver ever mined",
+			"description": "All silver mined throughout human history.",
+			"source": "USGS / The Silver Institute",
+			"priority": 1
+		}
+	]
+}
