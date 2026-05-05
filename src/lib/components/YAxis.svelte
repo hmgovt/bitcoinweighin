@@ -37,11 +37,13 @@
 		return `${(feet / 5280).toFixed(2)} mi`;
 	}
 
-	const heightPx = $derived(Math.max(0, cubeEdgeMetres * viewportZoom * 1000));
+	// Height in CSS mm, matching the cube's mm-unit rendering in CubeRenderer.
+	// (cubeEdgeMetres × 1000) → mm; × viewportZoom (the cube's sceneScale) → CSS mm.
+	const heightMm = $derived(Math.max(0, cubeEdgeMetres * 1000 * viewportZoom));
 	const label = $derived(formatLength(cubeEdgeMetres, unitSystem));
 </script>
 
-<div class="y-axis" style:height="{heightPx}px" aria-hidden="true">
+<div class="y-axis" style:height="{heightMm}mm" aria-hidden="true">
 	<div class="y-axis-line"></div>
 	{#if label}
 		<div class="y-axis-label">{label}</div>

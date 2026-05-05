@@ -230,6 +230,7 @@
 					{commodity}
 					{amount}
 					btcAmount={$btcAmount}
+					btcUsdPrice={dayPrices?.btc ?? 0}
 					unitSys={$unitSystem}
 				/>
 			{/each}

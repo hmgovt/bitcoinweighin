@@ -82,6 +82,12 @@
 			<div class="empty-state">No data for this date</div>
 		{/if}
 	</div>
+{:else if commodity.renderStyle === 'still_with_readout'}
+	<!-- TODO(Stage 5): wire StillPanel + cocaine-specific readout components. -->
+	<div class="not-implemented">
+		<p><strong>{commodity.displayName}</strong>: still-with-readout panel scaffolded in Stage 3.</p>
+		<p class="hint">Wiring (StillPanel + TieredPricingTable + CocaineDenominationRow) lands in Stage 5.</p>
+	</div>
 {:else if commodity.renderStyle === 'vessel'}
 	<!-- TODO(handoff: vessel renderer) -->
 	<div class="not-implemented">

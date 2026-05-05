@@ -19,7 +19,9 @@
 	import type { Commodity } from '$lib/commodities.js';
 	import { computeCubeEdgeMm, type ScaleReference } from '$lib/volume.js';
 	import scaleReferencesData from '$lib/scale-references.json';
+	import { unitSystem } from '$lib/stores/url.js';
 	import ScaleRef from './ScaleReference.svelte';
+	import YAxis from './YAxis.svelte';
 
 	// Single universal reference (the Shiba). Stage 4 of the marathon
 	// session reduced scale-references.json to one entry.
@@ -114,6 +116,15 @@
 <div class="cube-scene" bind:this={sceneEl}>
 	{#if amount > 0}
 		<div class="scene-row">
+			<!-- Y axis: vertical line + adaptive-unit label, height tracks the cube. -->
+			<div class="y-axis-slot">
+				<YAxis
+					cubeEdgeMetres={cubeEdgeMm / 1000}
+					viewportZoom={sceneScale}
+					unitSystem={$unitSystem}
+				/>
+			</div>
+
 			<!-- Cube -->
 			<div
 				class="cube-slot"
@@ -176,6 +187,13 @@
 		gap: 24px;
 		min-height: 180px;
 		flex: 1;
+	}
+
+	.y-axis-slot {
+		display: flex;
+		align-items: flex-end;
+		flex-shrink: 0;
+		padding-right: 8px;
 	}
 
 	.cube-slot {
