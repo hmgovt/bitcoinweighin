@@ -10,13 +10,20 @@ import anchorsData from '../src/lib/quantity-anchors.json';
 /**
  * Stage 4 regression baseline. Without Playwright (deferred to Stage 7
  * per DECISIONS 2026-04-19), these numeric assertions stand in for the
- * "10 baseline screenshots" the prompt mentions — they catch density-
- * table regressions and `cbrt` math errors without browser tooling.
+ * "10 baseline screenshots" the Stage 4 prompt mentions — they catch
+ * density-table regressions and `cbrt` math errors without browser
+ * tooling.
  *
- * The prompt's worked numbers ("12.5 cm at 1000 BTC", "23 m at 21M BTC")
- * are illustrative and depend on session-date BTC and gold prices. This
- * file deliberately tests amount-driven inputs (troy oz, kg) rather than
- * BTC-position inputs so the assertions stay stable as prices drift.
+ *   Cube edge = ∛(massGrams / density)
+ *
+ * At session-date prices (BTC $81k × gold $4,560/oz, 5 May 2026):
+ *     1000 BTC of gold ≈ 30.6 cm cube edge
+ *     21M BTC of gold  ≈ 8.44 m cube edge
+ *
+ * The formula above is the invariant. The assertion values in this file
+ * are computed from amount inputs (troy oz, kg) directly, not from
+ * BTC-position inputs — so the tests stay stable as prices drift. The
+ * BTC × gold prices in the comment are just there to ground intuition.
  */
 
 const gold = getCommodity('gold')!;
