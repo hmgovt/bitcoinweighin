@@ -33,23 +33,23 @@ A single long-scroll page that renders — at true relative scale — what a use
 
 ## Two visual vocabularies
 
-The site uses two distinct rendering approaches, chosen per commodity based on what the substance actually is.
+Two render styles only at launch — **cube mode** and **still-with-readout**. Tile mode and progression mode are preserved in the schema for potential post-launch revival; no launch commodity invokes them.
 
-**Cube mode** — for dense fungible metals. A single authored cube sprite, rendered at the substance's true volume via cube-root scaling, against a cycling library of scale references. One sprite per material, ~18 reference objects shared across all cube-mode commodities. Continuous growth, no stage transitions, no cross-fade artefacts.
+**Cube mode** — for dense fungible substances. A single authored cube sprite, rendered at the substance's true volume via cube-root scaling, against a single universal scale reference (a Shiba Inu at true 40 cm height). One cube sprite per material, one reference dog shared across every cube panel. Continuous growth, no stage transitions, no cross-fade artefacts. Pu-238 layers a blackbody glow and an opt-in Geiger crackle on top of the cube; both are properties of the cube renderer rather than separate render modes.
 
-Applies to: gold, silver, platinum, copper, palladium, rhodium, osmium.
+Applies to: gold, silver, Pu-238.
 
-**Progression mode** — for everything cube mode doesn't fit. Per-substance authored stages with cross-fade transitions, the £1 coin and human silhouette as scale references, and text comparison cards as fallback at extreme sizes.
+**Still-with-readout mode** — for the single editorial commodity. A fixed forensic-evidence-room still paired with a bold dynamic readout showing the weight purchasable at the slider's BTC amount. No cube, no scale dog, no progression stages. The image carries register; the readout carries truth at extremes.
 
-Applies to: oil (drum → tanker → fleet), coffee (cup → bag → jute sack → warehouse), fuel pellet (single → handful → rod's worth → shoebox → pallet), and any future bulk or fluid commodity.
+Applies to: cocaine.
 
-The two vocabularies are internally coherent and never mix within a single commodity section. The renderer branches on `commodity.renderStyle`.
+The two vocabularies are internally coherent and never mix within a single commodity section. The renderer branches on `commodity.renderStyle` (`'cube' | 'still'` at launch; `'progression'` and the legacy `'vessel'` / `'bulk'` stubs preserved in the schema for post-launch use).
 
 ---
 
 ## Cube mode
 
-For dense fungible metals, a single cube of true substance volume is the physical visualisation. The cube's edge length grows continuously with the slider via cube-root scaling. Alongside the cube, a scale reference object from a shared library is rendered at its true real-world size, chosen at render time as the closest match to the cube's current edge length on a logarithmic scale.
+For dense fungible substances, a single cube of true substance volume is the physical visualisation. The cube's edge length grows continuously with the slider via cube-root scaling. Alongside the cube, a single universal scale reference (the Shiba Inu) is rendered at its true 40 cm height. The cube and the dog never resize relative to each other — the camera viewport scales to keep both on screen at sensible margins.
 
 ### Rendering rule
 
@@ -58,90 +58,70 @@ function renderCubeCommodity(commodity: Commodity, amount: number): CubeRenderSt
   // 1. Compute mass and intrinsic volume
   const massGrams = amount * commodity.unitMassGrams;
   const volumeCm3 = massGrams / commodity.densityGPerCm3;
-  
+
   // 2. Cube edge length
   const edgeLengthMm = Math.cbrt(volumeCm3) * 10;  // cm³ → cm → mm
-  
-  // 3. Pick closest reference on log scale
-  const reference = pickClosestReference(edgeLengthMm, scaleReferences);
-  
-  // 4. Render cube and reference at true sizes in shared coordinate system
-  return { cube: { edgeLengthMm }, reference };
+
+  // 3. Universal Shiba at true 40 cm height; viewport zooms to fit both
+  const dogHeightMm = 400;
+  const zoom = computeViewportZoom(edgeLengthMm, dogHeightMm);
+
+  return { cube: { edgeLengthMm }, dog: { heightMm: dogHeightMm }, zoom };
 }
 ```
 
-The cube sprite is identical at every amount; only its CSS-rendered size changes. The reference object is rendered at its own true size, never scaled. The two objects share a coordinate system so the user reads relative size honestly.
+The cube sprite is identical at every amount; only its CSS-rendered size changes. The dog is rendered at its own true size, never scaled. The two objects share a coordinate system so the user reads relative size honestly: a 40 cm dog next to a 5 cm gold cube is a 5 cm gold cube.
 
-### Reference library
+### Universal scale reference
 
-`src/lib/scale-references.json` holds ~18 entries spanning roughly six orders of magnitude. Each entry has:
+A single Shiba Inu, anchored at true real-world height of **40 cm**, is the universal scale reference on every cube-mode panel (gold, silver, Pu-238). The dog never moves or resizes in real-world terms — the camera viewport scales to keep both the cube and the dog in frame.
+
+At sub-millimetre cube sizes the viewport zooms in until the dog fills most of the frame and the cube is a microscopic dot at its paw. At multi-metre cube sizes the viewport zooms out until the dog is a recognisable speck at the cube's foot. The relative-size reading is always honest: a 40 cm dog next to a 5 cm gold cube is a 5 cm gold cube.
+
+Cocaine is the single exception. Its forensic-still register is set entirely by the image; introducing a 40 cm reference dog would muddle the editorial mood the still does on its own.
+
+`src/lib/scale-references.json` reduces to a single entry under this scheme:
 
 ```typescript
 interface ScaleReference {
-  id: string;
-  displayName: string;
-  realSizeMetres: number;     // edge or characteristic dimension
-  spritePath: string;         // SVG, PNG, or WebP (animal references)
-  description: string;        // accessibility
-  culturalNote?: string;      // optional readout caption
-  measurementAxis?: "length" | "height" | "longest";
-                              // which bbox dimension realSizeMetres
-                              // refers to; consumed by the Blender
-                              // render scripts. Defaults to "longest".
-  animatedModelPath?: string; // optional .gltf path for the easter-egg
-                              // renderer (lazy-loaded <model-viewer>).
-                              // References without it stay static-only.
+  id: "shiba_inu";
+  displayName: "Shiba Inu";
+  realSizeMetres: 0.4;
+  measurementAxis: "height";
+  spritePath: string;            // /sprites/references/shiba_inu.webp
+  shadowPath: string;            // /sprites/references/shiba_inu-shadow.png
+  animatedModelPath?: string;    // optional easter-egg .gltf
 }
 ```
 
-Reference entries from smallest to largest:
+The cycling reference library used by earlier drafts (~20 entries from grain of sand to Empire State Building, picked on log-scale closest match) is deleted. Stage 2 of the marathon session is the cutover.
 
-| id | displayName | realSizeMetres |
-|---|---|---|
-| grain_of_sand | Grain of sand | 0.0005 |
-| pinhead | Pinhead | 0.001 |
-| flea | Flea | 0.002 |
-| pencil_tip | Pencil tip | 0.005 |
-| sugar_cube | Sugar cube | 0.016 |
-| pound_coin | £1 coin | 0.0234 |
-| espresso_cup | Espresso cup | 0.06 |
-| football | Football | 0.22 |
-| shiba_inu | Shiba Inu | 0.4 |
-| microwave | Microwave oven | 0.5 |
-| person | Person | 1.75 |
-| refrigerator | Refrigerator | 1.8 |
-| family_car | Family car | 4.5 |
-| shipping_container | Shipping container | 6.1 |
-| two_storey_house | Two-storey house | 8.0 |
-| double_decker_bus | London double-decker bus | 11.0 |
-| ten_storey_building | 10-storey building | 30.0 |
-| statue_of_liberty | Statue of Liberty | 93.0 |
-| eiffel_tower | Eiffel Tower | 330.0 |
-| empire_state_building | Empire State Building | 381.0 |
+### Universal-Shiba viewport
 
-Selection rule: pick the reference whose `realSizeMetres` is closest to the cube's edge length (in metres) on a logarithmic scale. Cross-fade to the next entry when the slider moves the cube past the geometric mean between two adjacent references — this gives smooth, roughly evenly-spaced transitions on the log slider.
+The cube renderer maintains a single zoom factor that keeps both objects on screen with sensible margins. The cube and dog are placed in the same coordinate system at their true mm sizes; the viewport applies the zoom uniformly:
 
-The `pound_coin` and `person` entries replace the previously-separate £1 coin and human silhouette components. Same actual-size CSS-mm rendering for the coin; same 1.75 m fixed height for the person. Just sourced from the library.
+```typescript
+function viewportZoom(cubeEdgeMm: number, dogHeightMm = 400): number {
+  const longest = Math.max(cubeEdgeMm, dogHeightMm);
+  return computeZoomToFit(longest, viewportWidthMm, viewportHeightMm);
+}
+```
 
-### Reference sprite style
+This is the only camera primitive cube mode needs. No log-scale reference picking, no cross-fade transitions between references, no per-amount sprite swaps.
 
-Two coexisting styles:
+### Reference sprite — Shiba
 
-**Object references (silhouettes).** The objects in the library — flea, sugar cube, espresso cup, microwave, shipping container, Eiffel Tower, etc. — are clean line-art silhouettes filled with a single muted neutral colour (`var(--color-text-secondary)` or similar), with enough detail to be instantly recognisable but no more. Isotype-style pictograms. SVG preferred for scalability and small file size; PNG @ 2× acceptable where SVG would be unwieldy.
+Rendered through the same Blender pipeline as the metal cubes (canonical: `scripts/blender/shiba_inu.py`, which inherits `scripts/blender/gold_cube.py`). Same camera rig, HDRI, three-light setup, intrinsic transparent margin, separate contact-shadow PNG. Output is WebP at the same 1600×1600 canvas as the cube. An animated `.gltf` lives at `static/models/references/shiba_inu/scene.gltf` for the easter-egg path described below.
 
-**Animal references (photoreal).** Animals in the library — Shiba Inu, blue whale, elephant, horse, dog, cat, mouse, bee, ant, flea — are rendered through the same Blender pipeline as the gold cube (canonical: `scripts/blender/gold_cube.py`). Same camera rig, HDRI, three-light setup, intrinsic transparent margin, separate contact-shadow PNG. Each animal's source `.gltf` (or `.blend`) lives at `assets/blender/references/{id}/`. Output is WebP at the same 1600×1600 canvas as the cube. Where the source is animated, a copy of the `.gltf` is also served from `static/models/references/{id}/scene.gltf` for the easter-egg path described below.
+#### Easter egg — animated Shiba
 
-The Eiffel Tower and Empire State Building are deliberately the cultural-canon entries at the large end. The Shiba Inu is the first animal entry, with 11 more queued (see `assets/references-attribution.md`). Together they bookend the slider with humour and recognisability.
+The static Shiba sprite is the default render. A `<model-viewer>` element swaps in the animated `.gltf` on three trigger paths, all gated by `prefers-reduced-motion: reduce` (when set, the static sprite always wins):
 
-### Easter egg — animated references
-
-References with an `animatedModelPath` field render the static sprite by default and swap to a `<model-viewer>` element loading the animated `.gltf` when triggered. Three trigger paths, all gated by `prefers-reduced-motion: reduce` (when set, the static sprite always wins):
-
-- **Hover (desktop):** pointer dwell on the reference for ≥200 ms.
+- **Hover (desktop):** pointer dwell on the dog for ≥200 ms.
 - **Sustained tap (mobile):** touch held for ≥500 ms; auto-reverts after 8 s.
-- **URL parameter:** `?easter=doge` auto-animates whenever an animated reference is the active library entry.
+- **URL parameter:** `?easter=doge` auto-animates the dog whenever a cube-mode panel is on screen.
 
-`@google/model-viewer` and the `.gltf` are both lazy-loaded — neither hits the network on initial page load. Implementation: `src/lib/components/ScaleReference.svelte`. References without `animatedModelPath` are unaffected by all of the above.
+`@google/model-viewer` and the `.gltf` are both lazy-loaded — neither hits the network on initial page load. Implementation: `src/lib/components/ScaleReference.svelte`.
 
 ### Cube sprite specifications
 
@@ -149,44 +129,56 @@ One authored cube per metal, rendered in Blender at the standard three-quarter r
 
 The cube is what most users will see most often (~24 mm edge length at 1 BTC today's prices). It must read as the correct substance at first glance, with proper specular highlights, slight edge bevels (real cast metal isn't razor-sharp), and material-appropriate surface character. Test during authoring at the displayed size, not just at canonical size.
 
-For launch: gold cube only. Silver, platinum, and copper cubes can be authored later by re-rendering the same geometry with different materials — roughly an hour of additional work per material once the gold cube and lighting are locked.
+For launch: gold and silver cubes are authored. Pu-238 follows the same geometry and lighting rig with a Pu-238-specific PBR material — roughly an hour per material once the rig is locked. Platinum, copper, and other deferred metals re-enter post-launch.
+
+### Pu-238 overlays
+
+Pu-238 layers two effects on top of the cube. Both are properties of the cube renderer triggered by per-commodity flags, not separate render modes.
+
+**Blackbody glow** — triggered by `commodity.glowScales === true`. Two channels driven independently by mass:
+
+- **Intensity** — climbs faster than colour temperature. Tied to absolute glow output (radiative flux scales with mass × specific activity).
+- **Colour temperature** — climbs slowly. Cool red at sub-gram amounts, dull-orange at ~1 g (which matches photographs of real Pu-238 fuel pellets glowing from their own decay heat), bright-yellow at multi-kilogram amounts where in reality the metal would melt itself.
+
+The visualisation has the luxury of nothing spontaneously disassembling. Pure plutonium metal at multi-kilogram mass would self-destruct from its own decay heat in reality, but the cube on screen is what the dial says it is. A "would melt itself in reality" caption fires at relevant mass thresholds as honest commentary on what physics says about the real world. Exact threshold values (a function of mass × surface-area-to-volume, geometry-corrected) land in Stage 6.
+
+**Geiger crackle** — triggered by `commodity.geigerCrackle === true`, default off. Persisted via `?audio=on` URL state. Click events are synthesised from a Poisson distribution at a rate proportional to specific activity (~17 Ci/g for pure Pu-238 — click rate scales linearly with mass). Honest physics: the clicks are real Poisson events, not a looped recording.
+
+Both layers are scoped to Pu-238 alone. Gold and silver render as plain cubes against the dog.
 
 ### What cube mode does not have
 
 - No stage transitions. The cube is one sprite at all amounts.
 - No tile mode. Tile-mode schema fields exist for potential future use by other commodities but are unused by any commodity at launch.
-- No comparison-card fallback. The reference library covers the full slider range; comparison cards are a progression-mode feature.
-- No human silhouette as a separate concern. The `person` entry in the reference library handles this case.
-- No standalone £1 coin. The `pound_coin` entry in the reference library handles this case at actual physical size.
+- No comparison-card fallback. The universal Shiba and the viewport zoom cover the full slider range; comparison cards were a progression-mode feature and are deferred with progression mode.
+- No cycling reference library. Earlier drafts cycled through ~20 references (grain of sand to Empire State Building) picked by closest log-scale match; that scheme is superseded by the universal Shiba.
+- No standalone £1 coin or human silhouette. Both were entries in the prior reference library and are gone.
 
 ---
 
-## Progression mode
+## Still-with-readout mode
 
-For commodities that don't fit cube mode — fluids, bulk solids, the fuel pellet — the existing progression-based approach applies. Per-stage authored sprites with cross-fade transitions at stage boundaries, cube-root scaling within stages, the £1 coin (via the reference library) at small displayed sizes, the human silhouette (via the reference library) at displayed sizes >300 mm, and text comparison cards at extreme displayed sizes >5 m.
+The single editorial commodity (cocaine) renders as a fixed forensic-evidence-room still paired with a bold dynamic readout showing the weight purchasable at the slider's BTC amount.
 
-The progression-mode renderer is unchanged from the prior spec. The rest of this section describes commodities and stages that use it.
+### Rendering rule
 
-### Oil and gas — vessel-based progressions
+The still image is authored once at portfolio quality — forensic-still register: clinical, evidential, lab-tagged. The readout is the only thing that updates with the slider. There is no cube, no scale dog, no Y-axis, no quantity anchors, no stage transitions. The image carries register; the readout carries truth.
 
-Both reframed around real-world maritime infrastructure with standardised capacity classes.
+### Readout
 
-**Oil (Brent):**
-- `jerrycan` — 5-gallon can, very small amounts
-- `drum` — 55-gallon blue steel drum, ref 1 barrel
-- `drum_cluster` — 10 drums
-- `road_tanker` — articulated tanker, ref ~200 barrels (≈ 1 BTC at current prices)
-- `aframax` — Aframax-class tanker, ref ~600,000 barrels
-- `vlcc` — Very Large Crude Carrier, ref ~2,000,000 barrels (distinct silhouette from Aframax)
-- `tanker_fleet` — multiple VLCCs in side-profile horizon shot, tile-mode-eligible
+Weight in grams primary, with mass-tier labelling that follows the value: `milligrams` at sub-gram amounts, `grams` in the working range, `kilograms` at >1 kg, `tonnes` at >1000 kg. At extremes the readout carries the truth honestly — at 1 sat the readout reads "≈ a few molecules"; at 21M BTC it reads in tonnes, with a stadium-equivalent comparison line. Specific tier copy and threshold values land in Stage 5.
 
-The vessel-class encoding is honest: real shipping uses these classifications and capacities. The sprite library is small (one Aframax, one VLCC) and the rest is replication.
+### Why no dog
 
-### Coffee, fuel pellet, and other progression commodities
+Introducing the 40 cm reference Shiba into the forensic-still mood would muddle the editorial register the still does on its own. The mood is set by the image; the only dynamic element is the weight readout. This is the deliberate exception to the universal-Shiba scheme.
 
-Coffee retains its existing progression: cup → 1 kg bag → 60 kg jute sack → warehouse stack.
+---
 
-The uranium fuel pellet retains its existing progression: single pellet → handful → fuel rod's worth → shoebox → pallet. This is the philosophical closer of the tour and its specific physical vocabulary is part of why it lands.
+## Progression mode (deferred from MVP)
+
+Preserved in the schema for potential post-launch revival; no `mvpLaunch: true` commodity at launch invokes it. Stage definitions and cross-fade machinery for prior progression commodities (oil-vessel, coffee, the uranium fuel pellet) remain in the codebase under their existing entries, now flagged inactive. The vessel and bulk renderer stubs in `PhysicalRep.svelte` continue to throw "not implemented" — they're not wired up for any launch commodity.
+
+The 2026-04-25 decision to move metals from progression mode to cube mode stands; the 2026-05-04 decision narrows the launch set to four commodities and demotes progression mode to deferred-from-MVP for everything else. Coffee, oil-vessel, and uranium-fuel-pellet schema entries are intact and can be re-enabled by flipping `mvpLaunch: true`.
 
 ---
 
