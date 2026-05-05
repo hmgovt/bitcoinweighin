@@ -17,12 +17,16 @@
 	import {
 		computeMassGrams,
 		computeIntrinsicVolumeCm3,
+		computeCubeEdgeMm,
 		pickStage,
 		computeTileState,
 	} from '$lib/volume.js';
 	import {
 		formatMass,
 		formatVolume,
+		formatVolumeSolid,
+		formatLength,
+		formatPair,
 		formatCommodityAmount,
 		unitLabel,
 		formatBtc,
@@ -32,11 +36,14 @@
 		commodity,
 		amount,
 		btcAmount,
+		btcUsdPrice = 0,
 		unitSys,
 	}: {
 		commodity: Commodity;
 		amount: number;
 		btcAmount: number;
+		/** USD per BTC. Defaults to 0; CommoditySection plumbs the real value in Stage 4 §4. */
+		btcUsdPrice?: number;
 		unitSys: UnitSystem;
 	} = $props();
 
@@ -80,34 +87,98 @@
 		if (n >= 1) return n.toFixed(1);
 		return n.toFixed(2);
 	}
+
+	// Cube-mode-only deriveds (cheap to compute regardless of mode; the
+	// template gates them).
+	const cubeEdgeMetres = $derived(
+		isCubeMode && amount > 0 ? computeCubeEdgeMm(amount, commodity) / 1000 : 0
+	);
+	const usdValue = $derived(btcAmount * btcUsdPrice);
+
+	// Cube-mode readout shows imperial primary regardless of unitSys
+	// (per the 2026-05-04 US-primacy decision and Stage 4 prompt). Metric
+	// users still see the metric value as the secondary half of the pair.
+	const massPair = $derived(
+		massGrams !== null
+			? formatPair(formatMass(massGrams, 'imperial'), formatMass(massGrams, 'metric'))
+			: ''
+	);
+	const volumePair = $derived(
+		formatPair(formatVolumeSolid(volumeCm3, 'imperial'), formatVolumeSolid(volumeCm3, 'metric'))
+	);
+	const edgePair = $derived(
+		cubeEdgeMetres > 0
+			? formatPair(
+					formatLength(cubeEdgeMetres, 'imperial'),
+					formatLength(cubeEdgeMetres, 'metric')
+				)
+			: ''
+	);
+
+	function formatUsd(amount: number): string {
+		if (amount >= 1e12) return `$${(amount / 1e12).toFixed(2)}T`;
+		if (amount >= 1e9) return `$${(amount / 1e9).toFixed(2)}B`;
+		if (amount >= 1e6) return `$${(amount / 1e6).toFixed(2)}M`;
+		if (amount >= 1) return `$${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+		if (amount > 0) return `$${amount.toFixed(2)}`;
+		return '$0';
+	}
 </script>
 
 {#if amount > 0}
-	<div class="readout-strip">
-		<!-- Primary: BTC = commodity amount -->
-		<span class="readout-primary">
-			{formatBtc(btcAmount)} = {formatCommodityAmount(amount, unitLabel(commodity.unit))}
-		</span>
+	{#if isCubeMode}
+		<!-- Cube-mode readout: bold mass, then volume + edge pair, then dollar value. -->
+		<div class="readout-strip cube-readout">
+			{#if massGrams !== null}
+				<div class="readout-mass-bold">{massPair}</div>
+			{/if}
+			<div class="readout-line">
+				<span class="readout-metric">{volumePair}</span>
+				{#if edgePair}
+					<span class="readout-divider">·</span>
+					<span class="readout-metric">cube edge {edgePair}</span>
+				{/if}
+			</div>
+			<div class="readout-line">
+				<span class="readout-usd">{formatUsd(usdValue)}</span>
+			</div>
+			<div class="readout-line readout-continuity">
+				<span class="readout-primary">
+					{formatBtc(btcAmount)} = {formatCommodityAmount(
+						amount,
+						unitLabel(commodity.unit)
+					)}
+				</span>
+			</div>
+		</div>
+	{:else}
+		<!-- Progression-mode readout: existing shape preserved. -->
+		<div class="readout-strip">
+			<!-- Primary: BTC = commodity amount -->
+			<span class="readout-primary">
+				{formatBtc(btcAmount)} = {formatCommodityAmount(amount, unitLabel(commodity.unit))}
+			</span>
 
-		<!-- Mass -->
-		{#if massGrams !== null}
+			<!-- Mass -->
+			{#if massGrams !== null}
+				<span class="readout-metric">
+					{formatMass(massGrams, unitSys)}
+				</span>
+			{/if}
+
+			<!-- Volume -->
 			<span class="readout-metric">
-				{formatMass(massGrams, unitSys)}
+				{formatVolume(volumeCm3, unitSys)}
 			</span>
-		{/if}
 
-		<!-- Volume -->
-		<span class="readout-metric">
-			{formatVolume(volumeCm3, unitSys)}
-		</span>
-
-		<!-- Count (from countTemplate, if applicable) -->
-		{#if countText}
-			<span class="readout-count">
-				{countText}
-			</span>
-		{/if}
-	</div>
+			<!-- Count (from countTemplate, if applicable) -->
+			{#if countText}
+				<span class="readout-count">
+					{countText}
+				</span>
+			{/if}
+		</div>
+	{/if}
 {/if}
 
 <style>
@@ -133,5 +204,43 @@
 	.readout-count {
 		color: #9ca3af; /* gray-400 */
 		font-style: italic;
+	}
+
+	/* Cube-mode shape: vertical stack with a hero mass line on top. */
+	.cube-readout {
+		flex-direction: column;
+		gap: 4px;
+		align-items: flex-start;
+	}
+
+	.readout-mass-bold {
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: #fafafa; /* zinc-50 */
+		line-height: 1.2;
+	}
+
+	.readout-line {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 8px;
+		align-items: baseline;
+	}
+
+	.readout-divider {
+		color: #71717a; /* zinc-500 */
+	}
+
+	.readout-usd {
+		font-size: 0.9375rem;
+		color: #d4d4d8; /* zinc-300 */
+	}
+
+	.readout-continuity {
+		margin-top: 2px;
+		opacity: 0.85;
+		font-size: 0.8125rem;
 	}
 </style>
