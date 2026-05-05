@@ -1,9 +1,23 @@
 /**
  * MVP commodity catalogue for Bitcoin Weigh-In.
  *
- * Ordering: gold → silver → copper → oil_brent → uranium_fuel_pellet
- * Optional: platinum (between copper & oil), coffee (between platinum & oil)
+ * Page render loop iterates `mvpLaunch === true` commodities sorted ascending
+ * by `pageOrder`. Locked launch order (2026-05-04 four-commodity pivot):
+ *   1. gold
+ *   2. silver
+ *   3. pu238
+ *   4. cocaine
+ *
+ * Other commodities (copper, oil_brent, uranium_fuel_pellet, platinum, coffee)
+ * remain in this file flagged `mvpLaunch: false`. They re-enter post-launch.
  */
+
+export type RenderStyle =
+	| 'cube' // gold, silver, Pu-238
+	| 'still_with_readout' // cocaine
+	| 'progression' // legacy, unused at MVP
+	| 'vessel' // legacy, unused at MVP
+	| 'bulk'; // legacy, unused at MVP
 
 export interface TileConfig {
 	/** Sprite paths for 0/25/50/75/100% fill states */
@@ -49,12 +63,31 @@ export interface Commodity {
 	id: string;
 	displayName: string;
 	/**
-	 * Rendering vocabulary.
-	 * - "cube": single cube sprite at intrinsic volume against the shared scale-reference library. Dense fungible metals.
-	 * - "progression": per-stage sprites with cross-fade transitions. The current default for everything else.
-	 * - "vessel" / "bulk": reserved for future per-vocabulary renderers. Currently throw "not implemented" in the dispatcher.
+	 * Whether this commodity is part of the launch render loop. The page
+	 * iterates only `mvpLaunch === true`, sorted ascending by `pageOrder`.
+	 * Inactive entries remain in this file with their schema preserved for
+	 * post-launch re-enable.
 	 */
-	renderStyle: 'cube' | 'progression' | 'vessel' | 'bulk';
+	mvpLaunch: boolean;
+	/** Render order on the launch page (1-indexed). Required when mvpLaunch === true. */
+	pageOrder?: number;
+	/**
+	 * Rendering vocabulary.
+	 * - "cube": single cube sprite at intrinsic volume against the universal Shiba (gold, silver, Pu-238).
+	 * - "still_with_readout": forensic still + dynamic readout (cocaine).
+	 * - "progression" / "vessel" / "bulk": legacy, unused at MVP — preserved for post-launch revival.
+	 */
+	renderStyle: RenderStyle;
+	/** Pu-238 only: cube renderer applies blackbody-glow overlay when true. */
+	glowScales?: boolean;
+	/** Pu-238 only: cube renderer applies opt-in Geiger crackle audio when true (default off, flip via ?audio=on). */
+	geigerCrackle?: boolean;
+	/** Pu-238 only: ~17 Ci/g; drives Geiger click rate in Stage 6. */
+	specificActivityCiPerGram?: number;
+	/** Mandatory persistent caption (Pu-238 uses this — non-fissile, not weapons material). */
+	brandVoiceClarification?: string;
+	/** Key into quantity-anchors.json for proximity fact-card firing. */
+	quantityAnchorsKey?: string;
 	unit: 'troy_oz' | 'lb' | 'barrel' | 'gram' | 'kg' | 'pellet';
 	unitMassGrams?: number;
 	densityGPerCm3?: number;
@@ -77,7 +110,7 @@ export interface Commodity {
 	sourceId: string;
 	sourceName: string;
 	dataQuality: 'live' | 'indicative' | 'historical' | 'illustrative';
-	/** Field name in prices.json */
+	/** Field name in prices.json (live) or key into illustrative-prices.json (illustrative). */
 	priceField: string;
 }
 
@@ -124,7 +157,10 @@ function stubTileConfig(
 const gold: Commodity = {
 	id: 'gold',
 	displayName: 'Gold',
+	mvpLaunch: true,
+	pageOrder: 1,
 	renderStyle: 'cube',
+	quantityAnchorsKey: 'gold',
 	unit: 'troy_oz',
 	unitMassGrams: 31.1035,
 	densityGPerCm3: 19.3,
@@ -148,7 +184,10 @@ const gold: Commodity = {
 const silver: Commodity = {
 	id: 'silver',
 	displayName: 'Silver',
+	mvpLaunch: true,
+	pageOrder: 2,
 	renderStyle: 'cube',
+	quantityAnchorsKey: 'silver',
 	unit: 'troy_oz',
 	unitMassGrams: 31.1035,
 	densityGPerCm3: 10.49,
@@ -164,9 +203,48 @@ const silver: Commodity = {
 	],
 };
 
+const pu238: Commodity = {
+	id: 'pu238',
+	displayName: 'Plutonium-238',
+	mvpLaunch: true,
+	pageOrder: 3,
+	renderStyle: 'cube',
+	glowScales: true,
+	geigerCrackle: true,
+	specificActivityCiPerGram: 17,
+	brandVoiceClarification:
+		'Plutonium-238 — the radioisotope that powers spacecraft. Non-fissile, not weapons material.',
+	unit: 'gram',
+	unitMassGrams: 1,
+	densityGPerCm3: 19.8,
+	cubeSpritePath: '/sprites/pu238/cube@2x.png',
+	cubeShadowPath: '/sprites/pu238/cube-shadow@2x.png',
+	sourceId: 'pu238',
+	sourceName: 'DOE / NASA Planetary Science (composite estimate)',
+	dataQuality: 'illustrative',
+	priceField: 'pu238',
+	facts: [],
+};
+
+const cocaine: Commodity = {
+	id: 'cocaine',
+	displayName: 'Cocaine',
+	mvpLaunch: true,
+	pageOrder: 4,
+	renderStyle: 'still_with_readout',
+	unit: 'gram',
+	unitMassGrams: 1,
+	sourceId: 'cocaine',
+	sourceName: 'UNODC / DEA / EMCDDA (composite illustrative)',
+	dataQuality: 'illustrative',
+	priceField: 'cocaine',
+	facts: [],
+};
+
 const copper: Commodity = {
 	id: 'copper',
 	displayName: 'Copper',
+	mvpLaunch: false,
 	renderStyle: 'progression',
 	unit: 'lb',
 	unitMassGrams: 453.592,
@@ -186,7 +264,7 @@ const copper: Commodity = {
 		]),
 	},
 	facts: [
-		{ template: 'enough to wire approximately {n} average UK homes', divisor_kg: 200 },
+		{ template: 'enough to wire approximately {n} average US homes', divisor_kg: 200 },
 		{ template: 'equivalent to {n} Tesla Model 3 battery packs\' worth of copper', divisor_kg: 80 },
 	],
 };
@@ -194,6 +272,7 @@ const copper: Commodity = {
 const oil_brent: Commodity = {
 	id: 'oil_brent',
 	displayName: 'Brent crude',
+	mvpLaunch: false,
 	renderStyle: 'progression',
 	unit: 'barrel',
 	densityGPerCm3: 0.835,
@@ -221,6 +300,7 @@ const oil_brent: Commodity = {
 const uranium_fuel_pellet: Commodity = {
 	id: 'uranium_fuel_pellet',
 	displayName: 'Nuclear fuel pellet (LEU UO₂)',
+	mvpLaunch: false,
 	renderStyle: 'progression',
 	unit: 'pellet',
 	unitMassGrams: 7,
@@ -241,8 +321,8 @@ const uranium_fuel_pellet: Commodity = {
 	facts: [
 		{
 			template:
-				'enough nuclear fuel to power {n} average UK homes for a year (~3,300 kWh per home)',
-			divisor_kg: 0.007,
+				'enough nuclear fuel to power {n} average US homes for a year (~10,500 kWh per home)',
+			divisor_kg: 0.0223,
 		},
 	],
 };
@@ -254,6 +334,7 @@ const uranium_fuel_pellet: Commodity = {
 const platinum: Commodity = {
 	id: 'platinum',
 	displayName: 'Platinum',
+	mvpLaunch: false,
 	renderStyle: 'progression',
 	unit: 'troy_oz',
 	unitMassGrams: 31.1035,
@@ -278,6 +359,7 @@ const platinum: Commodity = {
 const coffee: Commodity = {
 	id: 'coffee',
 	displayName: 'Arabica coffee',
+	mvpLaunch: false,
 	renderStyle: 'progression',
 	unit: 'lb',
 	unitMassGrams: 453.592,
@@ -304,22 +386,37 @@ const coffee: Commodity = {
 // Exports
 // ---------------------------------------------------------------------------
 
-/** Core 6 MVP commodities in display order */
-export const CORE_COMMODITIES: Commodity[] = [
+/** All commodities in this file — launch + deferred. Used for id lookup. */
+export const ALL_COMMODITIES: Commodity[] = [
 	gold,
 	silver,
+	pu238,
+	cocaine,
 	copper,
 	oil_brent,
 	uranium_fuel_pellet,
+	platinum,
+	coffee,
 ];
 
-/** Optional MVP commodities */
-export const OPTIONAL_COMMODITIES: Commodity[] = [platinum, coffee];
+/**
+ * Launch commodities, sorted by `pageOrder`. Single source of truth for the
+ * page render loop: 1=gold, 2=silver, 3=pu238, 4=cocaine.
+ */
+export const LAUNCH_COMMODITIES: Commodity[] = ALL_COMMODITIES.filter(
+	(c) => c.mvpLaunch
+).sort((a, b) => (a.pageOrder ?? 0) - (b.pageOrder ?? 0));
 
-/** All MVP commodities in display order (core, then optional) */
-export const ALL_MVP_COMMODITIES: Commodity[] = [...CORE_COMMODITIES, ...OPTIONAL_COMMODITIES];
+/**
+ * Back-compat alias for `LAUNCH_COMMODITIES`. Kept so existing consumers
+ * (e.g. `src/routes/+page.svelte`) keep compiling without touching component
+ * code in this stage. Migrate consumers to `LAUNCH_COMMODITIES` in Stage 3+.
+ *
+ * @deprecated Use `LAUNCH_COMMODITIES` instead.
+ */
+export const CORE_COMMODITIES: Commodity[] = LAUNCH_COMMODITIES;
 
-/** Lookup commodity by id */
+/** Lookup commodity by id (across both launch and deferred sets). */
 export function getCommodity(id: string): Commodity | undefined {
-	return ALL_MVP_COMMODITIES.find((c) => c.id === id);
+	return ALL_COMMODITIES.find((c) => c.id === id);
 }

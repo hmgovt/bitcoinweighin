@@ -5,7 +5,7 @@ import {
 	computeMassGrams,
 	pickStage,
 } from '../src/lib/volume.js';
-import { CORE_COMMODITIES, OPTIONAL_COMMODITIES, getCommodity } from '../src/lib/commodities.js';
+import { ALL_COMMODITIES, getCommodity } from '../src/lib/commodities.js';
 import type { Commodity, RenderStage } from '../src/lib/commodities.js';
 
 describe('computeIntrinsicVolumeCm3', () => {
@@ -70,16 +70,16 @@ describe('computeIntrinsicVolumeCm3', () => {
 		expect(computeIntrinsicVolumeCm3(0, gold)).toBe(0);
 	});
 
-	it('works for all core commodities without throwing', () => {
-		for (const c of CORE_COMMODITIES) {
+	it('works for all volume-computable commodities without throwing', () => {
+		for (const c of ALL_COMMODITIES) {
+			if (c.renderStyle === 'still_with_readout') continue;
 			expect(() => computeIntrinsicVolumeCm3(1, c)).not.toThrow();
 		}
 	});
 
-	it('works for all optional commodities without throwing', () => {
-		for (const c of OPTIONAL_COMMODITIES) {
-			expect(() => computeIntrinsicVolumeCm3(1, c)).not.toThrow();
-		}
+	it('throws for still-mode commodity (no density, no volume to compute)', () => {
+		const cocaine = getCommodity('cocaine')!;
+		expect(() => computeIntrinsicVolumeCm3(1, cocaine)).toThrow();
 	});
 });
 
