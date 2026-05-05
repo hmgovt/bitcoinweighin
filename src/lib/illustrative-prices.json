@@ -10,5 +10,53 @@
 		],
 		"methodology": "Composite cost: U3O8 feed at ~$100/lb, conversion to UF6 at ~$20/kgU, SWU at ~$150/SWU, fabrication at ~$300/kgU, yielding ~$3,000/kgU of finished fuel. Divided by 7 g/pellet = ~$20/pellet.",
 		"notes": "Low-enriched uranium (LEU, 3–5% U-235) fuel pellet for PWR reactors. Order-of-magnitude estimate; actual fuel costs vary ±30% by contract terms, enrichment level, and market conditions."
+	},
+	"cocaine": {
+		"tiers": {
+			"producer": {
+				"pricePerKg": 2500,
+				"range": [1500, 3500],
+				"purityAssumption": "raw refined base",
+				"asOfDate": "2024-12-31",
+				"source": "UNODC World Drug Report 2024"
+			},
+			"wholesale": {
+				"pricePerKg": 30000,
+				"range": [25000, 35000],
+				"purityAssumption": "≥80% pure (US wholesale standard)",
+				"asOfDate": "2024-12-31",
+				"source": "UNODC 2024 / DEA NDTA 2024"
+			},
+			"retail": {
+				"pricePerKg": 120000,
+				"range": [80000, 250000],
+				"purityAssumption": "purity-adjusted to 100% for cross-tier comparison",
+				"asOfDate": "2024-12-31",
+				"source": "DEA / EMCDDA"
+			}
+		},
+		"primaryTier": "wholesale",
+		"sources": [
+			"UNODC World Drug Report 2024 — unodc.org",
+			"DEA National Drug Threat Assessment 2024 — dea.gov",
+			"EMCDDA European Drug Report 2024 — emcdda.europa.eu"
+		],
+		"methodology": "Three-tier pricing (producer / wholesale / retail-pure-equivalent) reflects the actual structure of the cocaine market; no spot price exists. Wholesale tier drives the primary BTC-equivalence readout because it is the most directly comparable to other commodities (standardised purity, kilogram-scale transactions). Producer and retail tiers display alongside as comparison rows. Range figures reflect typical spread documented in the cited sources; midpoints are used for display.",
+		"notes": "Illustrative pricing only. No spot market exists. Figures from peer-reviewed and law-enforcement reporting. Annual global production for absurdity-tier framings: ~2,250 tonnes (UNODC 2024 estimate)."
+	},
+	"pu238": {
+		"pricePerGram": 5000,
+		"range": [4000, 8000],
+		"fullyLoadedProgramCostPerGram": 100000,
+		"asOfDate": "2024-12-31",
+		"sources": [
+			"DOE Office of Nuclear Energy — energy.gov",
+			"NASA Planetary Science Division — Pu-238 program ~$150M/year for 1.5 kg/year production",
+			"The Planetary Society — planetary.org/articles/plutonium-power-for-space-missions",
+			"Cassini Mission OIG Report (1997) — $1,968/g escalated to 2024 dollars",
+			"Atomic Insights — atomicinsights.com/rtg-heat-sources-two-proven-materials"
+		],
+		"methodology": "Material cost composite estimate. Pu-238 has no spot market — it is produced exclusively by the DOE for NASA missions. Material cost (~$5,000/g midpoint of $4,000–$8,000 range) is the cost of the substance itself in kilogram-sized lots, used for BTC equivalence as it is the most comparable to how other commodities are priced. Fully-loaded program cost (~$100,000/g) includes facility maintenance, regulatory infrastructure, and the institutional apparatus required for production; cited separately on methodology page as contextual comparison.",
+		"notes": "Non-fissile alpha emitter. 0.57 W/g decay heat. Density: 19.8 g/cm³ (pure metal). Used in NASA radioisotope thermoelectric generators (RTGs) for deep-space missions: Voyager, Galileo, Cassini, Curiosity, Perseverance, New Horizons. US production halted 1988, restarted 2015. Cannot go critical in any realistic configuration — decay heat would melt any approach to critical mass long before assembly, and the isotope's nuclear properties don't sustain chain reactions regardless. Bare-sphere theoretical critical mass: 9.04–10.07 kg per Wikipedia / DOE references."
 	}
 }
