@@ -184,26 +184,66 @@ The 2026-04-25 decision to move metals from progression mode to cube mode stands
 
 ## MVP commodity catalogue
 
-| ID | Display name | Render style | Unit | Density (g/cm³) | Data source |
-|---|---|---|---|---|---|
-| `gold` | Gold | cube | troy oz | 19.30 | stooq `xauusd` |
-| `silver` | Silver | cube | troy oz | 10.49 | stooq `xagusd` |
-| `copper` | Copper | cube | lb | 8.96 | stooq `hg.c` |
-| `oil_brent` | Brent crude | progression (vessel) | barrel | 0.835 | FRED `DCOILBRENTEU` |
-| `uranium_fuel_pellet` | Nuclear fuel pellet | progression | pellet (7 g) | 10.97 | illustrative |
+Four launch commodities, listed in the locked page render order. Only commodities with `mvpLaunch: true` are iterated by the page render loop.
 
-**MVP optional:**
+| ID | Display name | Render style | Unit | Density (g/cm³) | Data source | Quality |
+|---|---|---|---|---|---|---|
+| `gold` | Gold | cube | troy oz | 19.30 | stooq `xauusd` | live |
+| `silver` | Silver | cube | troy oz | 10.49 | stooq `xagusd` | live |
+| `pu238` | Plutonium-238 | cube + glow + opt-in audio | gram | 19.8 | DOE/NASA composite | illustrative |
+| `cocaine` | Cocaine | still + readout | gram | n/a (still mode) | editorial composite | illustrative |
 
-| ID | Display name | Render style | Unit | Density | Data source |
-|---|---|---|---|---|---|
-| `platinum` | Platinum | cube | troy oz | 21.45 | stooq `xptusd` |
-| `coffee` | Arabica coffee | progression (bulk) | lb | 0.38 (bulk roasted) | stooq `kc.c` |
+**Ordering rationale:** metals frame the tour (gold, then silver), Pu-238 is the philosophical apex, cocaine is the editorial close that sends the reader away thinking. The two cube-mode metals open with the most universally familiar substances; Pu-238 escalates the vocabulary (still cube mode, but with the glow and the optional crackle making the substance's nature legible); cocaine breaks the cube vocabulary entirely with the still — by then the reader has been primed for it and the change in register reads as deliberate.
 
-**Ordering rationale:** gold (cube, universally familiar) → silver (cube, denser visual contrast) → copper (cube, industrial) → oil (vessel, fluid) → uranium fuel pellet (progression, philosophical closer). The cube-mode commodities sit together at the start of the tour, fluids in the middle, the fuel pellet's distinctive non-cube vocabulary at the end.
+### Deferred from MVP
 
-**Deliberately excluded from MVP:** wheat, corn, soybeans, sugar, cocoa. Agri commodities share a "sack of brown stuff" visual problem — they read redundantly. Coffee gets a spot for its distinct visual vocabulary; the rest are skipped. Can be added in Tier 2 if post-launch data shows demand.
+Schema entries for the following remain in the codebase and are flagged `mvpLaunch: false`. They re-enter post-launch as the rendering and asset pipelines stabilise:
 
-**Diamonds are not included** at any tier. Unlike fungible commodities, diamond prices depend on the 4 Cs (carat, colour, clarity, cut) and there is no public spot price.
+| ID | Display name | Prior render style | Notes |
+|---|---|---|---|
+| `copper` | Copper | progression | candidate for cube-mode migration post-launch |
+| `oil_brent` | Brent crude | progression (vessel) | vessel renderer remains stubbed |
+| `uranium_fuel_pellet` | Nuclear fuel pellet | progression | replaced at launch by Pu-238; may return as Tier 2 |
+| `platinum` | Platinum | progression | cube-mode candidate post-launch |
+| `coffee` | Arabica coffee | progression (bulk) | bulk-mode renderer remains stubbed |
+| `wheat` | Wheat | (deferred since 2026-04-20) | data fetched, never rendered |
+| `natgas` | Natural gas | (removed 2026-04-29) | data feed removed; entry preserved as historical reference only |
+
+**Always excluded:** other agri commodities (corn, soybeans, sugar, cocoa) for the "sack of brown stuff" redundancy problem. Diamonds at any tier — non-fungible (4 Cs determine price) and no public spot price.
+
+---
+
+## Per-commodity launch entries
+
+Detail for each `mvpLaunch: true` commodity. Pricing data shapes are the single source of truth in `src/lib/illustrative-prices.json` for illustrative commodities; live commodities pull from `prices.json` keyed by `priceField`.
+
+### Gold
+
+- **ID:** `gold`. **Render style:** `cube`. **Unit:** troy oz. **Density:** 19.30 g/cm³.
+- **Pricing:** stooq `XAUUSD` daily close (`priceField: "xau"`). Data quality `live`.
+- **Brand-voice posture:** anchor commodity. The most familiar substance on the page; the cube renders are the bar against which all subsequent panels are read.
+
+### Silver
+
+- **ID:** `silver`. **Render style:** `cube`. **Unit:** troy oz. **Density:** 10.49 g/cm³.
+- **Pricing:** stooq `XAGUSD` daily close (`priceField: "xag"`). Data quality `live`.
+- **Brand-voice posture:** counterweight to gold. Same render scheme, half the density — at equivalent BTC the silver cube reads visibly larger, which sets up the substance-density intuition the rest of the page leans on.
+
+### Plutonium-238
+
+- **ID:** `pu238`. **Render style:** `cube` with `glowScales: true` and `geigerCrackle: true`. Audio default off, opt-in via `?audio=on`.
+- **Unit:** gram. **Density:** 19.8 g/cm³ (pure Pu-238 metal — denser than gold's 19.30; cube edges marginally smaller for equivalent mass).
+- **Pricing:** illustrative ~$5,000/gram material cost. Composite from DOE / NASA Planetary Science / Cassini OIG 1997 escalated to 2024. Fully-loaded program cost ~$100,000/gram cited separately on the methodology page as contextual comparison. Lives in `src/lib/illustrative-prices.json` under key `pu238`. Source attribution and methodology mandatory. Data quality `illustrative`.
+- **Brand-voice clarification (mandatory and persistent on the panel):** *"Plutonium-238 — the radioisotope that powers spacecraft. Non-fissile, not weapons material."* Required because the substance carries weapons connotations the site does not endorse and Pu-238 specifically does not have. Placement: directly under the panel header, never in a tooltip.
+- **Honest physics commentary:** the "would melt itself in reality" caption fires at mass thresholds where pure Pu-238 metal of that geometry would self-destruct from decay heat. The visualisation has the luxury of nothing spontaneously disassembling — the cube on screen is what the dial says it is — so the caption attaches as observation rather than override.
+- **Audio:** Geiger crackle synthesised from a Poisson distribution at ~17 Ci/g specific activity. Click rate scales linearly with mass. Default off. Persisted via `?audio=on`. Mute control accessible from the panel.
+
+### Cocaine
+
+- **ID:** `cocaine`. **Render style:** `still`. **Unit:** gram. **Density:** n/a (still mode does not require density — no cube to size).
+- **Pricing:** illustrative — composite of DEA / UNODC / open-source dark-web market scrapes, weighted toward US street wholesale price per gram (the closest defensible figure to "what you could buy"). Lives in `src/lib/illustrative-prices.json` under key `cocaine`. Source attribution and methodology mandatory. Exact figure and source list land in Stage 5 with the still asset. Data quality `illustrative`.
+- **Brand-voice posture:** dry, observational, neither moralising nor glamorising. The forensic-still register (lab tags, evidence-room lighting, clinical framing) does the editorial work. The site's stance on the substance is reflected by the choice of register, not by copy.
+- **What this panel does not have:** scale dog, cube, Y-axis, quantity-anchor proximity cards, stage transitions. The image carries register; the readout carries truth at extremes.
 
 ---
 
@@ -213,23 +253,35 @@ The 2026-04-25 decision to move metals from progression mode to cube mode stands
 interface Commodity {
   id: string;
   displayName: string;
-  renderStyle: "cube" | "progression";
+  /** Whether this commodity is part of the launch render loop. False = inactive, schema-preserved. */
+  mvpLaunch: boolean;
+  renderStyle: "cube" | "still" | "progression";
   unit: "troy_oz" | "lb" | "barrel" | "gram" | "kg" | "pellet";
   unitMassGrams?: number;            // mass per unit; required for cube mode
   densityGPerCm3?: number;           // solid density; required for cube mode
   bulkDensityKgPerM3?: number;       // for bulk agri; takes precedence over solid density
-  render?: RenderProgression;        // required for progression mode, omitted for cube mode
+  render?: RenderProgression;        // required for progression mode, omitted otherwise
+  cubeSpritePath?: string;           // required when renderStyle === "cube"
+  cubeShadowPath?: string;
+  /** Pu-238: enables blackbody-glow overlay on the cube (intensity + colour-temperature channels). */
+  glowScales?: boolean;
+  /** Pu-238: opt-in Geiger-crackle audio layer; default off, enabled via ?audio=on. */
+  geigerCrackle?: boolean;
+  /** Cocaine: forensic-still image path; required when renderStyle === "still". */
+  stillImagePath?: string;
   facts: FactTemplate[];
   affiliate?: { url: string; label: string; disclosure: string };
   sourceId: string;
   sourceName: string;
   dataQuality: "live" | "indicative" | "historical" | "illustrative";
+  /** Field name in prices.json (live commodities) or illustrative-prices.json key. */
+  priceField: string;
 }
 ```
 
-For cube-mode commodities, the renderer reads `densityGPerCm3` and `unitMassGrams`, ignores any `render` field, and delegates to the cube renderer. For progression-mode commodities, the existing `render: RenderProgression` field drives stage selection.
+The page render loop iterates only over commodities with `mvpLaunch: true`, in the order they're declared. For cube-mode commodities, the renderer reads `densityGPerCm3` and `unitMassGrams` and delegates to `CubeRenderer.svelte`. Pu-238 additionally consults `glowScales` and `geigerCrackle`; both are properties of the cube renderer rather than separate render modes. For still-mode commodities (cocaine), the renderer reads `stillImagePath` and pairs the image with the dynamic readout. Progression-mode definitions remain in the codebase under `mvpLaunch: false` entries and are reachable post-launch by flipping the flag.
 
-The `RenderStage` interface retains `renderMode` and `projection` fields for potential future use by progression-mode commodities; tile mode is in the schema but unused by any MVP commodity.
+The `RenderStage` interface retains `renderMode` and `projection` fields for the deferred progression-mode commodities; tile mode is in the schema but unused by any launch commodity. The legacy `'vessel' | 'bulk'` runtime renderStyle stubs in `PhysicalRep.svelte` continue to throw "not implemented" for any commodity that opts into them.
 
 ---
 
