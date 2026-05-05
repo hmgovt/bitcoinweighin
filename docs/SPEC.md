@@ -152,7 +152,7 @@ Both layers are scoped to Pu-238 alone. Gold and silver render as plain cubes ag
 - No tile mode. Tile-mode schema fields exist for potential future use by other commodities but are unused by any commodity at launch.
 - No comparison-card fallback. The universal Shiba and the viewport zoom cover the full slider range; comparison cards were a progression-mode feature and are deferred with progression mode.
 - No cycling reference library. Earlier drafts cycled through ~20 references (grain of sand to Empire State Building) picked by closest log-scale match; that scheme is superseded by the universal Shiba.
-- No standalone £1 coin or human silhouette. Both were entries in the prior reference library and are gone.
+- No standalone coin or human silhouette. Both were entries in the prior reference library (the £1 coin and a 1.75 m person) and are gone with it.
 
 ---
 
@@ -388,7 +388,7 @@ The gold values above are the iterated production values from `gold_good_deliver
 
 **Solo manual Blender** — fallback if a script fights back. The cube and lighting setup are simple enough that hand-driven Blender is not significantly slower than scripted for one-off authoring.
 
-**Outsourcing** — not an option. No budget. Fallbacks are: simpler material on the cube, fewer reference entries, or shipping the minimum-viable library (£1 coin, person, bus, building, Eiffel Tower).
+**Outsourcing** — not an option. No budget. Fallbacks are: simpler material on the cube, a labelled grey placeholder for the Shiba reference, or a stripped-down still asset for cocaine. Asset gaps are placeholder-only, never fabricated — see the marathon-session overview.
 
 ### Version control
 
@@ -401,19 +401,22 @@ Source `.blend` files for the cube and the rig live at `assets/blender/`. The di
 ## URL state design
 
 ```
-/?btc=1&date=2024-01-15&unit=metric&commodity=silver&preset=pizza_day
+/?btc=1&date=2024-01-15&commodity=silver&preset=pizza_day
 ```
 
 | Param | Type | Default | Range/values |
 |---|---|---|---|
 | `btc` | float | 1 | 0.00000001 – 21,000,000 |
 | `date` | ISO date | latest available | 2013-01-01 – yesterday |
-| `unit` | enum | `metric` | `metric` \| `imperial` |
+| `unit` | enum | `imperial` | `imperial` \| `metric` |
 | `commodity` | string | none | commodity id; if set, scrolls to and highlights |
 | `preset` | string | none | preset id; when set, loads preset's btc and date values |
-| `currency` | enum | `usd` | `usd` \| `gbp` \| `eur` \| `jpy` \| `chf` \| `cad` \| `aud` |
+| `currency` | enum | `usd` | `usd` \| `eur` \| `gbp` \| `jpy` \| `chf` \| `cad` \| `aud` |
+| `audio` | enum | `off` | `off` \| `on` (Pu-238 Geiger crackle opt-in) |
 
 On load: parse params, hydrate Svelte stores. If `preset` is set, its values take precedence. On any state change: `history.replaceState` to update URL without page reload. Debounce slider changes to 100 ms.
+
+**Defaults reflect US-primacy** (2026-05-04): `unit=imperial` (lb/oz primary, kg/g secondary), `currency=usd`. Metric and other currencies are opt-in via the URL params. `formatMass()` and `formatLength()` helpers default to imperial unless `unit=metric` is set.
 
 ---
 
@@ -476,23 +479,26 @@ btc-commodity-visualiser/
 │   ├── blender/                          # tracked, gitignore allows .blend through
 │   │   ├── _rigs/three_quarter.blend
 │   │   ├── gold/cube.blend
-│   │   └── references/                   # animal-reference sources
+│   │   ├── silver/cube.blend
+│   │   ├── pu238/cube.blend              # post-pivot launch commodity
+│   │   └── references/
 │   │       └── shiba_inu/                # scene.gltf, scene.bin, textures/, render.blend, notes.md, license.txt
 │   ├── materials-reference.md            # canonical PBR values
-│   ├── references-attribution.md         # animal-reference inventory + CC-BY attribution strings
+│   ├── references-attribution.md         # Shiba attribution + license strings
 │   └── style-guide.md
 ├── src/
 │   ├── lib/
 │   │   ├── commodities.ts
-│   │   ├── scale-references.json         # NEW: cube-mode reference library
+│   │   ├── scale-references.json         # single-entry: universal Shiba (post-pivot)
 │   │   ├── events.json
-│   │   ├── illustrative-prices.json
+│   │   ├── illustrative-prices.json      # uranium fuel pellet (deferred), pu238, cocaine
 │   │   ├── stores/{url,prices,playback}.ts
 │   │   └── components/
 │   │       ├── PhysicalRep.svelte         # branches on renderStyle
-│   │       ├── CubeRenderer.svelte        # NEW: cube-mode rendering
-│   │       ├── ScaleReference.svelte      # NEW: single reference object renderer
-│   │       ├── SpriteStage.svelte         # progression-mode stage renderer
+│   │       ├── CubeRenderer.svelte        # cube + glow + audio for Pu-238
+│   │       ├── ScaleReference.svelte      # universal Shiba renderer
+│   │       ├── StillRenderer.svelte       # cocaine still + readout
+│   │       ├── SpriteStage.svelte         # progression-mode (deferred from MVP)
 │   │       ├── Scrubber.svelte
 │   │       ├── CommoditySection.svelte
 │   │       ├── AnchorCaption.svelte
@@ -502,14 +508,13 @@ btc-commodity-visualiser/
 ├── static/
 │   ├── sprites/
 │   │   ├── gold/cube@2x.webp              # cube-mode
-│   │   ├── references/                    # shared reference library
-│   │   │   ├── pound_coin.svg
-│   │   │   ├── person.svg
-│   │   │   ├── eiffel_tower.svg
-│   │   │   ├── shiba_inu.webp             # animal references: rendered photoreal
-│   │   │   ├── shiba_inu-shadow.png       # contact shadow alongside the sprite
-│   │   │   └── ...
-│   │   └── oil_brent/                     # progression-mode per existing pattern
+│   │   ├── silver/cube@2x.webp            # cube-mode
+│   │   ├── pu238/cube@2x.webp             # cube-mode + glow overlay
+│   │   ├── cocaine/forensic_still@2x.webp # still-mode
+│   │   ├── references/
+│   │   │   ├── shiba_inu.webp             # universal scale reference
+│   │   │   └── shiba_inu-shadow.png       # contact shadow
+│   │   └── _deferred/                     # progression-mode sprites (mvpLaunch: false)
 │   └── models/
 │       └── references/
 │           └── shiba_inu/                 # animated .gltf for the easter-egg path
@@ -527,29 +532,24 @@ btc-commodity-visualiser/
 
 ### Phase 1 — Skeleton (complete)
 
-### Phase 2a — Cube mode asset production (in flight)
+### Phase 2a — Cube mode asset production (complete)
 
-- Fix gitignore to track `assets/blender/**/*.blend`
-- Create `assets/materials-reference.md` with locked PBR values
-- Create three-quarter camera rig
-- Author gold cube sprite at canonical 100 mm edge length
-- Author or source ~18 reference-object sprites
-- Total scope: 1 cube + 1 shadow + ~18 references
+Gold and silver cube sprites authored via headless Blender Python from locked PBR materials in `assets/materials-reference.md`. Three-quarter rig committed.
 
-### Phase 2b — Cube renderer integration (next)
+### Phase 2b — Cube renderer integration (complete for gold and silver)
 
-- Implement `CubeRenderer.svelte` and `ScaleReference.svelte`
-- Update `PhysicalRep.svelte` to branch on `renderStyle`
-- Migrate gold commodity entry to `renderStyle: "cube"`
-- Verify continuous rendering across the full slider range
+`CubeRenderer.svelte`, `ScaleReference.svelte`, and `PhysicalRep.svelte` (renderStyle dispatcher) shipped. Gold and silver migrated to `renderStyle: "cube"`. Shiba reference live with easter-egg animated `.gltf`.
 
-### Phase 2c — Vessel and bulk vocabularies
+### Phase 2c — Mixed-mode renderer integration (next)
 
-- Author oil tanker sprites (Aframax, VLCC, fleet)
-- Author LNG carrier sprites (Moss-type, Q-Max, fleet)
-- Verify progression-mode renderer handles vessel stages cleanly
-- Coffee progression authored or verified against existing stubs
-- Fuel pellet progression authored
+This is the marathon-session scope. Three cube-mode panels with universal Shiba (gold, silver, Pu-238) plus one editorial-still panel (cocaine). Specific tasks per `docs/handoff/` Stages 2–7:
+
+- Schema additions: `mvpLaunch`, `glowScales`, `geigerCrackle`, `stillImagePath`, new `'still'` renderStyle.
+- Universal-Shiba viewport replaces the cycling reference library.
+- Pu-238 cube + glow + opt-in Geiger crackle authored and wired.
+- Cocaine still-with-readout authored and wired.
+- US-primacy defaults: `unit=imperial`, USD primary, copy sweep.
+- Tests: regression on gold/silver, new tests for Pu-238 glow/audio and cocaine readout.
 
 ### Phase 3 — Scrubber & events
 
