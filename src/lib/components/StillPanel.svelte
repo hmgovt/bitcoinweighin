@@ -75,7 +75,7 @@
 		width: 100%;
 		max-width: 800px;
 		aspect-ratio: 4 / 3;
-		background: var(--color-bg-secondary, #f5f5f5);
+		background: transparent;
 		display: flex;
 		align-items: center;
 		justify-content: center;
