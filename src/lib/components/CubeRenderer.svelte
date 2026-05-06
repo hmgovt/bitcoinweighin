@@ -65,15 +65,23 @@
 	// `justify-content: center` then distributes the overflow equally
 	// and clips the cube's left edge symmetrically with the reference's
 	// right edge.
-	const sceneRealMm = $derived((cubeEdgeMm + refMm) * 1.2 + 20);
+	const sceneRealMm = $derived((cubeEdgeMm + refMm) * 1.05 + 10);
 	const viewportMm = $derived(
 		(viewportPx > 0 ? viewportPx : VIEWPORT_FALLBACK_PX) / PX_PER_MM
 	);
-	// Vertical: the taller of cube edge or reference, plus headroom. The
-	// 12% sprite-bottom-margin offset on each slot needs room to extend
-	// below the ground line without clipping, so add it back into the
-	// budget.
-	const sceneVerticalRealMm = $derived(Math.max(cubeEdgeMm, refMm) * 1.18);
+	// Vertical: budget must cover whichever sprite — cube or Shiba —
+	// extends furthest below the layout baseline after its translateY
+	// (CUBE_BOTTOM_MARGIN_PCT for the cube; REF_BOTTOM_MARGIN_PCT for the
+	// dog, measured from the actual sprites). Plus a touch of breathing
+	// room above so the cube top doesn't kiss the scene-row top edge.
+	const CUBE_BOTTOM_MARGIN_PCT = 12; // 11.94 % from cube@2x.png bbox
+	const REF_BOTTOM_MARGIN_PCT = 25; // 24.81 % from shiba_inu.webp bbox
+	const sceneVerticalRealMm = $derived(
+		Math.max(
+			cubeEdgeMm * (1 + CUBE_BOTTOM_MARGIN_PCT / 100),
+			refMm * (1 + REF_BOTTOM_MARGIN_PCT / 100)
+		) * 1.04
+	);
 	const viewportHeightMm = $derived(
 		(viewportHeightPx > 0 ? viewportHeightPx : VIEWPORT_HEIGHT_FALLBACK_PX) / PX_PER_MM
 	);
@@ -231,7 +239,7 @@
 		/* Bounded vertical extent so the cube and dog can't overflow at any
 		   slider position. CubeRenderer reads this height back via
 		   ResizeObserver to feed the vertical-fit branch of sceneScale. */
-		height: clamp(280px, 60vh, 600px);
+		height: clamp(440px, 80vh, 920px);
 		overflow: hidden;
 	}
 
@@ -270,7 +278,7 @@
 		min-width: 2mm;
 		min-height: 2mm;
 		/* Sprite has ~12% intrinsic transparent bottom margin baked in
-		   (191/1600 px on the Blender canvas — see DECISIONS 2026-04-26).
+		   (191/1600 px on cube@2x.png — measured from the actual file).
 		   Translating the slot down by the same fraction places the
 		   *visible* cube bottom on the scene-row's baseline. */
 		transform: translateY(12%);
@@ -302,11 +310,12 @@
 		align-items: flex-end;
 		justify-content: center;
 		flex-shrink: 0;
-		/* Mirror the cube's sprite-margin offset — the Shiba is rendered
-		   through the same Blender pipeline (~12% transparent bottom
-		   margin), so the same translation lands its visible bottom on
-		   the cube's baseline. */
-		transform: translateY(12%);
+		/* The Shiba sprite has a *larger* intrinsic bottom margin than
+		   the cube (397/1600 ≈ 25 % vs 191/1600 ≈ 12 %, both measured
+		   from the actual files). Translating by the dog's own margin
+		   fraction keeps its visible bottom on the same baseline as the
+		   cube's. */
+		transform: translateY(25%);
 	}
 
 	.fade-in {
