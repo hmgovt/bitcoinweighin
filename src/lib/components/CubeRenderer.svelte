@@ -50,7 +50,9 @@
 	// viewport in CSS mm, scale both down proportionally; otherwise render
 	// at true physical size so the coin reference lands at 23.43 mm.
 	let viewportPx = $state(0);
+	let viewportHeightPx = $state(0);
 	const VIEWPORT_FALLBACK_PX = 600;
+	const VIEWPORT_HEIGHT_FALLBACK_PX = 360;
 	const PX_PER_MM = 3.7795275591; // CSS px per mm at 96 dpi
 
 	const refMm = $derived(reference.realSizeMetres * 1000);
@@ -67,6 +69,14 @@
 	const viewportMm = $derived(
 		(viewportPx > 0 ? viewportPx : VIEWPORT_FALLBACK_PX) / PX_PER_MM
 	);
+	// Vertical: the taller of cube edge or reference, plus headroom. The
+	// 12% sprite-bottom-margin offset on each slot needs room to extend
+	// below the ground line without clipping, so add it back into the
+	// budget.
+	const sceneVerticalRealMm = $derived(Math.max(cubeEdgeMm, refMm) * 1.18);
+	const viewportHeightMm = $derived(
+		(viewportHeightPx > 0 ? viewportHeightPx : VIEWPORT_HEIGHT_FALLBACK_PX) / PX_PER_MM
+	);
 
 	// On mobile, cap sceneScale at 1 so the £1 coin renders at true
 	// 23.43 mm — the "actual size" promise. On desktop, the panel
@@ -82,7 +92,15 @@
 	const maxSceneScale = $derived(
 		viewportPx >= DESKTOP_THRESHOLD_PX ? MAX_SCENE_SCALE_DESKTOP : 1
 	);
-	const sceneScale = $derived(Math.min(maxSceneScale, viewportMm / sceneRealMm));
+	// Scale must satisfy both horizontal and vertical fit so neither
+	// element exceeds the scene-row's bounds at any slider position.
+	const sceneScale = $derived(
+		Math.min(
+			maxSceneScale,
+			viewportMm / sceneRealMm,
+			viewportHeightMm / sceneVerticalRealMm
+		)
+	);
 
 	// Cube clamps at a visual floor of 2 mm so sub-mm cubes don't disappear
 	// against the dog at the divide. The readouts (caption strip, YAxis
@@ -93,6 +111,7 @@
 	);
 
 	let sceneEl: HTMLDivElement | undefined = $state();
+	let sceneRowEl: HTMLDivElement | undefined = $state();
 
 	function formatEdge(mm: number): string {
 		if (mm < 1) return `${(mm * 1000).toFixed(0)} µm`;
@@ -111,10 +130,15 @@
 		if (!sceneEl) return;
 		const ro = new ResizeObserver((entries) => {
 			for (const entry of entries) {
-				viewportPx = entry.contentRect.width;
+				if (entry.target === sceneEl) {
+					viewportPx = entry.contentRect.width;
+				} else if (entry.target === sceneRowEl) {
+					viewportHeightPx = entry.contentRect.height;
+				}
 			}
 		});
 		ro.observe(sceneEl);
+		if (sceneRowEl) ro.observe(sceneRowEl);
 		return () => ro.disconnect();
 	});
 </script>
@@ -128,7 +152,7 @@
 			right half. Both elements scale freely without losing this
 			relative anchor.
 		-->
-		<div class="scene-row">
+		<div class="scene-row" bind:this={sceneRowEl}>
 			<div class="left-of-divide">
 				<!-- Y axis: vertical line + adaptive-unit label, tracks the cube's displayed height. -->
 				<div class="y-axis-slot">
@@ -202,9 +226,13 @@
 		display: flex;
 		align-items: flex-end;
 		justify-content: center;
-		min-height: 180px;
 		flex: 1;
 		width: 100%;
+		/* Bounded vertical extent so the cube and dog can't overflow at any
+		   slider position. CubeRenderer reads this height back via
+		   ResizeObserver to feed the vertical-fit branch of sceneScale. */
+		height: clamp(280px, 60vh, 600px);
+		overflow: hidden;
 	}
 
 	/* Each half occupies an equal share of scene-row; the shared inner edge
@@ -241,7 +269,13 @@
 		flex-shrink: 0;
 		min-width: 2mm;
 		min-height: 2mm;
+		/* Sprite has ~12% intrinsic transparent bottom margin baked in
+		   (191/1600 px on the Blender canvas — see DECISIONS 2026-04-26).
+		   Translating the slot down by the same fraction places the
+		   *visible* cube bottom on the scene-row's baseline. */
+		transform: translateY(12%);
 	}
+
 
 	.cube-shadow {
 		position: absolute;
@@ -268,6 +302,11 @@
 		align-items: flex-end;
 		justify-content: center;
 		flex-shrink: 0;
+		/* Mirror the cube's sprite-margin offset — the Shiba is rendered
+		   through the same Blender pipeline (~12% transparent bottom
+		   margin), so the same translation lands its visible bottom on
+		   the cube's baseline. */
+		transform: translateY(12%);
 	}
 
 	.fade-in {
