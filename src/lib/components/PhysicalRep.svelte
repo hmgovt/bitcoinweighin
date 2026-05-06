@@ -3,20 +3,15 @@
 	 * PhysicalRep — dispatches to the renderer that matches the commodity's
 	 * `renderStyle`. Branches:
 	 *
-	 *   "cube"        → CubeRenderer (single cube + cycling reference library)
+	 *   "cube"        → CubeRenderer (single cube + universal Shiba)
 	 *   "progression" → SpriteStage with cross-fade, coin reference, silhouette,
 	 *                   and comparison-card fallback at extreme sizes
 	 *   "vessel"      → not yet implemented (next handoff)
 	 *   "bulk"        → not yet implemented (next handoff)
 	 *
-	 * Cube mode delegates entirely to CubeRenderer.svelte. Progression mode
-	 * keeps its prior behaviour: stage selection, tile-mode rendering for
-	 * institutional scales, the £1 coin and human silhouette as scale
-	 * references, and ComparisonCard text fallback above 5 m display width.
-	 *
-	 * The £1 coin and human silhouette are *also* available as entries
-	 * (`pound_coin`, `person`) in the cube-mode reference library. Cube mode
-	 * does not use the standalone CoinReference / HumanSilhouette components.
+	 * "still_with_readout" commodities (cocaine) bypass PhysicalRep entirely —
+	 * CommoditySection branches before reaching here and renders StillPanel
+	 * directly with the readout slot composed inline.
 	 */
 
 	import type { Commodity } from '$lib/commodities.js';
@@ -81,12 +76,6 @@
 		{:else}
 			<div class="empty-state">No data for this date</div>
 		{/if}
-	</div>
-{:else if commodity.renderStyle === 'still_with_readout'}
-	<!-- TODO(Stage 5): wire StillPanel + cocaine-specific readout components. -->
-	<div class="not-implemented">
-		<p><strong>{commodity.displayName}</strong>: still-with-readout panel scaffolded in Stage 3.</p>
-		<p class="hint">Wiring (StillPanel + TieredPricingTable + CocaineDenominationRow) lands in Stage 5.</p>
 	</div>
 {:else if commodity.renderStyle === 'vessel'}
 	<!-- TODO(handoff: vessel renderer) -->

@@ -31,6 +31,28 @@ export type IllustrativePrices = Record<string, IllustrativeEntry>;
 export const ILLUSTRATIVE_PRICES: IllustrativePrices =
 	illustrativePrices as unknown as IllustrativePrices;
 
+// ── Cocaine (tiered illustrative pricing) ───────────────────────
+
+export interface CocaineTier {
+	pricePerKg: number;
+	range: [number, number];
+	purityAssumption: string;
+	asOfDate: string;
+	source: string;
+}
+
+export interface CocainePriceData {
+	tiers: { producer: CocaineTier; wholesale: CocaineTier; retail: CocaineTier };
+	primaryTier: 'producer' | 'wholesale' | 'retail';
+	sources: string[];
+	methodology: string;
+	notes: string;
+}
+
+export const COCAINE_PRICE_DATA: CocainePriceData = (
+	illustrativePrices as unknown as { cocaine: CocainePriceData }
+).cocaine;
+
 /**
  * Get the price per unit for a commodity on a given date.
  *
@@ -46,6 +68,14 @@ export function getCommodityPrice(
 	dayPrices: DayPrices | undefined
 ): number | null {
 	if (commodity.dataQuality === 'illustrative') {
+		// Cocaine: priced via the wholesale tier midpoint per spec
+		// (the canonical equivalence). Other tiers are surfaced separately
+		// by TieredPricingTable for comparison context.
+		if (commodity.id === 'cocaine') {
+			const tier = COCAINE_PRICE_DATA.tiers.wholesale;
+			// commodity.unit === 'gram' → return USD/g
+			return tier.pricePerKg / 1000;
+		}
 		const entry = ILLUSTRATIVE_PRICES[commodity.id];
 		if (!entry) return null;
 		return entry.pricePerUnit;

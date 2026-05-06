@@ -28,6 +28,8 @@
 	 * Wired up to the cocaine panel in Stage 5.
 	 */
 
+	import { formatBtc } from '$lib/format.js';
+
 	let {
 		commodityId,
 		currentBtc,
@@ -70,7 +72,7 @@
 		<tr>
 			<th class="col-tier">Tier</th>
 			<th class="col-range">Price range</th>
-			<th class="col-equiv">{currentBtc} BTC ≈</th>
+			<th class="col-equiv">{formatBtc(currentBtc)} ≈</th>
 		</tr>
 	</thead>
 	<tbody>

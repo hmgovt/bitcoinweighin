@@ -38,6 +38,36 @@ export function formatMass(grams: number, unit: UnitSystem): string {
 	return `${formatNum(grams / 1_000_000)} tonnes`;
 }
 
+/**
+ * Mass formatter for non-metal commodities (e.g. cocaine).
+ *
+ * `formatMass` falls back to "troy oz" below 1 oz because metals are
+ * priced in troy oz — the right vocabulary for gold/silver readouts but
+ * meaningless for substances priced by gram. This variant uses a
+ * consumer-substance ladder: ng / µg / mg / oz / lb / short tons
+ * (imperial) and ng / µg / mg / g / kg / tonnes (metric). The sub-mg
+ * range is unit-agnostic — there is no imperial vocabulary that small.
+ */
+export function formatMassConsumer(grams: number, unit: UnitSystem): string {
+	if (grams <= 0) return unit === 'imperial' ? '0 oz' : '0 g';
+
+	if (grams < 1e-6) return `${formatNum(grams * 1e9)} ng`;
+	if (grams < 1e-3) return `${formatNum(grams * 1e6)} µg`;
+	if (grams < 1) return `${formatNum(grams * 1000)} mg`;
+
+	if (unit === 'imperial') {
+		if (grams < GRAMS_PER_LB) return `${formatNum(grams / GRAMS_PER_OZ)} oz`;
+		const lbs = grams / GRAMS_PER_LB;
+		if (lbs < 2000) return `${formatNum(lbs)} lb`;
+		return `${formatNum(lbs / 2000)} short tons`;
+	}
+
+	// Metric
+	if (grams < 1000) return `${formatNum(grams)} g`;
+	if (grams < 1_000_000) return `${formatNum(grams / 1000)} kg`;
+	return `${formatNum(grams / 1_000_000)} tonnes`;
+}
+
 // ── Volume formatting ───────────────────────────────────────────
 
 const CM3_PER_FL_OZ = 29.5735;
