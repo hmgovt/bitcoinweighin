@@ -14,11 +14,20 @@
 	let {
 		cubeEdgeMetres,
 		viewportZoom,
-		unitSystem
+		unitSystem,
+		displayHeightMm,
 	}: {
 		cubeEdgeMetres: number;
 		viewportZoom: number;
 		unitSystem: 'imperial' | 'metric';
+		/**
+		 * Optional override for the line's visual height in CSS mm. When provided,
+		 * the line tracks this value instead of `cubeEdgeMetres × viewportZoom`,
+		 * so the y-axis stays coherent with the cube even when the cube clamps
+		 * at a visual minimum below its real edge length. The label always
+		 * reflects the real cube edge regardless.
+		 */
+		displayHeightMm?: number;
 	} = $props();
 
 	function formatLength(metres: number, system: 'imperial' | 'metric'): string {
@@ -39,7 +48,13 @@
 
 	// Height in CSS mm, matching the cube's mm-unit rendering in CubeRenderer.
 	// (cubeEdgeMetres × 1000) → mm; × viewportZoom (the cube's sceneScale) → CSS mm.
-	const heightMm = $derived(Math.max(0, cubeEdgeMetres * 1000 * viewportZoom));
+	// When `displayHeightMm` is supplied (e.g. cube clamped at a visual floor),
+	// it takes precedence so the axis tracks the cube's displayed size.
+	const heightMm = $derived(
+		displayHeightMm !== undefined
+			? Math.max(0, displayHeightMm)
+			: Math.max(0, cubeEdgeMetres * 1000 * viewportZoom)
+	);
 	const label = $derived(formatLength(cubeEdgeMetres, unitSystem));
 </script>
 

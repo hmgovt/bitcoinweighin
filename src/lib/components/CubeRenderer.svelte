@@ -84,7 +84,13 @@
 	);
 	const sceneScale = $derived(Math.min(maxSceneScale, viewportMm / sceneRealMm));
 
-	const cubeCssMm = $derived(cubeEdgeMm * sceneScale);
+	// Cube clamps at a visual floor of 2 mm so sub-mm cubes don't disappear
+	// against the dog at the divide. The readouts (caption strip, YAxis
+	// label) keep showing the real cube edge — the clamp is visual only.
+	const MIN_CUBE_DISPLAY_MM = 2;
+	const cubeDisplayMm = $derived(
+		Math.max(MIN_CUBE_DISPLAY_MM, cubeEdgeMm * sceneScale)
+	);
 
 	let sceneEl: HTMLDivElement | undefined = $state();
 
@@ -115,42 +121,54 @@
 
 <div class="cube-scene" bind:this={sceneEl}>
 	{#if amount > 0}
+		<!--
+			Scene-row is split at an invisible vertical divide. The cube's
+			bottom-right corner anchors to the divide on the left half;
+			the Shiba's bottom-left corner anchors to the divide on the
+			right half. Both elements scale freely without losing this
+			relative anchor.
+		-->
 		<div class="scene-row">
-			<!-- Y axis: vertical line + adaptive-unit label, height tracks the cube. -->
-			<div class="y-axis-slot">
-				<YAxis
-					cubeEdgeMetres={cubeEdgeMm / 1000}
-					viewportZoom={sceneScale}
-					unitSystem={$unitSystem}
-				/>
-			</div>
+			<div class="left-of-divide">
+				<!-- Y axis: vertical line + adaptive-unit label, tracks the cube's displayed height. -->
+				<div class="y-axis-slot">
+					<YAxis
+						cubeEdgeMetres={cubeEdgeMm / 1000}
+						viewportZoom={sceneScale}
+						displayHeightMm={cubeDisplayMm}
+						unitSystem={$unitSystem}
+					/>
+				</div>
 
-			<!-- Cube -->
-			<div
-				class="cube-slot"
-				style="width: {cubeCssMm}mm; height: {cubeCssMm}mm;"
-				title="{commodity.displayName} cube — {cubeEdgeMm.toFixed(1)} mm edge"
-			>
-				{#if commodity.cubeShadowPath}
+				<!-- Cube — anchored to the right edge of the left half (the divide). -->
+				<div
+					class="cube-slot"
+					style="width: {cubeDisplayMm}mm; height: {cubeDisplayMm}mm;"
+					title="{commodity.displayName} cube — {cubeEdgeMm.toFixed(1)} mm edge"
+				>
+					{#if commodity.cubeShadowPath}
+						<img
+							src={commodity.cubeShadowPath}
+							alt=""
+							class="cube-shadow"
+							aria-hidden="true"
+							draggable="false"
+						/>
+					{/if}
 					<img
-						src={commodity.cubeShadowPath}
-						alt=""
-						class="cube-shadow"
-						aria-hidden="true"
+						src={commodity.cubeSpritePath}
+						alt="{commodity.displayName} cube at {cubeEdgeMm.toFixed(1)} mm edge length"
+						class="cube-sprite"
 						draggable="false"
 					/>
-				{/if}
-				<img
-					src={commodity.cubeSpritePath}
-					alt="{commodity.displayName} cube at {cubeEdgeMm.toFixed(1)} mm edge length"
-					class="cube-sprite"
-					draggable="false"
-				/>
+				</div>
 			</div>
 
-			<!-- Universal Shiba reference (no boundary crossings; static slot) -->
-			<div class="reference-slot">
-				<ScaleRef {reference} {sceneScale} />
+			<div class="right-of-divide">
+				<!-- Universal Shiba — anchored to the left edge of the right half (the divide). -->
+				<div class="reference-slot">
+					<ScaleRef {reference} {sceneScale} />
+				</div>
 			</div>
 		</div>
 
@@ -184,9 +202,28 @@
 		display: flex;
 		align-items: flex-end;
 		justify-content: center;
-		gap: 24px;
 		min-height: 180px;
 		flex: 1;
+		width: 100%;
+	}
+
+	/* Each half occupies an equal share of scene-row; the shared inner edge
+	   is the invisible divide. The cube right-anchors to the left half's
+	   right edge; the dog left-anchors to the right half's left edge. */
+	.left-of-divide {
+		flex: 1 1 0;
+		min-width: 0;
+		display: flex;
+		align-items: flex-end;
+		justify-content: flex-end;
+	}
+
+	.right-of-divide {
+		flex: 1 1 0;
+		min-width: 0;
+		display: flex;
+		align-items: flex-end;
+		justify-content: flex-start;
 	}
 
 	.y-axis-slot {
@@ -202,8 +239,8 @@
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		min-width: 6mm;
-		min-height: 6mm;
+		min-width: 2mm;
+		min-height: 2mm;
 	}
 
 	.cube-shadow {
