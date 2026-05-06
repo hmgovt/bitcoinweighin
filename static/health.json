@@ -1,55 +1,55 @@
 {
-  "lastRun": "2026-05-05T04:54:13.226Z",
+  "lastRun": "2026-05-06T05:21:02.849Z",
   "type": "daily",
-  "date": "2026-05-04",
+  "date": "2026-05-05",
   "sources": {
     "btc": {
       "status": "ok",
       "httpStatus": 200,
       "rowCount": 1,
-      "url": "https://stooq.com/q/d/l/?s=btcusd&d1=20260504&d2=20260504&i=d&apikey=***"
+      "url": "https://stooq.com/q/d/l/?s=btcusd&d1=20260505&d2=20260505&i=d&apikey=***"
     },
     "gold": {
       "status": "ok",
       "httpStatus": 200,
       "rowCount": 1,
-      "url": "https://stooq.com/q/d/l/?s=xauusd&d1=20260504&d2=20260504&i=d&apikey=***"
+      "url": "https://stooq.com/q/d/l/?s=xauusd&d1=20260505&d2=20260505&i=d&apikey=***"
     },
     "silver": {
       "status": "ok",
       "httpStatus": 200,
       "rowCount": 1,
-      "url": "https://stooq.com/q/d/l/?s=xagusd&d1=20260504&d2=20260504&i=d&apikey=***"
+      "url": "https://stooq.com/q/d/l/?s=xagusd&d1=20260505&d2=20260505&i=d&apikey=***"
     },
     "platinum": {
       "status": "ok",
       "httpStatus": 200,
       "rowCount": 1,
-      "url": "https://stooq.com/q/d/l/?s=xptusd&d1=20260504&d2=20260504&i=d&apikey=***"
+      "url": "https://stooq.com/q/d/l/?s=xptusd&d1=20260505&d2=20260505&i=d&apikey=***"
     },
     "copper": {
       "status": "forward-filled",
       "httpStatus": 200,
       "rowCount": 0,
-      "url": "https://stooq.com/q/d/l/?s=hg.c&d1=20260504&d2=20260504&i=d&apikey=***"
+      "url": "https://stooq.com/q/d/l/?s=hg.c&d1=20260505&d2=20260505&i=d&apikey=***"
     },
     "wheat": {
       "status": "forward-filled",
       "httpStatus": 200,
       "rowCount": 0,
-      "url": "https://stooq.com/q/d/l/?s=zw.c&d1=20260504&d2=20260504&i=d&apikey=***"
+      "url": "https://stooq.com/q/d/l/?s=zw.c&d1=20260505&d2=20260505&i=d&apikey=***"
     },
     "coffee": {
       "status": "ok",
       "httpStatus": 200,
       "rowCount": 1,
-      "url": "https://stooq.com/q/d/l/?s=kc.c&d1=20260504&d2=20260504&i=d&apikey=***"
+      "url": "https://stooq.com/q/d/l/?s=kc.c&d1=20260505&d2=20260505&i=d&apikey=***"
     },
     "oil_brent": {
       "status": "forward-filled",
       "httpStatus": 200,
       "rowCount": 0,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-05-04&observation_end=2026-05-04&api_key=***&file_type=json"
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-05-05&observation_end=2026-05-05&api_key=***&file_type=json"
     }
   }
 }
