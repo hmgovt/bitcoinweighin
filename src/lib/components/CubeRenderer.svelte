@@ -6,12 +6,14 @@
 	 * Viewport sizing rule (2026-05-08):
 	 *   viewportHeightM = max(SHIBA_HEIGHT_M, cubeEdgeM) × VIEWPORT_MARGIN
 	 *
-	 * Both sprites render at true scale within that viewport. The cube is
-	 * pinned to the left edge, the Shiba to the right edge, both
-	 * bottom-aligned. Whichever element is larger in real metres ends up
-	 * near full viewport height on its side; the other scales down
-	 * proportionally. At sub-millimetre cube sizes the dog dominates; at
-	 * multi-metre cube sizes the cube dominates and the dog is a speck.
+	 * Both sprites render at true scale within that viewport. The cube
+	 * and the Shiba are adjacent at the bottom of the scene, centred as
+	 * a pair (cube on the left, Shiba on the right, sharing a seam) so
+	 * relative scale is read at a glance. Whichever element is larger
+	 * in real metres ends up near full viewport height on its side; the
+	 * other scales down proportionally. At sub-millimetre cube sizes
+	 * the dog dominates; at multi-metre cube sizes the cube dominates
+	 * and the dog is a speck.
 	 *
 	 * (The cycling 20-entry reference library used by earlier drafts was
 	 * deleted on 2026-05-04 in favour of the universal Shiba — see
@@ -110,9 +112,10 @@
 <div class="cube-scene" bind:this={sceneEl}>
 	{#if amount > 0}
 		<!--
-			Cube anchored to the left edge, Shiba to the right edge, both
-			bottom-aligned. Sizes come from pxPerMetre × real metres so the
-			relative scale between the two is always honest.
+			Cube + Shiba sit adjacent at the bottom of the scene-row,
+			centred as a pair so the seam between them stays near the
+			middle of the viewport. Sizes come from pxPerMetre × real
+			metres so relative scale between the two is always honest.
 		-->
 		<div class="scene-row" bind:this={sceneRowEl}>
 			<div
@@ -161,7 +164,9 @@
 	}
 
 	.scene-row {
-		position: relative;
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
 		width: 100%;
 		/* Vertical extent the cube + Shiba scale into. The dominant
 		   element ends up near 1/VIEWPORT_MARGIN (≈ 91 %) of this height. */
@@ -170,9 +175,6 @@
 	}
 
 	.cube-anchor {
-		position: absolute;
-		left: 0;
-		bottom: 0;
 		flex-shrink: 0;
 		/* Cube sprite has ~12 % intrinsic transparent bottom margin
 		   (191/1600 px on cube@2x.png). Translating down by the same
@@ -181,9 +183,6 @@
 	}
 
 	.shiba-anchor {
-		position: absolute;
-		right: 0;
-		bottom: 0;
 		flex-shrink: 0;
 		/* Shiba sprite has ~25 % intrinsic transparent bottom margin
 		   (397/1600 px on shiba_inu.webp). Same baseline-correction trick
