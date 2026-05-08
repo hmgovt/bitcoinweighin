@@ -19,9 +19,7 @@
 	import type { Commodity } from '$lib/commodities.js';
 	import { computeCubeEdgeMm, type ScaleReference } from '$lib/volume.js';
 	import scaleReferencesData from '$lib/scale-references.json';
-	import { unitSystem } from '$lib/stores/url.js';
 	import ScaleRef from './ScaleReference.svelte';
-	import YAxis from './YAxis.svelte';
 
 	// Single universal reference (the Shiba). Stage 4 of the marathon
 	// session reduced scale-references.json to one entry.
@@ -56,19 +54,24 @@
 	const PX_PER_MM = 3.7795275591; // CSS px per mm at 96 dpi
 
 	const refMm = $derived(reference.realSizeMetres * 1000);
-	// The flex row lays cube and reference *side by side*, so the scene
-	// needs room for the SUM of their widths plus gap and breathing
-	// room — not the max. Using max() understates required width when
-	// cube and reference are similar magnitude (e.g. ~1.7 m cube vs
-	// refrigerator, ~4.5 m cube vs family car), leaving sceneScale at 1
-	// while the row overflows .cube-scene's overflow:hidden parent.
-	// `justify-content: center` then distributes the overflow equally
-	// and clips the cube's left edge symmetrically with the reference's
-	// right edge.
-	const sceneRealMm = $derived((cubeEdgeMm + refMm) * 1.05 + 10);
 	const viewportMm = $derived(
 		(viewportPx > 0 ? viewportPx : VIEWPORT_FALLBACK_PX) / PX_PER_MM
 	);
+	const viewportHeightMm = $derived(
+		(viewportHeightPx > 0 ? viewportHeightPx : VIEWPORT_HEIGHT_FALLBACK_PX) / PX_PER_MM
+	);
+
+	// Each element is anchored to the divide and free to fill its half of
+	// the scene-row. The horizontal-fit constraint is therefore "neither
+	// element exceeds half the scene-row width" — the larger of cube vs
+	// dog drives the scale, the smaller renders at honest relative size.
+	// HALF_PANEL_GUTTER_MM keeps the outermost edge from kissing scene-row's
+	// border on the panel's outside edges.
+	const HALF_PANEL_GUTTER_MM = 4;
+	const halfPanelMm = $derived(
+		Math.max(0, viewportMm / 2 - HALF_PANEL_GUTTER_MM)
+	);
+
 	// Vertical: budget must cover whichever sprite — cube or Shiba —
 	// extends furthest below the layout baseline after its translateY
 	// (CUBE_BOTTOM_MARGIN_PCT for the cube; REF_BOTTOM_MARGIN_PCT for the
@@ -82,37 +85,28 @@
 			refMm * (1 + REF_BOTTOM_MARGIN_PCT / 100)
 		) * 1.04
 	);
-	const viewportHeightMm = $derived(
-		(viewportHeightPx > 0 ? viewportHeightPx : VIEWPORT_HEIGHT_FALLBACK_PX) / PX_PER_MM
-	);
 
-	// On mobile, cap sceneScale at 1 so the £1 coin renders at true
-	// 23.43 mm — the "actual size" promise. On desktop, the panel
-	// widens past the cube's true CSS-mm size, leaving the cube
-	// stranded in the centre of an empty canvas; allow upscale up to
-	// MAX_SCENE_SCALE_DESKTOP so the visualisation fills the canvas.
-	// The ScaleReference badge in ScaleReference.svelte:43 still gates
-	// on `sceneScale === 1`, so the "actual size" callout disappears
-	// on desktop where the upscale breaks the true-size guarantee —
-	// which is intentional.
+	// Cap upscale so the £1 coin retains its "actual size" guarantee on
+	// mobile (sceneScale=1) and desktop doesn't blow past sensible bounds.
 	const DESKTOP_THRESHOLD_PX = 700;
-	const MAX_SCENE_SCALE_DESKTOP = 2.0;
+	const MAX_SCENE_SCALE_DESKTOP = 5.0;
 	const maxSceneScale = $derived(
 		viewportPx >= DESKTOP_THRESHOLD_PX ? MAX_SCENE_SCALE_DESKTOP : 1
 	);
-	// Scale must satisfy both horizontal and vertical fit so neither
-	// element exceeds the scene-row's bounds at any slider position.
+	// Scale must satisfy both half-fit (so neither element overflows its
+	// half of the row) and vertical-fit (so the taller sprite doesn't
+	// overflow the scene-row).
 	const sceneScale = $derived(
 		Math.min(
 			maxSceneScale,
-			viewportMm / sceneRealMm,
+			halfPanelMm / Math.max(cubeEdgeMm, refMm),
 			viewportHeightMm / sceneVerticalRealMm
 		)
 	);
 
 	// Cube clamps at a visual floor of 2 mm so sub-mm cubes don't disappear
-	// against the dog at the divide. The readouts (caption strip, YAxis
-	// label) keep showing the real cube edge — the clamp is visual only.
+	// against the dog at the divide. The caption strip keeps showing the
+	// real cube edge — the clamp is visual only.
 	const MIN_CUBE_DISPLAY_MM = 2;
 	const cubeDisplayMm = $derived(
 		Math.max(MIN_CUBE_DISPLAY_MM, cubeEdgeMm * sceneScale)
@@ -162,16 +156,6 @@
 		-->
 		<div class="scene-row" bind:this={sceneRowEl}>
 			<div class="left-of-divide">
-				<!-- Y axis: vertical line + adaptive-unit label, tracks the cube's displayed height. -->
-				<div class="y-axis-slot">
-					<YAxis
-						cubeEdgeMetres={cubeEdgeMm / 1000}
-						viewportZoom={sceneScale}
-						displayHeightMm={cubeDisplayMm}
-						unitSystem={$unitSystem}
-					/>
-				</div>
-
 				<!-- Cube — anchored to the right edge of the left half (the divide). -->
 				<div
 					class="cube-slot"
@@ -207,11 +191,6 @@
 		<!-- Caption strip -->
 		<div class="caption-strip">
 			Cube edge: <span class="cube-figure">{formatEdge(cubeEdgeMm)}</span>
-			·
-			Reference: <span class="ref-figure">{reference.displayName}</span>
-			{#if reference.culturalNote}
-				<span class="cultural-note">({reference.culturalNote})</span>
-			{/if}
 		</div>
 	{:else}
 		<div class="empty-state">No data for this date</div>
@@ -239,7 +218,7 @@
 		/* Bounded vertical extent so the cube and dog can't overflow at any
 		   slider position. CubeRenderer reads this height back via
 		   ResizeObserver to feed the vertical-fit branch of sceneScale. */
-		height: clamp(440px, 80vh, 920px);
+		height: clamp(440px, 90vh, 1100px);
 		overflow: hidden;
 	}
 
@@ -260,13 +239,6 @@
 		display: flex;
 		align-items: flex-end;
 		justify-content: flex-start;
-	}
-
-	.y-axis-slot {
-		display: flex;
-		align-items: flex-end;
-		flex-shrink: 0;
-		padding-right: 8px;
 	}
 
 	.cube-slot {
@@ -343,15 +315,6 @@
 
 	.cube-figure {
 		color: #fbbf24;
-	}
-
-	.ref-figure {
-		color: #d4d4d8;
-	}
-
-	.cultural-note {
-		color: #71717a;
-		font-style: italic;
 	}
 
 	.empty-state {

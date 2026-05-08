@@ -163,7 +163,7 @@ export function formatVolumeSolid(cm3: number, unit: UnitSystem): string {
 	return `${formatNum(cm3 / 1_000_000)} m³`;
 }
 
-// ── Length formatting (cube-edge readout, YAxis labels) ────────
+// ── Length formatting (cube-edge readout) ──────────────────────
 
 const MM_PER_IN = 25.4;
 
