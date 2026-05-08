@@ -1,6 +1,6 @@
 # Bitcoin Weigh-In — Build Spec
 
-*A handoff document for Claude Code. Written 19 April 2026, updated 25 April 2026 with the cube-mode pivot for metals. Domain: bitcoinweighin.com*
+*A handoff document for Claude Code. Written 19 April 2026, updated 25 April 2026 with the cube-mode pivot for metals, 4 May 2026 with the four-commodity launch and universal-Shiba pivots, and 8 May 2026 with the viewport sizing reversal. Domain: bitcoinweighin.com*
 
 ---
 
@@ -15,7 +15,7 @@
 
 ## Concept (one paragraph)
 
-A single long-scroll page that renders — at true relative scale — what a user-selected amount of bitcoin currently buys across a curated set of commodities. Each commodity section has a physical-object visualisation with appropriate scale references; for dense metals, this is a single cube of true substance volume against a cycling library of recognisable objects from a flea to the Eiffel Tower. A sticky date scrubber at the bottom animates the entire page across BTC's price history from 2013 to today, with anchor-event captions firing as the playhead crosses them. All state (BTC amount, date, unit system) is URL-encoded and therefore shareable. No runtime backend — one static JSON blob refreshed daily via GitHub Actions.
+A single long-scroll page that renders — at true relative scale — what a user-selected amount of bitcoin currently buys across a curated set of commodities. Each commodity section has a physical-object visualisation with a single universal scale reference: a Shiba Inu at true 40 cm height, alongside a cube of true substance volume for dense metals. A sticky date scrubber at the bottom animates the entire page across BTC's price history from 2013 to today, with anchor-event captions firing as the playhead crosses them. All state (BTC amount, date, unit system) is URL-encoded and therefore shareable. No runtime backend — one static JSON blob refreshed daily via GitHub Actions.
 
 ---
 
@@ -25,7 +25,7 @@ A single long-scroll page that renders — at true relative scale — what a use
 - **One source of truth.** One combined daily-closes file, target ~3-5 MB gzipped, covering all commodities 2013-01-01 to yesterday.
 - **Shareable state.** Every slider + date position is a URL. Copy-paste reproduces the view exactly.
 - **Substance over packaging.** Where possible, render the substance itself at true volume rather than its commercial container or unit. A cube of gold is more honest than 200 pallets of bars; both contain the same gold, but only one is true to the slider's claim.
-- **Graceful degradation at extremes.** At 1 sat the gold cube is sub-millimetre; at 21M BTC it's the height of a 10-storey building. Both should look intentional, not broken. The reference library cycles to keep the user oriented.
+- **Graceful degradation at extremes.** At 1 sat the gold cube is sub-millimetre and the Shiba fills its side of the viewport; at 21M BTC the cube is the height of a 10-storey building and the Shiba is a small but present reference. Both should look intentional, not broken. The viewport scales to the dominant element so neither side ever clips.
 - **Privacy-respecting.** No account system. Plausible or Umami analytics only. No third-party trackers.
 - **Mobile-first.** Majority of shares will be read on phones. Touch-scrub the timeline. Vertical scroll is the primary axis.
 
@@ -49,34 +49,38 @@ The two vocabularies are internally coherent and never mix within a single commo
 
 ## Cube mode
 
-For dense fungible substances, a single cube of true substance volume is the physical visualisation. The cube's edge length grows continuously with the slider via cube-root scaling. Alongside the cube, a single universal scale reference (the Shiba Inu) is rendered at its true 40 cm height. The cube and the dog never resize relative to each other — the camera viewport scales to keep both on screen at sensible margins.
+For dense fungible substances, a single cube of true substance volume is the physical visualisation. The cube's edge length is computed once from intrinsic substance volume; display size in pixels comes from the viewport mapping below — there is no per-stage `realWorldWidthMetres` cube-root rule for cube mode (that field is progression-mode only). Alongside the cube, a single universal scale reference (the Shiba Inu) is rendered at its true 40 cm height. The cube and the dog never resize relative to each other — both inherit a single metres-to-pixels factor that keeps relative scale honest at every slider position.
 
 ### Rendering rule
 
 ```typescript
+const SHIBA_HEIGHT_M = 0.40;
+const VIEWPORT_MARGIN = 1.10;
+
 function renderCubeCommodity(commodity: Commodity, amount: number): CubeRenderState {
-  // 1. Compute mass and intrinsic volume
-  const massGrams = amount * commodity.unitMassGrams;
-  const volumeCm3 = massGrams / commodity.densityGPerCm3;
+  // 1. Compute intrinsic volume and cube edge length.
+  const volumeCm3 = (amount * commodity.unitMassGrams) / commodity.densityGPerCm3;
+  const cubeEdgeM = Math.cbrt(volumeCm3) / 100; // cm³ → cm → m
 
-  // 2. Cube edge length
-  const edgeLengthMm = Math.cbrt(volumeCm3) * 10;  // cm³ → cm → mm
+  // 2. Viewport sized to the larger of (Shiba, cube) plus 10 % margin.
+  const viewportHeightM = Math.max(SHIBA_HEIGHT_M, cubeEdgeM) * VIEWPORT_MARGIN;
 
-  // 3. Universal Shiba at true 40 cm height; viewport zooms to fit both
-  const dogHeightMm = 400;
-  const zoom = computeViewportZoom(edgeLengthMm, dogHeightMm);
+  // 3. Both sprites render at true scale within that viewport.
+  const pxPerMetre = viewportHeightPx / viewportHeightM;
+  const cubePx = cubeEdgeM * pxPerMetre;
+  const shibaPx = SHIBA_HEIGHT_M * pxPerMetre;
 
-  return { cube: { edgeLengthMm }, dog: { heightMm: dogHeightMm }, zoom };
+  return { cubeEdgeM, cubePx, shibaPx };
 }
 ```
 
-The cube sprite is identical at every amount; only its CSS-rendered size changes. The dog is rendered at its own true size, never scaled. The two objects share a coordinate system so the user reads relative size honestly: a 40 cm dog next to a 5 cm gold cube is a 5 cm gold cube.
+The cube sprite is identical at every amount; only its rendered pixel size changes. The dog is rendered at the same metres-to-pixels factor so relative size is always honest: a 40 cm dog next to a 5 cm gold cube is a 5 cm gold cube. The cube pins to the left edge of the viewport, the Shiba to the right edge, both bottom-aligned. Whichever element is larger in real metres ends up at near full viewport height on its side; the other shrinks proportionally.
 
 ### Universal scale reference
 
-A single Shiba Inu, anchored at true real-world height of **40 cm**, is the universal scale reference on every cube-mode panel (gold, silver, Pu-238). The dog never moves or resizes in real-world terms — the camera viewport scales to keep both the cube and the dog in frame.
+A single Shiba Inu, anchored at true real-world height of **40 cm**, is the universal scale reference on every cube-mode panel (gold, silver, Pu-238). The dog is persistently visible at every slider position — its on-screen size scales with the viewport, but it never disappears or clips.
 
-At sub-millimetre cube sizes the viewport zooms in until the dog fills most of the frame and the cube is a microscopic dot at its paw. At multi-metre cube sizes the viewport zooms out until the dog is a recognisable speck at the cube's foot. The relative-size reading is always honest: a 40 cm dog next to a 5 cm gold cube is a 5 cm gold cube.
+At sub-millimetre cube sizes the viewport floor (40 cm × 1.10 = 44 cm) keeps the dog at near full viewport height on the right while the cube becomes a sub-pixel speck on the left. At multi-metre cube sizes the cube drives the viewport height; the dog becomes a small but visible reference at the cube's foot. The relative-size reading is always honest: a 40 cm dog next to a 5 cm gold cube is a 5 cm gold cube.
 
 Cocaine is the single exception. Its forensic-still register is set entirely by the image; introducing a 40 cm reference dog would muddle the editorial mood the still does on its own.
 
@@ -98,16 +102,20 @@ The cycling reference library used by earlier drafts (~20 entries from grain of 
 
 ### Universal-Shiba viewport
 
-The cube renderer maintains a single zoom factor that keeps both objects on screen with sensible margins. The cube and dog are placed in the same coordinate system at their true mm sizes; the viewport applies the zoom uniformly:
+The cube renderer derives a single metres-to-pixels factor from the height of the larger element. Cube and Shiba both consume that factor, so relative scale is always honest:
 
 ```typescript
-function viewportZoom(cubeEdgeMm: number, dogHeightMm = 400): number {
-  const longest = Math.max(cubeEdgeMm, dogHeightMm);
-  return computeZoomToFit(longest, viewportWidthMm, viewportHeightMm);
+function pxPerMetre(cubeEdgeM: number, viewportHeightPx: number, viewportWidthPx: number): number {
+  const viewportHeightM = Math.max(SHIBA_HEIGHT_M, cubeEdgeM) * VIEWPORT_MARGIN;
+  const fromHeight = viewportHeightPx / viewportHeightM;
+  // Horizontal safety: at extreme amounts on narrow viewports the cube +
+  // Shiba would otherwise overlap edge-to-edge — clamp both proportionally.
+  const fromWidth = viewportWidthPx / (cubeEdgeM + SHIBA_HEIGHT_M);
+  return Math.min(fromHeight, fromWidth);
 }
 ```
 
-This is the only camera primitive cube mode needs. No log-scale reference picking, no cross-fade transitions between references, no per-amount sprite swaps.
+This is the only camera primitive cube mode needs. No log-scale reference picking, no cross-fade transitions between references, no per-amount sprite swaps, no displayed-size threshold rules. No conditional human-silhouette logic — the Shiba is always present on cube panels and there is no second reference to switch in or out.
 
 ### Reference sprite — Shiba
 
@@ -150,7 +158,8 @@ Both layers are scoped to Pu-238 alone. Gold and silver render as plain cubes ag
 
 - No stage transitions. The cube is one sprite at all amounts.
 - No tile mode. Tile-mode schema fields exist for potential future use by other commodities but are unused by any commodity at launch.
-- No comparison-card fallback. The universal Shiba and the viewport zoom cover the full slider range; comparison cards were a progression-mode feature and are deferred with progression mode.
+- No Y-axis overlay or `<YAxis />` component. An earlier draft proposed a per-cube vertical axis with metric ticks; it was scrapped on 2026-05-08 — it didn't earn its place against the cube + Shiba pairing on its own.
+- No displayed-size threshold rules. Sprite size at any amount is `realSizeM × pxPerMetre`; there is no "if larger than 5 m, swap to comparison card" branching in cube mode. Comparison cards remain in the codebase as the readout-strip fallback copy library at extreme scales — they're text, not sprites.
 - No cycling reference library. Earlier drafts cycled through ~20 references (grain of sand to Empire State Building) picked by closest log-scale match; that scheme is superseded by the universal Shiba.
 - No standalone coin or human silhouette. Both were entries in the prior reference library (the £1 coin and a 1.75 m person) and are gone with it.
 
@@ -162,7 +171,7 @@ The single editorial commodity (cocaine) renders as a fixed forensic-evidence-ro
 
 ### Rendering rule
 
-The still image is authored once at portfolio quality — forensic-still register: clinical, evidential, lab-tagged. The readout is the only thing that updates with the slider. There is no cube, no scale dog, no Y-axis, no quantity anchors, no stage transitions. The image carries register; the readout carries truth.
+The still image is authored once at portfolio quality — forensic-still register: clinical, evidential, lab-tagged. The readout is the only thing that updates with the slider. There is no cube, no scale dog, no quantity anchors, no stage transitions. The image carries register; the readout carries truth.
 
 ### Readout
 
@@ -243,7 +252,7 @@ Detail for each `mvpLaunch: true` commodity. Pricing data shapes are the single 
 - **ID:** `cocaine`. **Render style:** `still`. **Unit:** gram. **Density:** n/a (still mode does not require density — no cube to size).
 - **Pricing:** illustrative — composite of DEA / UNODC / open-source dark-web market scrapes, weighted toward US street wholesale price per gram (the closest defensible figure to "what you could buy"). Lives in `src/lib/illustrative-prices.json` under key `cocaine`. Source attribution and methodology mandatory. Exact figure and source list land in Stage 5 with the still asset. Data quality `illustrative`.
 - **Brand-voice posture:** dry, observational, neither moralising nor glamorising. The forensic-still register (lab tags, evidence-room lighting, clinical framing) does the editorial work. The site's stance on the substance is reflected by the choice of register, not by copy.
-- **What this panel does not have:** scale dog, cube, Y-axis, quantity-anchor proximity cards, stage transitions. The image carries register; the readout carries truth at extremes.
+- **What this panel does not have:** scale dog, cube, quantity-anchor proximity cards, stage transitions. The image carries register; the readout carries truth at extremes.
 
 ---
 
@@ -312,7 +321,7 @@ function computeIntrinsicVolumeCm3(amount: number, commodity: Commodity): number
 }
 ```
 
-**2. Visual stacking volume** — the apparent displayed size including container overhead, packing gaps, and handling fixtures. Used by the progression-mode sprite renderer only; cube mode does not use this concept. Derived from sprite-authored `realWorldWidthMetres` metadata via cube-root scaling.
+**2. Visual stacking volume** — the apparent displayed size including container overhead, packing gaps, and handling fixtures. Used by the progression-mode sprite renderer only; cube mode does not use this concept. Derived from sprite-authored `realWorldWidthMetres` metadata via cube-root scaling. (Cube mode bypasses this entirely: cube display size comes directly from `cubeEdgeM × pxPerMetre` per the renderer contract above.)
 
 ### Reference density table
 
