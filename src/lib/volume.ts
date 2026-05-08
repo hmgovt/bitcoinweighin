@@ -100,6 +100,39 @@ export function computeCubeEdgeMm(amount: number, commodity: Commodity): number 
 	return Math.cbrt(volumeCm3) * 10;
 }
 
+/** Universal scale-reference height in metres (the Shiba). */
+export const SHIBA_HEIGHT_M = 0.4;
+/** Padding factor applied to the dominant element when sizing the viewport. */
+export const VIEWPORT_MARGIN = 1.1;
+
+/**
+ * Map real-world metres to viewport pixels for the cube + Shiba scene.
+ *
+ * Viewport height (in real-world metres) equals the larger of cube edge
+ * and Shiba height, times a 10 % margin. The dominant element fills its
+ * side; the other element scales down proportionally. When the cube +
+ * Shiba would overlap horizontally on narrow viewports (extreme amounts
+ * on mobile), both elements scale down equally to fit edge-to-edge.
+ */
+export function computePxPerMetre(
+	cubeEdgeM: number,
+	viewportHeightPx: number,
+	viewportWidthPx: number
+): number {
+	if (viewportHeightPx <= 0) return 0;
+	const viewportHeightM = Math.max(SHIBA_HEIGHT_M, cubeEdgeM) * VIEWPORT_MARGIN;
+	const fromHeight = viewportHeightPx / viewportHeightM;
+	if (viewportWidthPx <= 0) return fromHeight;
+	const requiredWidthM = cubeEdgeM + SHIBA_HEIGHT_M;
+	const fromWidth = viewportWidthPx / requiredWidthM;
+	return Math.min(fromHeight, fromWidth);
+}
+
+/** Convert a real-world metres dimension to pixels at the scene's scale. */
+export function spritePixelSize(realSizeM: number, pxPerMetre: number): number {
+	return realSizeM * pxPerMetre;
+}
+
 export interface ScaleReference {
 	id: string;
 	displayName: string;

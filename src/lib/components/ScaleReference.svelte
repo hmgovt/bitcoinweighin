@@ -1,15 +1,9 @@
 <script lang="ts">
 	/**
 	 * ScaleReference — renders a single entry from the scale-references library
-	 * at its true real-world size, scaled by a scene-wide factor so the cube
-	 * and reference share a common coordinate system.
-	 *
-	 * The reference's sprite is sized via inline CSS in mm units. When
-	 * sceneScale === 1, this renders at true CSS-mm physical size on a
-	 * correctly-DPI-reporting display (e.g. the £1 coin at 23.43 mm). When
-	 * the cube grows past the viewport, sceneScale drops below 1 and both
-	 * the cube and references shrink proportionally — preserving relative
-	 * scale.
+	 * at a caller-supplied pixel size. The cube renderer drives sizing via
+	 * `pxPerMetre × realSizeMetres`, so the cube and the reference always
+	 * share a single metres-to-pixels scale.
 	 *
 	 * If the reference has an `animatedModelPath`, the static sprite can
 	 * swap to a <model-viewer> element on three trigger paths (hover ≥200 ms
@@ -26,15 +20,12 @@
 
 	let {
 		reference,
-		sceneScale,
+		pxSize,
 	}: {
 		reference: ScaleReference;
-		/** Pixels per millimetre to apply to the reference's true size */
-		sceneScale: number;
+		/** Rendered pixel size (width = height) for the reference slot. */
+		pxSize: number;
 	} = $props();
-
-	const realSizeMm = $derived(reference.realSizeMetres * 1000);
-	const cssMm = $derived(realSizeMm * sceneScale);
 
 	// === Easter egg state ===
 	const HOVER_THRESHOLD_MS = 200;
@@ -60,9 +51,6 @@
 		isAnimatable && (easterUrlActive || hoverActive || tapActive)
 	);
 
-	// Lazy-load @google/model-viewer the first time we need it. Both the
-	// library and the .gltf must be off the initial page-load critical
-	// path — tested via Network tab per the spec's verification list.
 	$effect(() => {
 		if (showAnimated && !modelViewerReady && browser) {
 			import('@google/model-viewer')
@@ -92,8 +80,6 @@
 	});
 
 	function onPointerEnter(e: PointerEvent) {
-		// Mouse hover only — touch fires its own pointerenter on tap which
-		// would race with the touch handler's 500 ms threshold.
 		if (e.pointerType !== 'mouse') return;
 		if (!isAnimatable) return;
 		if (hoverTimer) clearTimeout(hoverTimer);
@@ -133,7 +119,7 @@
 
 <div
 	class="scale-reference"
-	style="width: {cssMm}mm; height: {cssMm}mm;"
+	style="width: {pxSize}px; height: {pxSize}px;"
 	title="{reference.displayName} — {reference.description}"
 	onpointerenter={onPointerEnter}
 	onpointerleave={onPointerLeave}
@@ -160,23 +146,13 @@
 			draggable="false"
 		/>
 	{/if}
-	<div class="reference-label">
-		{reference.displayName}{#if sceneScale === 1 && reference.id === 'pound_coin'}
-			<span class="actual-size-badge"> · actual size</span>
-		{/if}
-	</div>
 </div>
 
 <style>
 	.scale-reference {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: flex-end;
+		display: block;
 		flex-shrink: 0;
 		position: relative;
-		min-width: 6mm;
-		min-height: 6mm;
 	}
 
 	.reference-sprite {
@@ -193,20 +169,5 @@
 		display: block;
 		--poster-color: transparent;
 		background: transparent;
-	}
-
-	.reference-label {
-		position: absolute;
-		top: 100%;
-		margin-top: 4px;
-		font-size: 0.625rem;
-		color: #71717a;
-		white-space: nowrap;
-		text-align: center;
-		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
-	}
-
-	.actual-size-badge {
-		color: #a1a1aa;
 	}
 </style>
