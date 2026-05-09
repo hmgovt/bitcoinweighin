@@ -169,9 +169,15 @@ Pu-238 layers two effects on top of the cube. Both are properties of the cube re
 **Blackbody glow** — triggered by `commodity.glowScales === true`. Two channels driven independently by mass:
 
 - **Intensity** — climbs faster than colour temperature. Tied to absolute glow output (radiative flux scales with mass × specific activity).
-- **Colour temperature** — climbs slowly. Cool red at sub-gram amounts, dull-orange at ~1 g (which matches photographs of real Pu-238 fuel pellets glowing from their own decay heat), bright-yellow at multi-kilogram amounts where in reality the metal would melt itself.
+- **Colour temperature** — climbs slowly. Cool red at sub-gram amounts, dull-orange at ~1 g (which matches photographs of real Pu-238 fuel pellets glowing from their own decay heat), bright-yellow at multi-kilogram amounts.
 
-The visualisation has the luxury of nothing spontaneously disassembling. Pure plutonium metal at multi-kilogram mass would self-destruct from its own decay heat in reality, but the cube on screen is what the dial says it is. A "would melt itself in reality" caption fires at relevant mass thresholds as honest commentary on what physics says about the real world. Exact threshold values (a function of mass × surface-area-to-volume, geometry-corrected) land in Stage 6.
+**Meltdown visualisation** — above the geometry-corrected dissipation threshold (where decay heat input exceeds the cube's surface-area cooling capacity, roughly single-digit to tens of grams for pure cube-form Pu-238 — exact value lands with the Stage 6 thermal calc), the cube enters a "struggling to dissipate" state. Three layered cues:
+
+- **Pulsing glow.** The intensity channel above gains a slow ~0.7 Hz sine modulation (5–10 % amplitude) so the cube *appears to oscillate thermally* — which is what a real Pu-238 cube at that geometry would actually do as it approaches its dissipation limit. Colour temperature is unaffected; only intensity breathes.
+- **Heat-haze shimmer.** The contact-shadow under the cube wobbles in sync with the glow pulse — a subtle shadow-edge displacement (~1–2 px peak) implemented in CSS or via the existing shadow render. Reads as warm air rising off the cube; honest physics, since heat haze is exactly what would happen.
+- **Status dot + readout line.** A small red status dot next to the brand-voice clarification (transitions green → amber → red as mass crosses warning and meltdown thresholds), and one terse line in the readout strip: *"Decay heat exceeds dissipation — would self-destruct in seconds."*
+
+`prefers-reduced-motion: reduce` kills the pulse and the heat-haze shimmer but keeps the colour state, the status dot's colour, and the readout copy — the warning stays legible without motion. The visualisation has the luxury of nothing spontaneously disassembling; the cube on screen is what the dial says it is. The pulsing-glow + heat-haze pattern keeps the warning *of* the visualisation rather than *on top of* it, in honest-physics terms — no flashing red overlays, no sirens.
 
 **Geiger crackle** — triggered by `commodity.geigerCrackle === true`, default off. Persisted via `?audio=on` URL state. Click events are synthesised from a Poisson distribution at a rate proportional to specific activity (~17 Ci/g for pure Pu-238 — click rate scales linearly with mass). Honest physics: the clicks are real Poisson events, not a looped recording.
 
