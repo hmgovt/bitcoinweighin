@@ -4,6 +4,7 @@ import {
 	spritePixelSize,
 	SHIBA_HEIGHT_M,
 	VIEWPORT_MARGIN,
+	GAP_FROM_MIDLINE_PX,
 } from '../src/lib/volume.js';
 
 /**
@@ -61,18 +62,21 @@ describe('computePxPerMetre — height-driven viewport', () => {
 		expect(shibaPx).toBeLessThan(40);
 	});
 
-	it('horizontal safety scales both down on narrow viewports', () => {
-		// 21M BTC cube on a narrow 500 px viewport — height-only would
-		// have cube + Shiba overlap horizontally. The width clamp kicks in.
+	it('horizontal clamp keeps the dominant visible edge within its side', () => {
+		// 21M BTC cube on a narrow 500 px viewport. Each side has
+		// (500 / 2) − 100 = 150 px between the midline anchor and the
+		// row edge. The cube's visible outer edge must fit within that.
 		const cubeEdgeM = 8.44;
 		const narrowWidth = 500;
 		const px = computePxPerMetre(cubeEdgeM, ROW_HEIGHT_PX, narrowWidth);
 		const cubePx = spritePixelSize(cubeEdgeM, px);
 		const shibaPx = spritePixelSize(SHIBA_HEIGHT_M, px);
 
-		// Combined width must fit within the viewport.
-		expect(cubePx + shibaPx).toBeLessThanOrEqual(narrowWidth + 0.5);
-		// Relative scale between cube and Shiba is preserved.
+		const sidePx = narrowWidth / 2 - GAP_FROM_MIDLINE_PX;
+		// Visible-width fraction of the cube sprite: ~0.658 of slotWidth.
+		const visibleCubePx = cubePx * 0.6575;
+		expect(visibleCubePx).toBeLessThanOrEqual(sidePx + 0.5);
+		// Relative scale between cube and Shiba is preserved end-to-end.
 		expect(cubePx / shibaPx).toBeCloseTo(cubeEdgeM / SHIBA_HEIGHT_M, 5);
 	});
 

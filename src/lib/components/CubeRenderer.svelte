@@ -6,14 +6,14 @@
 	 * Viewport sizing rule (2026-05-08):
 	 *   viewportHeightM = max(SHIBA_HEIGHT_M, cubeEdgeM) × VIEWPORT_MARGIN
 	 *
-	 * Both sprites render at true scale within that viewport. The cube
-	 * and the Shiba are adjacent at the bottom of the scene, centred as
-	 * a pair (cube on the left, Shiba on the right, sharing a seam) so
-	 * relative scale is read at a glance. Whichever element is larger
-	 * in real metres ends up near full viewport height on its side; the
-	 * other scales down proportionally. At sub-millimetre cube sizes
-	 * the dog dominates; at multi-metre cube sizes the cube dominates
-	 * and the dog is a speck.
+	 * Both sprites render at true scale within that viewport. Each has
+	 * a fixed anchor point relative to the row's vertical midline —
+	 * cube's bottom-right (visible) corner at midline − 100 px, Shiba's
+	 * bottom-left (visible) corner at midline + 100 px, both at y = 0
+	 * (the row's bottom). Neither crosses the midline at any slider
+	 * position; both scale outward from these anchors only. Whichever
+	 * element is larger in real metres ends up near full viewport
+	 * height on its side; the other scales down proportionally.
 	 *
 	 * (The cycling 20-entry reference library used by earlier drafts was
 	 * deleted on 2026-05-04 in favour of the universal Shiba — see
@@ -112,10 +112,12 @@
 <div class="cube-scene" bind:this={sceneEl}>
 	{#if amount > 0}
 		<!--
-			Cube + Shiba sit adjacent at the bottom of the scene-row,
-			centred as a pair so the seam between them stays near the
-			middle of the viewport. Sizes come from pxPerMetre × real
-			metres so relative scale between the two is always honest.
+			Cube and Shiba each have a fixed anchor at midline ± 100 px.
+			The cube's visible bottom-right corner stays put at midline −
+			100; the Shiba's visible bottom-left corner stays put at
+			midline + 100. Both scale outward from those anchors only.
+			Sizes come from pxPerMetre × real metres so relative scale
+			between the two is always honest.
 		-->
 		<div class="scene-row" bind:this={sceneRowEl}>
 			<div
@@ -140,7 +142,10 @@
 				/>
 			</div>
 
-			<div class="shiba-anchor">
+			<div
+				class="shiba-anchor"
+				style="width: {shibaPx}px; height: {shibaPx}px;"
+			>
 				<ScaleRef reference={SHIBA} pxSize={shibaPx} />
 			</div>
 		</div>
@@ -164,9 +169,7 @@
 	}
 
 	.scene-row {
-		display: flex;
-		align-items: flex-end;
-		justify-content: center;
+		position: relative;
 		width: 100%;
 		/* Vertical extent the cube + Shiba scale into. The dominant
 		   element ends up near 1/VIEWPORT_MARGIN (≈ 91 %) of this height. */
@@ -174,20 +177,29 @@
 		overflow: hidden;
 	}
 
+	/*
+	   Sprite-margin offsets, measured from the actual asset files:
+	     cube@2x.png   bbox = (244, 331, 1296, 1409) on 1600 × 1600
+	                   → R margin 19.0 %, B margin 11.9 %
+	     shiba_inu.webp bbox = (486, 490, 1008, 1203) on 1600 × 1600
+	                   → L margin 30.4 %, B margin 24.8 %
+	   The translate values shift each slot so its *visible* corner
+	   (not the transparent canvas edge) lands on the midline ± 100 px
+	   anchor. translateY pushes the slot down by its own bottom-margin
+	   fraction so the visible bottom sits on the row baseline.
+	*/
 	.cube-anchor {
-		flex-shrink: 0;
-		/* Cube sprite has ~12 % intrinsic transparent bottom margin
-		   (191/1600 px on cube@2x.png). Translating down by the same
-		   fraction places the *visible* cube bottom on the row's baseline. */
-		transform: translateY(12%);
+		position: absolute;
+		bottom: 0;
+		right: calc(50% + 100px);
+		transform: translate(19%, 12%);
 	}
 
 	.shiba-anchor {
-		flex-shrink: 0;
-		/* Shiba sprite has ~25 % intrinsic transparent bottom margin
-		   (397/1600 px on shiba_inu.webp). Same baseline-correction trick
-		   as the cube. */
-		transform: translateY(25%);
+		position: absolute;
+		bottom: 0;
+		left: calc(50% + 100px);
+		transform: translate(-30.4%, 25%);
 	}
 
 	.cube-shadow {

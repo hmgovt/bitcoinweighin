@@ -104,15 +104,34 @@ export function computeCubeEdgeMm(amount: number, commodity: Commodity): number 
 export const SHIBA_HEIGHT_M = 0.4;
 /** Padding factor applied to the dominant element when sizing the viewport. */
 export const VIEWPORT_MARGIN = 1.1;
+/**
+ * Pixel gap from the viewport's vertical midline to the inner corner of
+ * each element. Cube's visible bottom-right corner sits at midline − GAP;
+ * Shiba's visible bottom-left corner sits at midline + GAP. Neither
+ * crosses the midline at any slider position — both scale outward from
+ * these fixed points only.
+ */
+export const GAP_FROM_MIDLINE_PX = 100;
+
+/**
+ * Visible-content bounding-box width as a fraction of the 1600 × 1600
+ * sprite canvas. Used to keep the *visible* outer edge of the dominant
+ * element within its side of the row when the horizontal clamp binds.
+ *   cube@2x.png    bbox (244, 331, 1296, 1409) → 0.6575
+ *   shiba_inu.webp bbox (486, 490, 1008, 1203) → 0.3263
+ */
+export const CUBE_VISIBLE_WIDTH_FRACTION = (1296 - 244) / 1600;
+export const SHIBA_VISIBLE_WIDTH_FRACTION = (1008 - 486) / 1600;
 
 /**
  * Map real-world metres to viewport pixels for the cube + Shiba scene.
  *
  * Viewport height (in real-world metres) equals the larger of cube edge
  * and Shiba height, times a 10 % margin. The dominant element fills its
- * side; the other element scales down proportionally. When the cube +
- * Shiba would overlap horizontally on narrow viewports (extreme amounts
- * on mobile), both elements scale down equally to fit edge-to-edge.
+ * side; the other element scales down proportionally. The horizontal
+ * clamp engages only at narrow viewports / extreme amounts: it shrinks
+ * pxPerMetre so the dominant element's *visible* outer edge stays
+ * within `(viewportWidthPx / 2) − GAP_FROM_MIDLINE_PX` of its anchor.
  */
 export function computePxPerMetre(
 	cubeEdgeM: number,
@@ -123,8 +142,13 @@ export function computePxPerMetre(
 	const viewportHeightM = Math.max(SHIBA_HEIGHT_M, cubeEdgeM) * VIEWPORT_MARGIN;
 	const fromHeight = viewportHeightPx / viewportHeightM;
 	if (viewportWidthPx <= 0) return fromHeight;
-	const requiredWidthM = cubeEdgeM + SHIBA_HEIGHT_M;
-	const fromWidth = viewportWidthPx / requiredWidthM;
+	const sidePx = Math.max(0, viewportWidthPx / 2 - GAP_FROM_MIDLINE_PX);
+	const cubeDominates = cubeEdgeM >= SHIBA_HEIGHT_M;
+	const fromWidth = cubeDominates
+		? cubeEdgeM > 0
+			? sidePx / (cubeEdgeM * CUBE_VISIBLE_WIDTH_FRACTION)
+			: Infinity
+		: sidePx / (SHIBA_HEIGHT_M * SHIBA_VISIBLE_WIDTH_FRACTION);
 	return Math.min(fromHeight, fromWidth);
 }
 
