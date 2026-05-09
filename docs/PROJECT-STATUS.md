@@ -1,6 +1,6 @@
 # Bitcoin Weigh-In — Project Status
 
-*Last updated: 8 May 2026*
+*Last updated: 9 May 2026*
 
 ## What this is
 
@@ -52,7 +52,7 @@ Stages laid out in `docs/handoff/02–07`. Status as of 2026-05-08:
 
 ## Key decisions locked
 
-- **Viewport sizing — dominant-element rule (2026-05-08):** `viewportHeightM = max(SHIBA_HEIGHT_M, cubeEdgeM) × 1.10`. Both sprites render at true scale within that viewport via a single `pxPerMetre = viewportHeightPx / viewportHeightM`. Cube pinned to left edge, Shiba to right edge, both bottom-aligned. Reverses the prior half-row-fit framing where the Shiba would have clipped at low amounts and the cube at high; the dominant element now fills its side, the other shrinks proportionally. No clipping at any slider position.
+- **Viewport sizing — dominant-element rule (2026-05-08, refined 2026-05-09):** `viewportHeightM = max(SHIBA_HEIGHT_M, cubeEdgeM) × 1.10`. Each element has a fixed bottom-corner anchor at midline ± `gapPx` (50 px desktop, 14 px below 768 px) — the *visible* corner, with per-sprite `translateX` to compensate for the transparent canvas margin. `pxPerMetre` is visible-pixels-per-metre; each slot is scaled by `1 / visibleHeightFraction` so the sprite's visible bbox fills the row without empty headroom. Row height is derived from the dominant element's visible height × margin (capped at `min(540 px, 50vh)` desktop / `min(360 px, 50vh)` mobile) so the row only consumes vertical space proportional to the visible content. Width clamp checks both cube and Shiba — at near-equal real heights (e.g. 1789 BTC) the cube's higher visible-width-to-height ratio makes its width the binding side even when Shiba dominates by height.
 - **Four-commodity launch (2026-05-04):** Launch set is gold, silver, Pu-238, cocaine in locked render order. Other commodities (copper, oil_brent, uranium_fuel_pellet, platinum, coffee, wheat) flagged `mvpLaunch: false` and re-enter post-launch. Pu-238 displaces the uranium fuel pellet at the philosophical nuclear-fuel slot.
 - **Universal Shiba (2026-05-04):** Cycling 20-entry reference library deleted; single Shiba at true 40 cm height is the universal cube-mode scale anchor. Persistently visible at every slider position. Cocaine is the single exception (no dog).
 - **Cocaine still-with-readout (2026-05-04):** Forensic-evidence-room still + bold dynamic readout. No cube, no dog, no quantity anchors. Image carries register; readout carries truth at extremes. Reverses the prior five-stage progression treatment.
@@ -113,4 +113,4 @@ The following commodities have schema entries in `src/lib/commodities.ts` flagge
 - **2026-05-04 (marathon spec sync):** Four-commodity launch pivot committed across SPEC, DECISIONS, and status. Universal-Shiba and US-primacy decisions locked. Stage 1 of `docs/handoff/` complete.
 - **2026-05-04–07 (mixed-mode wiring):** Stages 2–6 substantially landed — schema additions, cocaine still + readout, glow overlay, Pu-238 fact card, quantity anchor cards. Cocaine forensic-lab still asset added to disk; integration test confirms still-mode dispatch.
 - **2026-05-07–08 (viewport polish):** Multiple iterations on the cube + Shiba scene layout — half-divide bottom-corner anchoring, per-sprite baseline correction, scene budget enlargement, removal of YAxis component and reference label. The dominant-element viewport rule landed 2026-05-08 after staging revealed the prior rule was leaving 1 BTC views with two specks in a near-empty viewport.
-- **2026-05-07–08 (price data):** Daily cron continues to commit clean updates (2026-05-07, 2026-05-08).
+- **2026-05-09 (viewport refinements, mostly mobile):** Edge-pinning and centred-pair drafts both lost the relative-scale read; landed on fixed midline anchors at ± `gapPx` with per-sprite L/R margin compensation so visible corners (not transparent canvas) sit on the anchor line. Switched `pxPerMetre` to visible-pixels-per-metre and scaled slots up by `1/visibleHeightFraction` so the visible content fills the row. Made the gap responsive (50 px → 14 px below 768 px) and derived row height from the dominant element's visible height × margin so the row never carries empty space above the visualisation. Width clamp now checks both cube and Shiba (regression: at 1789 BTC the cube was overflowing off the panel because the clamp only checked the slightly-taller Shiba). Daily cron continues to commit clean updates (2026-05-07, 2026-05-08, 2026-05-09).

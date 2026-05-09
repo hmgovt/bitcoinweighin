@@ -1,6 +1,6 @@
 # Bitcoin Weigh-In — Build Spec
 
-*A handoff document for Claude Code. Written 19 April 2026, updated 25 April 2026 with the cube-mode pivot for metals, 4 May 2026 with the four-commodity launch and universal-Shiba pivots, and 8 May 2026 with the viewport sizing reversal. Domain: bitcoinweighin.com*
+*A handoff document for Claude Code. Written 19 April 2026, updated 25 April 2026 with the cube-mode pivot for metals, 4 May 2026 with the four-commodity launch and universal-Shiba pivots, 8 May 2026 with the viewport sizing reversal, and 9 May 2026 with the midline-anchor / responsive-mobile / dual-clamp refinements. Domain: bitcoinweighin.com*
 
 ---
 
@@ -56,25 +56,33 @@ For dense fungible substances, a single cube of true substance volume is the phy
 ```typescript
 const SHIBA_HEIGHT_M = 0.40;
 const VIEWPORT_MARGIN = 1.10;
+// Visible content as a fraction of the 1600×1600 sprite canvas, measured
+// from the shipped asset files.
+const CUBE_VISIBLE_HEIGHT_FRACTION = 0.6738;
+const SHIBA_VISIBLE_HEIGHT_FRACTION = 0.4456;
 
 function renderCubeCommodity(commodity: Commodity, amount: number): CubeRenderState {
   // 1. Compute intrinsic volume and cube edge length.
   const volumeCm3 = (amount * commodity.unitMassGrams) / commodity.densityGPerCm3;
   const cubeEdgeM = Math.cbrt(volumeCm3) / 100; // cm³ → cm → m
 
-  // 2. Viewport sized to the larger of (Shiba, cube) plus 10 % margin.
+  // 2. Viewport height (in real metres) sized to the larger element + 10 %.
   const viewportHeightM = Math.max(SHIBA_HEIGHT_M, cubeEdgeM) * VIEWPORT_MARGIN;
 
-  // 3. Both sprites render at true scale within that viewport.
-  const pxPerMetre = viewportHeightPx / viewportHeightM;
-  const cubePx = cubeEdgeM * pxPerMetre;
-  const shibaPx = SHIBA_HEIGHT_M * pxPerMetre;
+  // 3. pxPerMetre is the *visible* pixels per real metre — see pxPerMetre()
+  //    below for the height + dual-width clamp. visibleHeight per element is
+  //    realM × pxPerMetre; the slot is scaled up by 1/visibleHeightFraction
+  //    so the visible content fills the row without empty headroom.
+  const cubeVisibleHeightPx = cubeEdgeM * pxPerMetre;
+  const shibaVisibleHeightPx = SHIBA_HEIGHT_M * pxPerMetre;
+  const cubeSlotPx = cubeVisibleHeightPx / CUBE_VISIBLE_HEIGHT_FRACTION;
+  const shibaSlotPx = shibaVisibleHeightPx / SHIBA_VISIBLE_HEIGHT_FRACTION;
 
-  return { cubeEdgeM, cubePx, shibaPx };
+  return { cubeEdgeM, cubeSlotPx, shibaSlotPx };
 }
 ```
 
-The cube sprite is identical at every amount; only its rendered pixel size changes. The dog is rendered at the same metres-to-pixels factor so relative size is always honest: a 40 cm dog next to a 5 cm gold cube is a 5 cm gold cube. The cube pins to the left edge of the viewport, the Shiba to the right edge, both bottom-aligned. Whichever element is larger in real metres ends up at near full viewport height on its side; the other shrinks proportionally.
+The cube sprite is identical at every amount; only its rendered pixel size changes. Cube and Shiba consume the same `pxPerMetre`, so relative size is always honest: a 40 cm dog next to a 5 cm gold cube is a 5 cm gold cube. Each element has a fixed bottom-corner anchor at the row's vertical midline ± `gapPx` — cube's visible bottom-right corner at midline − gap, Shiba's visible bottom-left corner at midline + gap, both at y = 0 (the row's bottom). Neither crosses the midline at any slider position; both scale outward from those anchors only. The gap is responsive — 50 px on desktop, 14 px below 768 px width. A per-sprite `translateX` shifts each slot by its measured L/R-margin fraction so the *visible* corner (not the transparent canvas edge) lands on the anchor line.
 
 ### Universal scale reference
 
@@ -102,18 +110,33 @@ The cycling reference library used by earlier drafts (~20 entries from grain of 
 
 ### Universal-Shiba viewport
 
-The cube renderer derives a single metres-to-pixels factor from the height of the larger element. Cube and Shiba both consume that factor, so relative scale is always honest:
+The cube renderer derives a single visible-pixels-per-metre factor from the dominant element's real height plus dual-element width caps. Cube and Shiba both consume that factor, so relative scale is always honest:
 
 ```typescript
-function pxPerMetre(cubeEdgeM: number, viewportHeightPx: number, viewportWidthPx: number): number {
+function pxPerMetre(
+  cubeEdgeM: number,
+  viewportHeightPx: number,
+  viewportWidthPx: number,
+  gapPx: number,
+): number {
   const viewportHeightM = Math.max(SHIBA_HEIGHT_M, cubeEdgeM) * VIEWPORT_MARGIN;
   const fromHeight = viewportHeightPx / viewportHeightM;
-  // Horizontal safety: at extreme amounts on narrow viewports the cube +
-  // Shiba would otherwise overlap edge-to-edge — clamp both proportionally.
-  const fromWidth = viewportWidthPx / (cubeEdgeM + SHIBA_HEIGHT_M);
-  return Math.min(fromHeight, fromWidth);
+  const sidePx = Math.max(0, viewportWidthPx / 2 - gapPx);
+
+  // Width clamp checks BOTH elements: the cube's visible-width-to-height
+  // ratio (~0.98) is much higher than the Shiba's (~0.73), so at near-equal
+  // real heights the cube's width is the binding side even when Shiba
+  // dominates by height.
+  const cubeWoH = CUBE_VISIBLE_WIDTH_FRACTION / CUBE_VISIBLE_HEIGHT_FRACTION;
+  const shibaWoH = SHIBA_VISIBLE_WIDTH_FRACTION / SHIBA_VISIBLE_HEIGHT_FRACTION;
+  const fromWidthCube = cubeEdgeM > 0 ? sidePx / (cubeEdgeM * cubeWoH) : Infinity;
+  const fromWidthShiba = sidePx / (SHIBA_HEIGHT_M * shibaWoH);
+
+  return Math.min(fromHeight, fromWidthCube, fromWidthShiba);
 }
 ```
+
+The row's CSS height is *derived*: `dominantVisibleHeightPx × VIEWPORT_MARGIN`, capped by a soft viewport-relative max (`min(540 px, 50vh)` desktop / `min(360 px, 50vh)` mobile). When the width clamp binds (the typical mobile case at extreme amounts), the row shrinks below the cap so the panel doesn't carry empty space above the visualisation.
 
 This is the only camera primitive cube mode needs. No log-scale reference picking, no cross-fade transitions between references, no per-amount sprite swaps, no displayed-size threshold rules. No conditional human-silhouette logic — the Shiba is always present on cube panels and there is no second reference to switch in or out.
 
@@ -159,7 +182,7 @@ Both layers are scoped to Pu-238 alone. Gold and silver render as plain cubes ag
 - No stage transitions. The cube is one sprite at all amounts.
 - No tile mode. Tile-mode schema fields exist for potential future use by other commodities but are unused by any commodity at launch.
 - No Y-axis overlay or `<YAxis />` component. An earlier draft proposed a per-cube vertical axis with metric ticks; it was scrapped on 2026-05-08 — it didn't earn its place against the cube + Shiba pairing on its own.
-- No displayed-size threshold rules. Sprite size at any amount is `realSizeM × pxPerMetre`; there is no "if larger than 5 m, swap to comparison card" branching in cube mode. Comparison cards remain in the codebase as the readout-strip fallback copy library at extreme scales — they're text, not sprites.
+- No displayed-size threshold rules. Sprite size at any amount is `realSizeM × pxPerMetre / visibleHeightFraction`; there is no "if larger than 5 m, swap to comparison card" branching in cube mode. Comparison cards remain in the codebase as the readout-strip fallback copy library at extreme scales — they're text, not sprites.
 - No cycling reference library. Earlier drafts cycled through ~20 references (grain of sand to Empire State Building) picked by closest log-scale match; that scheme is superseded by the universal Shiba.
 - No standalone coin or human silhouette. Both were entries in the prior reference library (the £1 coin and a 1.75 m person) and are gone with it.
 
