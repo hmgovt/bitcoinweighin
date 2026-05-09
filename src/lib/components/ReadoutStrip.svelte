@@ -38,6 +38,7 @@
 		btcAmount,
 		btcUsdPrice = 0,
 		unitSys,
+		meltWarning = false,
 	}: {
 		commodity: Commodity;
 		amount: number;
@@ -45,6 +46,12 @@
 		/** USD per BTC. Defaults to 0; CommoditySection plumbs the real value in Stage 4 §4. */
 		btcUsdPrice?: number;
 		unitSys: UnitSystem;
+		/**
+		 * Pu-238 only: when true, append "(would melt itself in reality)" to the
+		 * mass line. CommoditySection sets this when massGrams ≥ 1 kg on a
+		 * glow-scaling commodity.
+		 */
+		meltWarning?: boolean;
 	} = $props();
 
 	const isCubeMode = $derived(commodity.renderStyle === 'cube');
@@ -130,7 +137,9 @@
 		<!-- Cube-mode readout: bold mass, then volume + edge pair, then dollar value. -->
 		<div class="readout-strip cube-readout">
 			{#if massGrams !== null}
-				<div class="readout-mass-bold">{massPair}</div>
+				<div class="readout-mass-bold">
+					{massPair}{#if meltWarning}<em class="readout-melt"> (would melt itself in reality)</em>{/if}
+				</div>
 			{/if}
 			<div class="readout-line">
 				<span class="readout-metric">{volumePair}</span>
@@ -242,5 +251,12 @@
 		margin-top: 2px;
 		opacity: 0.85;
 		font-size: 0.8125rem;
+	}
+
+	.readout-melt {
+		color: #fb923c; /* orange-400 — matches the warning band on the glow */
+		font-style: italic;
+		font-weight: 500;
+		font-size: 0.875rem;
 	}
 </style>

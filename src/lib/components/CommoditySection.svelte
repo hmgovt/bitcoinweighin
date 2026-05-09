@@ -41,6 +41,37 @@
 	const showPu238Fact = $derived(commodity.glowScales === true);
 	const isStill = $derived(commodity.renderStyle === 'still_with_readout');
 
+	// Pu-238 readout extras. Threshold matches CubeGlowOverlay.helpers.ts —
+	// massGrams ≥ 1000 g (1 kg) is the "would self-melt in reality" line per
+	// the Stage 6 spec.
+	const meltWarning = $derived(showPu238Fact && (massGrams ?? 0) >= 1000);
+	const activityCi = $derived(
+		commodity.specificActivityCiPerGram && massGrams
+			? massGrams * commodity.specificActivityCiPerGram
+			: 0
+	);
+	// 1 Ci = 3.7 × 10¹⁰ disintegrations per second.
+	const dps = $derived(activityCi * 3.7e10);
+
+	function formatCi(ci: number): string {
+		if (ci <= 0) return '0 Ci';
+		if (ci >= 1e6) return `${(ci / 1e6).toFixed(2)} MCi`;
+		if (ci >= 1e3) return `${(ci / 1e3).toFixed(2)} kCi`;
+		if (ci >= 1) return `${ci.toFixed(0)} Ci`;
+		if (ci >= 0.001) return `${(ci * 1000).toFixed(1)} mCi`;
+		return `${ci.toExponential(1)} Ci`;
+	}
+
+	/** Split a positive number into a (mantissa, exponent) pair for ×10ⁿ rendering. */
+	function dpsParts(d: number): { mantissa: string; exponent: number } | null {
+		if (d <= 0) return null;
+		const exponent = Math.floor(Math.log10(d));
+		const mantissa = (d / Math.pow(10, exponent)).toFixed(2);
+		return { mantissa, exponent };
+	}
+
+	const dpsBig = $derived(dpsParts(dps));
+
 	// Cocaine still: hardcoded path matches the user-supplied asset on disk
 	// (`/static/sprites/cocaine/cocaine-lab.webp`). StillPanel falls back to
 	// a labelled grey placeholder if the file 404s.
@@ -117,7 +148,35 @@
 		</div>
 
 		<!-- Readout strip: primary continuity signal -->
-		<ReadoutStrip {commodity} amount={safeAmount} {btcAmount} {btcUsdPrice} {unitSys} />
+		<ReadoutStrip
+			{commodity}
+			amount={safeAmount}
+			{btcAmount}
+			{btcUsdPrice}
+			{unitSys}
+			{meltWarning}
+		/>
+
+		<!--
+			Pu-238-only readout extras. Activity readout sets the user's
+			intuition for what they're hearing if the Geiger toggle is on.
+			Source attribution row is mandatory and persistent per the Stage 6
+			spec — DOE / NASA / Planetary Society / Cassini OIG.
+		-->
+		{#if showPu238Fact && safeAmount > 0}
+			<div class="mt-2 pu238-activity">
+				<span class="pu238-activity-label">Activity:</span>
+				<span class="pu238-activity-value">{formatCi(activityCi)}</span>
+				<span class="pu238-activity-divider">·</span>
+				{#if dpsBig}
+					<span class="pu238-activity-value">
+						{dpsBig.mantissa} × 10<sup>{dpsBig.exponent}</sup> disintegrations/sec
+					</span>
+				{:else}
+					<span class="pu238-activity-value">0 disintegrations/sec</span>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Contextual fact card (cube-mode commodities only) -->
 		{#if showAnchorCard}
@@ -128,6 +187,13 @@
 			<div class="mt-2">
 				<Pu238FactCard currentMassGrams={massGrams ?? 0} />
 			</div>
+		{/if}
+
+		{#if showPu238Fact}
+			<p class="pu238-sources">
+				DOE Office of Nuclear Energy · NASA Planetary Science · The Planetary Society ·
+				Cassini OIG (1997, escalated) · See methodology.
+			</p>
 		{/if}
 	{/if}
 </section>
@@ -175,5 +241,40 @@
 		border-top: 1px solid #27272a;
 		padding-top: 0.5rem;
 		margin-top: 0.25rem;
+	}
+
+	.pu238-activity {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 6px;
+		align-items: baseline;
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		font-size: 0.8125rem;
+		line-height: 1.4;
+		color: #a1a1aa;
+	}
+	.pu238-activity-label {
+		color: #71717a;
+	}
+	.pu238-activity-value {
+		color: #d4d4d8;
+	}
+	.pu238-activity-value sup {
+		font-size: 0.7em;
+		line-height: 0;
+		vertical-align: super;
+	}
+	.pu238-activity-divider {
+		color: #52525b;
+	}
+
+	.pu238-sources {
+		margin-top: 0.75rem;
+		padding-top: 0.5rem;
+		border-top: 1px solid #27272a;
+		font-size: 0.7rem;
+		line-height: 1.5;
+		color: #71717a;
 	}
 </style>

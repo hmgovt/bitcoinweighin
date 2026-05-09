@@ -24,6 +24,7 @@
 	import type { Commodity } from '$lib/commodities.js';
 	import {
 		computeCubeEdgeMm,
+		computeMassGrams,
 		computePxPerMetre,
 		spritePixelSize,
 		SHIBA_HEIGHT_M,
@@ -34,6 +35,8 @@
 	} from '$lib/volume.js';
 	import scaleReferencesData from '$lib/scale-references.json';
 	import ScaleRef from './ScaleReference.svelte';
+	import CubeGlowOverlay from './CubeGlowOverlay.svelte';
+	import { computeGlowParams } from './CubeGlowOverlay.helpers.js';
 
 	// Single universal reference (the Shiba). Stage 4 of the marathon
 	// session reduced scale-references.json to one entry.
@@ -56,6 +59,24 @@
 
 	const cubeEdgeMm = $derived(computeCubeEdgeMm(amount, commodity));
 	const cubeEdgeM = $derived(cubeEdgeMm / 1000);
+
+	// Pu-238 only: blackbody glow overlay + surface emission. Gated on
+	// commodity.glowScales === true; CommoditySection is responsible for
+	// whether to set the flag — CubeRenderer just reads it. Mass drives
+	// the two-channel scaling (intensity, colour temperature).
+	const glowEnabled = $derived(commodity.glowScales === true);
+	const massGrams = $derived(amount > 0 ? computeMassGrams(amount, commodity) ?? 0 : 0);
+	const glow = $derived(glowEnabled ? computeGlowParams(massGrams) : null);
+
+	// Asset gap: when a cube sprite (or its shadow) is missing on disk,
+	// fall back to a labelled grey placeholder. Pu-238's sprite isn't
+	// rendered yet — see PROJECT-STATUS.md open threads. The placeholder
+	// occupies the same visible bbox as a real cube so the midline
+	// anchoring stays honest while the asset is in flight.
+	let spriteFailed = $state(false);
+	function onSpriteError() {
+		spriteFailed = true;
+	}
 
 	let viewportPx = $state(0);
 	let windowHeightPx = $state(0);
@@ -167,21 +188,41 @@
 				style="width: {cubeSlotPx}px; height: {cubeSlotPx}px;"
 				title="{commodity.displayName} cube — {cubeEdgeMm.toFixed(1)} mm edge"
 			>
-				{#if commodity.cubeShadowPath}
+				{#if commodity.cubeShadowPath && !spriteFailed}
 					<img
 						src={commodity.cubeShadowPath}
 						alt=""
 						class="cube-shadow"
 						aria-hidden="true"
 						draggable="false"
+						onerror={() => { /* shadow optional; main sprite carries the asset-gap signal */ }}
 					/>
 				{/if}
-				<img
-					src={commodity.cubeSpritePath}
-					alt="{commodity.displayName} cube at {cubeEdgeMm.toFixed(1)} mm edge length"
-					class="cube-sprite"
-					draggable="false"
-				/>
+				{#if glow}
+					<CubeGlowOverlay massGrams={massGrams} />
+				{/if}
+				{#if !spriteFailed}
+					<img
+						src={commodity.cubeSpritePath}
+						alt="{commodity.displayName} cube at {cubeEdgeMm.toFixed(1)} mm edge length"
+						class="cube-sprite"
+						class:cube-sprite-glowing={glow !== null}
+						draggable="false"
+						onerror={onSpriteError}
+						style:--glow-color={glow?.color ?? 'transparent'}
+						style:--glow-opacity={glow?.opacity ?? 0}
+						style:--glow-bloom="{glow?.bloomPx ?? 0}px"
+					/>
+				{:else}
+					<div
+						class="cube-placeholder"
+						class:cube-placeholder-glowing={glow !== null}
+						aria-label="{commodity.displayName} cube placeholder ({cubeEdgeMm.toFixed(1)} mm edge) — sprite asset pending"
+						style:--glow-color={glow?.color ?? 'transparent'}
+						style:--glow-opacity={glow?.opacity ?? 0}
+						style:--glow-bloom="{glow?.bloomPx ?? 0}px"
+					></div>
+				{/if}
 			</div>
 
 			<div
@@ -263,6 +304,54 @@
 		object-fit: contain;
 		display: block;
 		user-select: none;
+	}
+
+	/*
+	 * Pu-238 surface emission. `drop-shadow` is preferred over `box-shadow`
+	 * because it respects the sprite's alpha channel — the glow halo wraps
+	 * the cube silhouette, not the 1600 × 1600 transparent canvas. Brightness
+	 * climbs with intensity so the cube reads as actively emitting rather
+	 * than just lit at higher masses.
+	 */
+	.cube-sprite-glowing {
+		filter:
+			brightness(calc(1 + var(--glow-opacity, 0) * 0.45))
+			drop-shadow(0 0 var(--glow-bloom, 0) var(--glow-color, transparent));
+		transition:
+			filter 200ms ease-out;
+	}
+
+	/*
+	 * Asset-gap placeholder. Sized to occupy the same visible bbox as a
+	 * real cube sprite (margins computed from the canonical 1600 × 1600
+	 * canvas — see CUBE_VISIBLE_*_FRACTION) so the midline anchoring stays
+	 * accurate while the Pu-238 cube is in flight.
+	 *   bbox (244, 331, 1296, 1409) → top 20.69 %, right 19.0 %,
+	 *                                 bottom 11.94 %, left 15.25 %
+	 */
+	.cube-placeholder {
+		position: absolute;
+		top: 20.69%;
+		left: 15.25%;
+		right: 19%;
+		bottom: 11.94%;
+		background: repeating-linear-gradient(
+			45deg,
+			#3f3f46,
+			#3f3f46 4px,
+			#52525b 4px,
+			#52525b 8px
+		);
+		border: 1px dashed #71717a;
+		border-radius: 2px;
+	}
+
+	.cube-placeholder-glowing {
+		filter:
+			brightness(calc(1 + var(--glow-opacity, 0) * 0.45))
+			drop-shadow(0 0 var(--glow-bloom, 0) var(--glow-color, transparent));
+		transition:
+			filter 200ms ease-out;
 	}
 
 	.caption-strip {
