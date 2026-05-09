@@ -45,7 +45,8 @@
 		"notes": "Illustrative pricing only. No spot market exists. Figures from peer-reviewed and law-enforcement reporting. Annual global production for absurdity-tier framings: ~2,250 tonnes (UNODC 2024 estimate)."
 	},
 	"pu238": {
-		"pricePerGram": 5000,
+		"pricePerUnit": 5000,
+		"unit": "gram",
 		"range": [4000, 8000],
 		"fullyLoadedProgramCostPerGram": 100000,
 		"asOfDate": "2024-12-31",
