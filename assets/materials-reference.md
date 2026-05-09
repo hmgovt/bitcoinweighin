@@ -32,6 +32,30 @@ Bump distance     0.0002
 
 Silver/platinum/copper variants will inherit the gold procedural noise + bump rig with material-specific scale tweaks when authored. Add their procedural details to this file at that point.
 
+## Plutonium-238
+
+```
+Base colour       (0.58, 0.56, 0.52) linear sRGB    # cool silver-grey, faint warm cast
+Metallic          0.88                              # below 1.0 — see note
+Roughness         0.30  (base, varied procedurally)
+Specular          0.5
+Normal            procedural noise → bump
+Bump strength     0.04                              # stronger than silver/gold
+Bump distance     0.0003
+```
+
+**Why metalness < 1.0:** Pu's 5f electron structure makes it a poorer optical metal than the noble metals. Combined with the thin yellow-grey oxide layer that builds within hours of air exposure on real samples, the effective metalness reads closer to 0.85–0.90 than the noble-metal 1.0. Actual Pu samples in published photographs are matte and visibly non-uniform, not mirror-polished.
+
+**Procedural roughness:** Noise (scale 6.0, detail 4.0) → MapRange(0–1 → 0.25–0.42) → Roughness. Wider band than silver's 0.05–0.12 mirror polish — the patchy oxide layer creates low-frequency roughness variation that reads as authentic industrial finish. Calibrate against the bare-cube reference photographs in DOE / Los Alamos archive imagery; if the surface reads as polished bullion, the band is too tight.
+
+**Procedural normal:** Noise (scale 120.0, detail 12.0, roughness 0.6) → Bump (strength 0.04, distance 0.0003) → Normal. Stronger than the noble metals (silver/gold strength 0.025) — the surface is less optically smooth at the micro scale.
+
+**Subtle base-colour variation:** Low-frequency noise mixes a warmer oxide patina tint (0.50, 0.46, 0.39) into ~35% of patches via MapRange + MixRGB. Keeps the surface from reading as flat painted grey at thumbnail size.
+
+**Tex Coord input:** Object on all noise nodes — same convention as the noble metals.
+
+**Note on emission:** No emissive shader baked in. The cube's incandescent appearance at higher masses is composed in CSS via `<CubeGlowOverlay>` (radial halo) + `filter: drop-shadow()` + `filter: brightness()` on the sprite. A single bare-metal sprite covers the full slider range. If a future revisit wants pre-baked emissive variants for gallery thumbnails, render with `bsdf.inputs["Emission Strength"].default_value` set above 0 and varying the emission colour along the blackbody ladder — but the production pipeline does not need them.
+
 ## Steel — drums, tankers, vessel sprites
 
 | Material | Base colour | Metallic | Roughness | Notes |
