@@ -8,18 +8,16 @@
 	 *
 	 * Both sprites render at true scale within that viewport. Each has
 	 * a fixed anchor point relative to the row's vertical midline —
-	 * cube's bottom-right (visible) corner at midline − 100 px, Shiba's
-	 * bottom-left (visible) corner at midline + 100 px, both at y = 0
+	 * cube's bottom-right (visible) corner at midline − GAP, Shiba's
+	 * bottom-left (visible) corner at midline + GAP, both at y = 0
 	 * (the row's bottom). Neither crosses the midline at any slider
-	 * position; both scale outward from these anchors only. Whichever
-	 * element is larger in real metres ends up near full viewport
-	 * height on its side; the other scales down proportionally.
+	 * position; both scale outward from those anchors only.
 	 *
-	 * (The cycling 20-entry reference library used by earlier drafts was
-	 * deleted on 2026-05-04 in favour of the universal Shiba — see
-	 * DECISIONS.md. The half-divide / cube-root half-fit viewport rule
-	 * was reversed on 2026-05-08 in favour of the height-driven formula
-	 * above.)
+	 * The row's height is *derived* from the dominant element's visible
+	 * height × VIEWPORT_MARGIN — the row only consumes as much vertical
+	 * space as the visible content needs. The gap and a viewport-height
+	 * cap respond to a mobile breakpoint so a narrow phone gets a
+	 * tighter midline gap and a tighter cap on row height.
 	 */
 
 	import { onMount } from 'svelte';
@@ -29,6 +27,7 @@
 		computePxPerMetre,
 		spritePixelSize,
 		SHIBA_HEIGHT_M,
+		VIEWPORT_MARGIN,
 		CUBE_VISIBLE_HEIGHT_FRACTION,
 		SHIBA_VISIBLE_HEIGHT_FRACTION,
 		type ScaleReference,
@@ -59,15 +58,35 @@
 	const cubeEdgeM = $derived(cubeEdgeMm / 1000);
 
 	let viewportPx = $state(0);
-	let viewportHeightPx = $state(0);
+	let windowHeightPx = $state(0);
 	const VIEWPORT_FALLBACK_PX = 600;
-	const VIEWPORT_HEIGHT_FALLBACK_PX = 360;
+	const WINDOW_HEIGHT_FALLBACK_PX = 720;
 
 	const widthPx = $derived(viewportPx > 0 ? viewportPx : VIEWPORT_FALLBACK_PX);
-	const heightPx = $derived(
-		viewportHeightPx > 0 ? viewportHeightPx : VIEWPORT_HEIGHT_FALLBACK_PX
+
+	// Mobile breakpoint — Tailwind's `md:` boundary. Below this, narrow
+	// the midline gap and cap the row shorter so cube and Shiba aren't
+	// pushed to the row edges and the slider stays in view alongside
+	// the visualisation.
+	const MOBILE_BREAKPOINT_PX = 768;
+	const isMobile = $derived(widthPx < MOBILE_BREAKPOINT_PX);
+	const gapPx = $derived(isMobile ? 14 : 50);
+
+	// Cap on row height. The row never exceeds this; if the dominant
+	// element's visible height × margin is smaller, the row shrinks to
+	// match (see renderedRowHeightPx below).
+	const ROW_VH_FRACTION = 0.5;
+	const ROW_MIN_PX = isMobile ? 200 : 280;
+	const ROW_MAX_PX = isMobile ? 360 : 540;
+	const maxRowHeightPx = $derived(
+		windowHeightPx > 0
+			? Math.min(ROW_MAX_PX, Math.max(ROW_MIN_PX, windowHeightPx * ROW_VH_FRACTION))
+			: ROW_MAX_PX
 	);
-	const pxPerMetre = $derived(computePxPerMetre(cubeEdgeM, heightPx, widthPx));
+
+	const pxPerMetre = $derived(
+		computePxPerMetre(cubeEdgeM, maxRowHeightPx, widthPx, gapPx)
+	);
 
 	// Target visible heights — what the user reads as the "real" size on
 	// screen. Floor the cube at 2 px so sub-mm amounts still leave a
@@ -83,8 +102,14 @@
 	const cubeSlotPx = $derived(cubeVisiblePx / CUBE_VISIBLE_HEIGHT_FRACTION);
 	const shibaSlotPx = $derived(shibaVisiblePx / SHIBA_VISIBLE_HEIGHT_FRACTION);
 
+	// Row's actual rendered height: tracks the dominant element after
+	// both height and width clamps. When width clamps (typical on
+	// mobile), the row shrinks below maxRowHeightPx so the panel
+	// doesn't carry empty space above the visualisation.
+	const dominantVisiblePx = $derived(Math.max(shibaVisiblePx, cubeVisiblePx));
+	const renderedRowHeightPx = $derived(dominantVisiblePx * VIEWPORT_MARGIN);
+
 	let sceneEl: HTMLDivElement | undefined = $state();
-	let sceneRowEl: HTMLDivElement | undefined = $state();
 
 	function formatEdge(mm: number): string {
 		if (mm < 1) return `${(mm * 1000).toFixed(0)} µm`;
@@ -95,38 +120,48 @@
 	}
 
 	onMount(() => {
-		// Preload the Shiba sprite so the first render doesn't show a
-		// blank reference slot while the asset fetch lands.
 		const img = new Image();
 		img.src = SHIBA.spritePath;
 
-		if (!sceneEl) return;
-		const ro = new ResizeObserver((entries) => {
-			for (const entry of entries) {
-				if (entry.target === sceneEl) {
-					viewportPx = entry.contentRect.width;
-				} else if (entry.target === sceneRowEl) {
-					viewportHeightPx = entry.contentRect.height;
+		windowHeightPx = window.innerHeight;
+		const onResize = () => {
+			windowHeightPx = window.innerHeight;
+		};
+		window.addEventListener('resize', onResize);
+
+		let ro: ResizeObserver | null = null;
+		if (sceneEl) {
+			ro = new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					if (entry.target === sceneEl) {
+						viewportPx = entry.contentRect.width;
+					}
 				}
-			}
-		});
-		ro.observe(sceneEl);
-		if (sceneRowEl) ro.observe(sceneRowEl);
-		return () => ro.disconnect();
+			});
+			ro.observe(sceneEl);
+		}
+
+		return () => {
+			window.removeEventListener('resize', onResize);
+			ro?.disconnect();
+		};
 	});
 </script>
 
 <div class="cube-scene" bind:this={sceneEl}>
 	{#if amount > 0}
 		<!--
-			Cube and Shiba each have a fixed anchor at midline ± 100 px.
+			Cube and Shiba each have a fixed anchor at midline ± gapPx.
 			The cube's visible bottom-right corner stays put at midline −
-			100; the Shiba's visible bottom-left corner stays put at
-			midline + 100. Both scale outward from those anchors only.
+			gap; the Shiba's visible bottom-left corner stays put at
+			midline + gap. Both scale outward from those anchors only.
 			Sizes come from pxPerMetre × real metres so relative scale
 			between the two is always honest.
 		-->
-		<div class="scene-row" bind:this={sceneRowEl}>
+		<div
+			class="scene-row"
+			style="height: {renderedRowHeightPx}px; --gap: {gapPx}px;"
+		>
 			<div
 				class="cube-anchor"
 				style="width: {cubeSlotPx}px; height: {cubeSlotPx}px;"
@@ -170,44 +205,39 @@
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
-		min-height: 220px;
-		padding: 12px 8px 24px;
+		padding: 12px 8px 20px;
 		container-type: inline-size;
 	}
 
 	.scene-row {
 		position: relative;
 		width: 100%;
-		/* Vertical extent the cube + Shiba scale into. Sized so the user
-		   can see the slider and the visualisation together without
-		   scrolling — the visible content fills ~91 % of this height
-		   thanks to the slot scale-up in CubeRenderer. */
-		height: clamp(280px, 50vh, 540px);
+		/* Height set inline as `dominantVisiblePx × VIEWPORT_MARGIN`. */
 		overflow: hidden;
 	}
 
 	/*
 	   Sprite-margin offsets, measured from the actual asset files:
-	     cube@2x.png   bbox = (244, 331, 1296, 1409) on 1600 × 1600
-	                   → R margin 19.0 %, B margin 11.9 %
-	     shiba_inu.webp bbox = (486, 490, 1008, 1203) on 1600 × 1600
-	                   → L margin 30.4 %, B margin 24.8 %
+	     cube@2x.png    bbox (244, 331, 1296, 1409) on 1600 × 1600
+	                    → R margin 19.0 %, B margin 11.9 %
+	     shiba_inu.webp bbox (486, 490, 1008, 1203) on 1600 × 1600
+	                    → L margin 30.4 %, B margin 24.8 %
 	   The translate values shift each slot so its *visible* corner
-	   (not the transparent canvas edge) lands on the midline ± 100 px
+	   (not the transparent canvas edge) lands on the midline ± gap
 	   anchor. translateY pushes the slot down by its own bottom-margin
 	   fraction so the visible bottom sits on the row baseline.
 	*/
 	.cube-anchor {
 		position: absolute;
 		bottom: 0;
-		right: calc(50% + 100px);
+		right: calc(50% + var(--gap, 50px));
 		transform: translate(19%, 12%);
 	}
 
 	.shiba-anchor {
 		position: absolute;
 		bottom: 0;
-		left: calc(50% + 100px);
+		left: calc(50% + var(--gap, 50px));
 		transform: translate(-30.4%, 25%);
 	}
 
@@ -232,7 +262,7 @@
 	}
 
 	.caption-strip {
-		margin-top: 12px;
+		margin-top: 10px;
 		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
 		font-variant-numeric: tabular-nums;
 		font-size: 0.75rem;

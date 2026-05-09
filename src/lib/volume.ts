@@ -138,20 +138,22 @@ export const SHIBA_VISIBLE_HEIGHT_FRACTION = (1203 - 490) / 1600;
  *
  * The horizontal clamp engages only at narrow viewports / extreme
  * amounts: it shrinks pxPerMetre so the dominant element's *visible*
- * outer edge stays within `(viewportWidthPx / 2) − GAP_FROM_MIDLINE_PX`
- * of its anchor. The clamp uses `visibleWidth = visibleHeight ×
- * (visWidthFrac / visHeightFrac)` to derive the constraint.
+ * outer edge stays within `(viewportWidthPx / 2) − gapFromMidlinePx`
+ * of its anchor. `gapFromMidlinePx` defaults to the desktop value
+ * but is callable with a smaller value for mobile, where 50 px of
+ * gap on each side eats most of a narrow row.
  */
 export function computePxPerMetre(
 	cubeEdgeM: number,
 	viewportHeightPx: number,
-	viewportWidthPx: number
+	viewportWidthPx: number,
+	gapFromMidlinePx: number = GAP_FROM_MIDLINE_PX
 ): number {
 	if (viewportHeightPx <= 0) return 0;
 	const viewportHeightM = Math.max(SHIBA_HEIGHT_M, cubeEdgeM) * VIEWPORT_MARGIN;
 	const fromHeight = viewportHeightPx / viewportHeightM;
 	if (viewportWidthPx <= 0) return fromHeight;
-	const sidePx = Math.max(0, viewportWidthPx / 2 - GAP_FROM_MIDLINE_PX);
+	const sidePx = Math.max(0, viewportWidthPx / 2 - gapFromMidlinePx);
 	const cubeDominates = cubeEdgeM >= SHIBA_HEIGHT_M;
 	const cubeWidthOverHeight = CUBE_VISIBLE_WIDTH_FRACTION / CUBE_VISIBLE_HEIGHT_FRACTION;
 	const shibaWidthOverHeight = SHIBA_VISIBLE_WIDTH_FRACTION / SHIBA_VISIBLE_HEIGHT_FRACTION;

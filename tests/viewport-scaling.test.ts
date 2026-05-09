@@ -100,4 +100,20 @@ describe('computePxPerMetre — height-driven viewport', () => {
 	it('returns 0 when viewport height is unknown (pre-mount)', () => {
 		expect(computePxPerMetre(0.024, 0, ROW_WIDTH_PX)).toBe(0);
 	});
+
+	it('mobile gap override gives more side room than the default', () => {
+		// Narrow phone: 320 px wide row, default 50 px gap leaves only
+		// 110 px per side. A 14 px gap leaves 146 px — visible Shiba
+		// can scale up by ≈ 33 % before the width clamp binds again.
+		const cubeEdgeM = 25e-6;
+		const phoneWidth = 320;
+		const phoneHeight = 360;
+		const pxDefault = computePxPerMetre(cubeEdgeM, phoneHeight, phoneWidth);
+		const pxMobile = computePxPerMetre(cubeEdgeM, phoneHeight, phoneWidth, 14);
+		expect(pxMobile).toBeGreaterThan(pxDefault);
+		// And the visible Shiba grows in absolute pixels too.
+		const visibleShibaDefault = spritePixelSize(SHIBA_HEIGHT_M, pxDefault);
+		const visibleShibaMobile = spritePixelSize(SHIBA_HEIGHT_M, pxMobile);
+		expect(visibleShibaMobile).toBeGreaterThan(visibleShibaDefault);
+	});
 });
