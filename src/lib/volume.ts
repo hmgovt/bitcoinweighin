@@ -111,27 +111,36 @@ export const VIEWPORT_MARGIN = 1.1;
  * crosses the midline at any slider position — both scale outward from
  * these fixed points only.
  */
-export const GAP_FROM_MIDLINE_PX = 100;
+export const GAP_FROM_MIDLINE_PX = 50;
 
 /**
- * Visible-content bounding-box width as a fraction of the 1600 × 1600
- * sprite canvas. Used to keep the *visible* outer edge of the dominant
- * element within its side of the row when the horizontal clamp binds.
- *   cube@2x.png    bbox (244, 331, 1296, 1409) → 0.6575
- *   shiba_inu.webp bbox (486, 490, 1008, 1203) → 0.3263
+ * Visible-content bounding-box dimensions as fractions of the 1600 × 1600
+ * sprite canvas. Used to scale each slot up so the *visible* portion (not
+ * the transparent canvas) fills the viewport, and to keep the visible
+ * outer edge within its side when the horizontal clamp binds.
+ *   cube@2x.png    bbox (244, 331, 1296, 1409) → W 0.6575, H 0.6738
+ *   shiba_inu.webp bbox (486, 490, 1008, 1203) → W 0.3263, H 0.4456
  */
 export const CUBE_VISIBLE_WIDTH_FRACTION = (1296 - 244) / 1600;
+export const CUBE_VISIBLE_HEIGHT_FRACTION = (1409 - 331) / 1600;
 export const SHIBA_VISIBLE_WIDTH_FRACTION = (1008 - 486) / 1600;
+export const SHIBA_VISIBLE_HEIGHT_FRACTION = (1203 - 490) / 1600;
 
 /**
  * Map real-world metres to viewport pixels for the cube + Shiba scene.
  *
- * Viewport height (in real-world metres) equals the larger of cube edge
- * and Shiba height, times a 10 % margin. The dominant element fills its
- * side; the other element scales down proportionally. The horizontal
- * clamp engages only at narrow viewports / extreme amounts: it shrinks
- * pxPerMetre so the dominant element's *visible* outer edge stays
- * within `(viewportWidthPx / 2) − GAP_FROM_MIDLINE_PX` of its anchor.
+ * `pxPerMetre` is the *visible* pixels per real metre — i.e. the
+ * height of the visible content, not the slot. Each slot is scaled up
+ * by `1 / visibleHeightFraction` of its sprite so the visible content
+ * fills the viewport without empty transparent margin above. Viewport
+ * height equals `max(shiba, cube) × 1.10` real metres; the dominant
+ * element ends up at ~91 % of the row height visually.
+ *
+ * The horizontal clamp engages only at narrow viewports / extreme
+ * amounts: it shrinks pxPerMetre so the dominant element's *visible*
+ * outer edge stays within `(viewportWidthPx / 2) − GAP_FROM_MIDLINE_PX`
+ * of its anchor. The clamp uses `visibleWidth = visibleHeight ×
+ * (visWidthFrac / visHeightFrac)` to derive the constraint.
  */
 export function computePxPerMetre(
 	cubeEdgeM: number,
@@ -144,11 +153,13 @@ export function computePxPerMetre(
 	if (viewportWidthPx <= 0) return fromHeight;
 	const sidePx = Math.max(0, viewportWidthPx / 2 - GAP_FROM_MIDLINE_PX);
 	const cubeDominates = cubeEdgeM >= SHIBA_HEIGHT_M;
+	const cubeWidthOverHeight = CUBE_VISIBLE_WIDTH_FRACTION / CUBE_VISIBLE_HEIGHT_FRACTION;
+	const shibaWidthOverHeight = SHIBA_VISIBLE_WIDTH_FRACTION / SHIBA_VISIBLE_HEIGHT_FRACTION;
 	const fromWidth = cubeDominates
 		? cubeEdgeM > 0
-			? sidePx / (cubeEdgeM * CUBE_VISIBLE_WIDTH_FRACTION)
+			? sidePx / (cubeEdgeM * cubeWidthOverHeight)
 			: Infinity
-		: sidePx / (SHIBA_HEIGHT_M * SHIBA_VISIBLE_WIDTH_FRACTION);
+		: sidePx / (SHIBA_HEIGHT_M * shibaWidthOverHeight);
 	return Math.min(fromHeight, fromWidth);
 }
 

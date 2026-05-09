@@ -29,6 +29,8 @@
 		computePxPerMetre,
 		spritePixelSize,
 		SHIBA_HEIGHT_M,
+		CUBE_VISIBLE_HEIGHT_FRACTION,
+		SHIBA_VISIBLE_HEIGHT_FRACTION,
 		type ScaleReference,
 	} from '$lib/volume.js';
 	import scaleReferencesData from '$lib/scale-references.json';
@@ -59,7 +61,7 @@
 	let viewportPx = $state(0);
 	let viewportHeightPx = $state(0);
 	const VIEWPORT_FALLBACK_PX = 600;
-	const VIEWPORT_HEIGHT_FALLBACK_PX = 600;
+	const VIEWPORT_HEIGHT_FALLBACK_PX = 360;
 
 	const widthPx = $derived(viewportPx > 0 ? viewportPx : VIEWPORT_FALLBACK_PX);
 	const heightPx = $derived(
@@ -67,14 +69,19 @@
 	);
 	const pxPerMetre = $derived(computePxPerMetre(cubeEdgeM, heightPx, widthPx));
 
-	const cubePx = $derived(spritePixelSize(cubeEdgeM, pxPerMetre));
-	const shibaPx = $derived(spritePixelSize(SHIBA_HEIGHT_M, pxPerMetre));
+	// Target visible heights — what the user reads as the "real" size on
+	// screen. Floor the cube at 2 px so sub-mm amounts still leave a
+	// visible speck.
+	const MIN_CUBE_VISIBLE_PX = 2;
+	const cubeVisiblePx = $derived(
+		Math.max(MIN_CUBE_VISIBLE_PX, spritePixelSize(cubeEdgeM, pxPerMetre))
+	);
+	const shibaVisiblePx = $derived(spritePixelSize(SHIBA_HEIGHT_M, pxPerMetre));
 
-	// Visual floor so sub-millimetre cubes don't disappear entirely. The
-	// caption strip keeps showing the real cube edge — the floor is visual
-	// only.
-	const MIN_CUBE_DISPLAY_PX = 2;
-	const cubeDisplayPx = $derived(Math.max(MIN_CUBE_DISPLAY_PX, cubePx));
+	// Slot dimensions — square, scaled up so the visible bounding box of
+	// the sprite (not the transparent canvas) fills `*VisiblePx`.
+	const cubeSlotPx = $derived(cubeVisiblePx / CUBE_VISIBLE_HEIGHT_FRACTION);
+	const shibaSlotPx = $derived(shibaVisiblePx / SHIBA_VISIBLE_HEIGHT_FRACTION);
 
 	let sceneEl: HTMLDivElement | undefined = $state();
 	let sceneRowEl: HTMLDivElement | undefined = $state();
@@ -122,7 +129,7 @@
 		<div class="scene-row" bind:this={sceneRowEl}>
 			<div
 				class="cube-anchor"
-				style="width: {cubeDisplayPx}px; height: {cubeDisplayPx}px;"
+				style="width: {cubeSlotPx}px; height: {cubeSlotPx}px;"
 				title="{commodity.displayName} cube — {cubeEdgeMm.toFixed(1)} mm edge"
 			>
 				{#if commodity.cubeShadowPath}
@@ -144,9 +151,9 @@
 
 			<div
 				class="shiba-anchor"
-				style="width: {shibaPx}px; height: {shibaPx}px;"
+				style="width: {shibaSlotPx}px; height: {shibaSlotPx}px;"
 			>
-				<ScaleRef reference={SHIBA} pxSize={shibaPx} />
+				<ScaleRef reference={SHIBA} pxSize={shibaSlotPx} />
 			</div>
 		</div>
 
@@ -164,16 +171,18 @@
 		flex-direction: column;
 		align-items: stretch;
 		min-height: 220px;
-		padding: 16px 8px 32px;
+		padding: 12px 8px 24px;
 		container-type: inline-size;
 	}
 
 	.scene-row {
 		position: relative;
 		width: 100%;
-		/* Vertical extent the cube + Shiba scale into. The dominant
-		   element ends up near 1/VIEWPORT_MARGIN (≈ 91 %) of this height. */
-		height: clamp(440px, 90vh, 1100px);
+		/* Vertical extent the cube + Shiba scale into. Sized so the user
+		   can see the slider and the visualisation together without
+		   scrolling — the visible content fills ~91 % of this height
+		   thanks to the slot scale-up in CubeRenderer. */
+		height: clamp(280px, 50vh, 540px);
 		overflow: hidden;
 	}
 
