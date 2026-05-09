@@ -14,20 +14,55 @@ describe('massToColorTemp', () => {
 		expect(massToColorTemp(0.999)).toBe(0);
 	});
 
-	it('returns 0 at exactly 1 g (log10(1) = 0)', () => {
+	it('returns 0 at exactly 1 g (piecewise lower bound)', () => {
 		expect(massToColorTemp(1)).toBeCloseTo(0, 6);
 	});
 
-	it('returns 0.18 at 10 g (log10(10) = 1, × 0.18)', () => {
-		expect(massToColorTemp(10)).toBeCloseTo(0.18, 6);
+	it('returns 0.156 at 10 g (log10(10) = 1, × 0.156)', () => {
+		expect(massToColorTemp(10)).toBeCloseTo(0.156, 6);
 	});
 
-	it('returns 0.36 at 100 g (log10(100) = 2, × 0.18)', () => {
-		expect(massToColorTemp(100)).toBeCloseTo(0.36, 6);
+	it('returns 0.312 at 100 g (log10(100) = 2, × 0.156)', () => {
+		expect(massToColorTemp(100)).toBeCloseTo(0.312, 6);
+	});
+
+	it('returns 0.468 at the 1 kg piecewise breakpoint', () => {
+		expect(massToColorTemp(1000)).toBeCloseTo(0.468, 6);
 	});
 
 	it('clamps at 1 for very large masses', () => {
 		expect(massToColorTemp(1e10)).toBe(1);
+	});
+
+	// Canonical positions from docs/handoff/06-pu238.md. The piecewise was
+	// tuned to hit each row of the table; if these regress, the panel's
+	// glow will read wrong against the spec.
+	describe('canonical Pu-238 positions', () => {
+		it('at 16 g (1 BTC) reads "dull red"', () => {
+			// 0.187 → 25 % of the way from dull-red (0.15) to cherry-red (0.30)
+			expect(massToColorTemp(16)).toBeCloseTo(0.187, 2);
+		});
+
+		it('at 160 g (10 BTC) reads "cherry red"', () => {
+			expect(massToColorTemp(160)).toBeCloseTo(0.343, 2);
+		});
+
+		it('at 1.6 kg (100 BTC) reads "bright orange"', () => {
+			// 0.557 → 28 % from orange (0.50) toward amber-yellow (0.70)
+			expect(massToColorTemp(1600)).toBeCloseTo(0.557, 2);
+		});
+
+		it('at 4.5 kg (280 BTC, Voyager fuel-load) reads "orange-yellow"', () => {
+			expect(massToColorTemp(4500)).toBeCloseTo(0.749, 2);
+		});
+
+		it('at 10 kg (625 BTC, theoretical critical) reads "incandescent"', () => {
+			expect(massToColorTemp(10000)).toBeCloseTo(0.898, 2);
+		});
+
+		it('at 16 kg (1000 BTC) reads near white-hot', () => {
+			expect(massToColorTemp(16000)).toBeCloseTo(0.986, 2);
+		});
 	});
 });
 

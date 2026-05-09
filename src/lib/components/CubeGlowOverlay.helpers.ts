@@ -21,10 +21,34 @@ export const COLOR_STOPS = [
 	{ t: 1.0, hex: '#ffffff' }, // white-hot, dial-cranked-past-physics
 ] as const;
 
-/** Hue position 0 → 1 along the blackbody emission ladder. */
+/**
+ * Hue position 0 → 1 along the blackbody emission ladder.
+ *
+ * Piecewise log curve calibrated against the canonical positions in
+ * `docs/handoff/06-pu238.md`:
+ *
+ *   1 g     → 0     (just-perceptible IR red)
+ *   16 g    → 0.187 (dull red — 1 BTC)
+ *   160 g   → 0.343 (cherry red — 10 BTC)
+ *   1.6 kg  → 0.557 (orange — 100 BTC, "bright orange")
+ *   4.5 kg  → 0.749 (orange-yellow — 280 BTC, Voyager fuel-load)
+ *   10 kg  → 0.898 (near white-yellow — 625 BTC, theoretical critical)
+ *   16 kg  → 0.986 (white-hot — 1000 BTC)
+ *
+ * A simple linear-in-log curve can't hit both ends of the table: the
+ * 0.18 coefficient that landed in Stage 3 was too warm at 100 BTC and
+ * too cool at 1000 BTC. The piecewise sits at 0.156·log10 below 1 kg
+ * and accelerates to 0.43·log10 above, blending continuously at 1 kg.
+ */
 export function massToColorTemp(massGrams: number): number {
 	if (massGrams < 1) return 0;
-	return Math.min(1, Math.log10(massGrams) * 0.18);
+	const log = Math.log10(massGrams);
+	if (log <= 3) {
+		// 1 g → 1 kg: 0 → 0.468.
+		return log * 0.156;
+	}
+	// 1 kg → 16 kg+: 0.468 → 1.0. Coefficient 0.43 hits 1.0 at 16.16 kg.
+	return Math.min(1, 0.468 + (log - 3) * 0.43);
 }
 
 /** Brightness 0 → 1; scales faster than colour temperature. */
