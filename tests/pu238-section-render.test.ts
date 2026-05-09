@@ -151,4 +151,34 @@ describe('CommoditySection: Pu-238 panel wiring', () => {
 		expect(out.body).not.toContain('Unknown renderStyle');
 		expect(out.body).not.toContain('not-implemented');
 	});
+
+	it('renders the GeigerCrackle toggle when commodity.geigerCrackle is true', () => {
+		const out = render(CommoditySection, {
+			props: {
+				commodity: pu238Entry,
+				amount: 16,
+				btcAmount: 1,
+				btcUsdPrice: 80_000,
+				unitSys: 'imperial',
+			},
+		});
+		expect(out.body).toContain('geiger-toggle');
+		// Default off (audioEnabled store starts false): "Geiger" label,
+		// not "Geiger on".
+		expect(out.body).toContain('Geiger');
+	});
+
+	it('does NOT render the GeigerCrackle toggle when commodity.geigerCrackle is unset', () => {
+		const noGeigerEntry = { ...pu238Entry, geigerCrackle: false };
+		const out = render(CommoditySection, {
+			props: {
+				commodity: noGeigerEntry,
+				amount: 16,
+				btcAmount: 1,
+				btcUsdPrice: 80_000,
+				unitSys: 'imperial',
+			},
+		});
+		expect(out.body).not.toContain('geiger-toggle');
+	});
 });

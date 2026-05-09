@@ -12,6 +12,7 @@
 	import StillPanel from './StillPanel.svelte';
 	import CocaineDenominationRow from './CocaineDenominationRow.svelte';
 	import TieredPricingTable from './TieredPricingTable.svelte';
+	import GeigerCrackle from './GeigerCrackle.svelte';
 
 	let {
 		commodity,
@@ -29,6 +30,10 @@
 
 	const safeAmount = $derived(amount ?? 0);
 
+	// Bound on mount; passed to GeigerCrackle so its IntersectionObserver
+	// can gate audio on this exact panel being visible.
+	let panelEl: HTMLElement | undefined = $state();
+
 	// Brand-voice clarification persists on Pu-238 panels.
 	const brandVoice = $derived(commodity.brandVoiceClarification);
 
@@ -39,6 +44,7 @@
 		commodity.renderStyle === 'cube' && Boolean(commodity.quantityAnchorsKey)
 	);
 	const showPu238Fact = $derived(commodity.glowScales === true);
+	const showGeiger = $derived(commodity.geigerCrackle === true);
 	const isStill = $derived(commodity.renderStyle === 'still_with_readout');
 
 	// Pu-238 readout extras. Threshold matches CubeGlowOverlay.helpers.ts —
@@ -78,10 +84,25 @@
 	const cocaineImagePath = '/sprites/cocaine/cocaine-lab.webp';
 </script>
 
-<section id={commodity.id} class="mb-8 rounded-lg bg-zinc-900 p-4 sm:p-6">
-	<div class="mb-3 flex items-center gap-2">
+<section
+	bind:this={panelEl}
+	id={commodity.id}
+	class="mb-8 rounded-lg bg-zinc-900 p-4 sm:p-6"
+>
+	<div class="mb-3 flex flex-wrap items-center gap-2">
 		<h2 class="text-lg font-semibold text-zinc-100">{commodity.displayName}</h2>
 		<QualityBadge quality={commodity.dataQuality} />
+		{#if showGeiger}
+			<!--
+				Geiger toggle lives in the panel header, not the global header,
+				per the Stage 6 spec. Audio is local to this panel and silenced
+				whenever the panel scrolls out of viewport / tab is hidden /
+				mass drops below 1 g.
+			-->
+			<div class="ml-auto">
+				<GeigerCrackle massGrams={massGrams ?? 0} panelElement={panelEl} />
+			</div>
+		{/if}
 	</div>
 
 	{#if brandVoice}
