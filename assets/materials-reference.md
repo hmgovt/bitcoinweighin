@@ -35,22 +35,24 @@ Silver/platinum/copper variants will inherit the gold procedural noise + bump ri
 ## Plutonium-238
 
 ```
-Base colour       (0.58, 0.56, 0.52) linear sRGB    # cool silver-grey, faint warm cast
-Metallic          0.88                              # below 1.0 — see note
-Roughness         0.30  (base, varied procedurally)
+Base colour       (0.74, 0.72, 0.67) linear sRGB    # tarnished silver, faint warm cast
+Metallic          0.95
+Roughness         0.18  (base, varied procedurally)
 Specular          0.5
 Normal            procedural noise → bump
-Bump strength     0.04                              # stronger than silver/gold
-Bump distance     0.0003
+Bump strength     0.025                             # noble-metal standard
+Bump distance     0.0002
 ```
 
-**Why metalness < 1.0:** Pu's 5f electron structure makes it a poorer optical metal than the noble metals. Combined with the thin yellow-grey oxide layer that builds within hours of air exposure on real samples, the effective metalness reads closer to 0.85–0.90 than the noble-metal 1.0. Actual Pu samples in published photographs are matte and visibly non-uniform, not mirror-polished.
+**Calibration reference:** DOE Milliwatt RTG fuel-pellet sample (lab-clean condition, bottom / side / top views). Real Pu-238 metal at this finish reads as tarnished bullion silver with a faint warm cast and visible specular response — distinctly metallic, not chalky. The dramatic dark grey-brown patina in some archival photos is decades-aged storage material, not what we want for a panel hero. An earlier round at metalness 0.88 / roughness 0.30 / oxide-mix 0.35 produced a white-plaster look; tightened on 2026-05-09 against the lab-sample reference.
 
-**Procedural roughness:** Noise (scale 6.0, detail 4.0) → MapRange(0–1 → 0.25–0.42) → Roughness. Wider band than silver's 0.05–0.12 mirror polish — the patchy oxide layer creates low-frequency roughness variation that reads as authentic industrial finish. Calibrate against the bare-cube reference photographs in DOE / Los Alamos archive imagery; if the surface reads as polished bullion, the band is too tight.
+**Why metalness 0.95 (not 1.0):** Pu's 5f electron structure makes it a marginally poorer optical metal than the noble metals; in practice the difference at sprite scale is subtle, but the value sits 0.05 below silver/gold's 1.0 to encode the physics. Going below 0.90 reintroduces the chalky look at this roughness.
 
-**Procedural normal:** Noise (scale 120.0, detail 12.0, roughness 0.6) → Bump (strength 0.04, distance 0.0003) → Normal. Stronger than the noble metals (silver/gold strength 0.025) — the surface is less optically smooth at the micro scale.
+**Procedural roughness:** Noise (scale 6.0, detail 4.0) → MapRange(0–1 → 0.14–0.26) → Roughness. Sits between silver's 0.05–0.12 mirror polish and gold's pre-retune cast satin (0.15–0.28). Tight enough to keep specular response, loose enough to render visible non-uniformity across the faces. If the surface reads as flat plaster, the lower bound is too high; if it reads as rolled bullion, the lower bound is too low.
 
-**Subtle base-colour variation:** Low-frequency noise mixes a warmer oxide patina tint (0.50, 0.46, 0.39) into ~35% of patches via MapRange + MixRGB. Keeps the surface from reading as flat painted grey at thumbnail size.
+**Procedural normal:** Noise (scale 120.0, detail 12.0, roughness 0.6) → Bump (strength 0.025, distance 0.0002) → Normal. Same fine-grain micro-texture as the noble metals; the lab-sample surface is smooth metal at this scale, not industrial casting.
+
+**Subtle base-colour variation:** Low-frequency noise (scale 3.0, detail 2.0) mixes a faint warmer patina tint (0.66, 0.62, 0.55) into up to ~18 % of patches via MapRange + MixRGB. Keeps the surface from reading as flat painted grey while staying well short of the dark oxide of aged samples.
 
 **Tex Coord input:** Object on all noise nodes — same convention as the noble metals.
 

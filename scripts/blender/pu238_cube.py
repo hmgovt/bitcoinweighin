@@ -70,14 +70,21 @@ bpy.ops.object.modifier_apply(modifier=bevel.name)
 bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
 
 # === Pu-238 MATERIAL (per assets/materials-reference.md) ===
+# Calibrated against the DOE Milliwatt RTG fuel-pellet reference
+# photographs (lab sample; bottom/side/top views). Real Pu-238 metal at
+# this finish reads as tarnished bullion silver with a faint warm cast
+# — distinctly metallic, not the white-plaster look that landed when
+# roughness was driven up to 0.30 with metalness 0.88. The oxide patina
+# is subtle on lab samples (the dramatic dark patina in archival photos
+# is decades-aged storage material, not what we want for a hero panel).
+#
 # Base values:
-#   Color   (0.58, 0.56, 0.52) — cool silver-grey with a faint warm cast
-#                                from the oxide layer; cooler than platinum
-#                                but warmer than fresh silver
-#   Metallic 0.88               — Pu is a poorer optical metal than the
-#                                  noble metals; the oxide layer further
-#                                  reduces effective metalness
-#   Roughness 0.30 (base)       — matte/industrial, not mirror polish
+#   Color    (0.74, 0.72, 0.67) — silvery-grey, slightly warm-cooler
+#                                 than fresh silver, before patina mix
+#   Metallic 0.95                — close to noble metals; the 5f-shell
+#                                 caveat is real but subtle at sprite scale
+#   Roughness 0.18 (base)        — between silver mirror (0.08) and
+#                                 platinum semi-matte (0.15)
 #   Specular  0.5
 cube.data.materials.clear()
 mat = bpy.data.materials.new(name="Pu_238")
@@ -86,15 +93,17 @@ nodes = mat.node_tree.nodes
 links = mat.node_tree.links
 bsdf = nodes["Principled BSDF"]
 
-bsdf.inputs["Base Color"].default_value = (0.58, 0.56, 0.52, 1.0)
-bsdf.inputs["Metallic"].default_value = 0.88
-bsdf.inputs["Roughness"].default_value = 0.30
+bsdf.inputs["Base Color"].default_value = (0.74, 0.72, 0.67, 1.0)
+bsdf.inputs["Metallic"].default_value = 0.95
+bsdf.inputs["Roughness"].default_value = 0.18
 bsdf.inputs["Specular"].default_value = 0.5
 
 tex_coord = nodes.new("ShaderNodeTexCoord")
 
-# Fine-grain bump — same micro-texture rig as the noble metals, slightly
-# stronger to suggest a less-polished industrial finish.
+# Fine-grain bump — back to the noble-metal standard. The reference
+# samples don't show the industrial-finish bump strength I'd reached
+# for; the surface is smooth metal with subtle micro-texture, not
+# castings or rough machining.
 noise = nodes.new("ShaderNodeTexNoise")
 noise.inputs["Scale"].default_value = 120.0
 noise.inputs["Detail"].default_value = 12.0
@@ -102,43 +111,46 @@ noise.inputs["Roughness"].default_value = 0.6
 links.new(tex_coord.outputs["Object"], noise.inputs["Vector"])
 
 bump_node = nodes.new("ShaderNodeBump")
-bump_node.inputs["Strength"].default_value = 0.04
-bump_node.inputs["Distance"].default_value = 0.0003
+bump_node.inputs["Strength"].default_value = 0.025
+bump_node.inputs["Distance"].default_value = 0.0002
 links.new(noise.outputs["Fac"], bump_node.inputs["Height"])
 links.new(bump_node.outputs["Normal"], bsdf.inputs["Normal"])
 
-# Macro roughness variation — wider band than the noble metals (silver
-# sits at 0.05–0.12 mirror polish, gold at 0.05–0.12 since the 04-29
-# retune). Pu's range 0.25–0.42 reads as patchy industrial finish with
-# subtle oxide-layer non-uniformity, not the cast satin of the original
-# gold (0.15–0.28) and not anywhere near a mirror.
+# Macro roughness variation — tighter than the previous attempt
+# (0.25–0.42 read as chalk). The 0.14–0.26 band sits between silver's
+# 0.05–0.12 mirror polish and gold's pre-retune cast satin (0.15–0.28),
+# matching the slight non-uniformity visible on the lab-sample side
+# faces while keeping enough specular response to read as metal.
 rn = nodes.new("ShaderNodeTexNoise")
 rn.inputs["Scale"].default_value = 6.0
 rn.inputs["Detail"].default_value = 4.0
 rm = nodes.new("ShaderNodeMapRange")
 rm.inputs["From Min"].default_value = 0.0
 rm.inputs["From Max"].default_value = 1.0
-rm.inputs["To Min"].default_value = 0.25
-rm.inputs["To Max"].default_value = 0.42
+rm.inputs["To Min"].default_value = 0.14
+rm.inputs["To Max"].default_value = 0.26
 links.new(tex_coord.outputs["Object"], rn.inputs["Vector"])
 links.new(rn.outputs["Fac"], rm.inputs["Value"])
 links.new(rm.outputs["Result"], bsdf.inputs["Roughness"])
 
-# Subtle base-colour variation — mixes a slightly warmer oxide tint
-# into low-frequency patches so the surface doesn't read as a flat
-# painted grey. Authentic Pu samples are visibly non-uniform.
+# Subtle base-colour variation — keeps the surface from reading as flat
+# grey. Patina tint pulled lighter and warmer (0.66, 0.62, 0.55, vs.
+# 0.50, 0.46, 0.39 previously) so it reads as faint discolouration
+# rather than rust patch, and the mix factor is dropped from 0.35 to
+# 0.18 because the lab samples are subtler than the aged storage
+# material in archival photos.
 oxide_noise = nodes.new("ShaderNodeTexNoise")
 oxide_noise.inputs["Scale"].default_value = 3.0
 oxide_noise.inputs["Detail"].default_value = 2.0
 oxide_mix = nodes.new("ShaderNodeMixRGB")
 oxide_mix.blend_type = 'MIX'
-oxide_mix.inputs["Color1"].default_value = (0.58, 0.56, 0.52, 1.0)  # base
-oxide_mix.inputs["Color2"].default_value = (0.50, 0.46, 0.39, 1.0)  # patina
+oxide_mix.inputs["Color1"].default_value = (0.74, 0.72, 0.67, 1.0)  # base
+oxide_mix.inputs["Color2"].default_value = (0.66, 0.62, 0.55, 1.0)  # subtle patina
 oxide_factor = nodes.new("ShaderNodeMapRange")
 oxide_factor.inputs["From Min"].default_value = 0.0
 oxide_factor.inputs["From Max"].default_value = 1.0
 oxide_factor.inputs["To Min"].default_value = 0.0
-oxide_factor.inputs["To Max"].default_value = 0.35
+oxide_factor.inputs["To Max"].default_value = 0.18
 links.new(tex_coord.outputs["Object"], oxide_noise.inputs["Vector"])
 links.new(oxide_noise.outputs["Fac"], oxide_factor.inputs["Value"])
 links.new(oxide_factor.outputs["Result"], oxide_mix.inputs["Fac"])
