@@ -101,6 +101,31 @@ describe('computePxPerMetre — height-driven viewport', () => {
 		expect(computePxPerMetre(0.024, 0, ROW_WIDTH_PX)).toBe(0);
 	});
 
+	it('clamps on the cube even when Shiba is the slightly-taller dominant element', () => {
+		// 1789 BTC of gold ≈ 36.6 cm cube edge — Shiba (40 cm) is the
+		// dominant element by height, but the cube has a much higher
+		// visible-width ratio (≈ 0.98 vs ≈ 0.73), so the cube's
+		// visible width is actually the binding side. Without a dual
+		// clamp the cube would overflow off the row's left edge.
+		const cubeEdgeM = 0.366;
+		const phoneWidth = 320;
+		const phoneHeight = 360;
+		const gapPx = 14;
+		const px = computePxPerMetre(cubeEdgeM, phoneHeight, phoneWidth, gapPx);
+		const cubeVisiblePx = spritePixelSize(cubeEdgeM, px);
+		const shibaVisiblePx = spritePixelSize(SHIBA_HEIGHT_M, px);
+
+		const sidePx = phoneWidth / 2 - gapPx;
+		const cubeWidthOverHeight = 0.6575 / 0.6738;
+		const shibaWidthOverHeight = 0.3263 / 0.4456;
+		const visibleCubeWidth = cubeVisiblePx * cubeWidthOverHeight;
+		const visibleShibaWidth = shibaVisiblePx * shibaWidthOverHeight;
+		// Both visible widths must fit within their side — no overflow on
+		// either edge of the row.
+		expect(visibleCubeWidth).toBeLessThanOrEqual(sidePx + 0.5);
+		expect(visibleShibaWidth).toBeLessThanOrEqual(sidePx + 0.5);
+	});
+
 	it('mobile gap override gives more side room than the default', () => {
 		// Narrow phone: 320 px wide row, default 50 px gap leaves only
 		// 110 px per side. A 14 px gap leaves 146 px — visible Shiba

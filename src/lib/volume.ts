@@ -137,11 +137,13 @@ export const SHIBA_VISIBLE_HEIGHT_FRACTION = (1203 - 490) / 1600;
  * element ends up at ~91 % of the row height visually.
  *
  * The horizontal clamp engages only at narrow viewports / extreme
- * amounts: it shrinks pxPerMetre so the dominant element's *visible*
- * outer edge stays within `(viewportWidthPx / 2) − gapFromMidlinePx`
- * of its anchor. `gapFromMidlinePx` defaults to the desktop value
- * but is callable with a smaller value for mobile, where 50 px of
- * gap on each side eats most of a narrow row.
+ * amounts: it shrinks pxPerMetre so *both* elements' visible outer
+ * edges stay within `(viewportWidthPx / 2) − gapFromMidlinePx` of
+ * their anchors. The cube has a much higher visible-width-to-height
+ * ratio than the Shiba (≈ 0.98 vs ≈ 0.73), so when cube and Shiba
+ * are similar in real height the cube's width is the binding side
+ * even though the Shiba is taller — checking only the dominant
+ * element would let the cube overflow.
  */
 export function computePxPerMetre(
 	cubeEdgeM: number,
@@ -154,15 +156,12 @@ export function computePxPerMetre(
 	const fromHeight = viewportHeightPx / viewportHeightM;
 	if (viewportWidthPx <= 0) return fromHeight;
 	const sidePx = Math.max(0, viewportWidthPx / 2 - gapFromMidlinePx);
-	const cubeDominates = cubeEdgeM >= SHIBA_HEIGHT_M;
 	const cubeWidthOverHeight = CUBE_VISIBLE_WIDTH_FRACTION / CUBE_VISIBLE_HEIGHT_FRACTION;
 	const shibaWidthOverHeight = SHIBA_VISIBLE_WIDTH_FRACTION / SHIBA_VISIBLE_HEIGHT_FRACTION;
-	const fromWidth = cubeDominates
-		? cubeEdgeM > 0
-			? sidePx / (cubeEdgeM * cubeWidthOverHeight)
-			: Infinity
-		: sidePx / (SHIBA_HEIGHT_M * shibaWidthOverHeight);
-	return Math.min(fromHeight, fromWidth);
+	const fromWidthCube =
+		cubeEdgeM > 0 ? sidePx / (cubeEdgeM * cubeWidthOverHeight) : Infinity;
+	const fromWidthShiba = sidePx / (SHIBA_HEIGHT_M * shibaWidthOverHeight);
+	return Math.min(fromHeight, fromWidthCube, fromWidthShiba);
 }
 
 /** Convert a real-world metres dimension to pixels at the scene's scale. */

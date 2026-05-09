@@ -205,7 +205,11 @@
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
-		padding: 12px 8px 20px;
+		/* No horizontal padding — the row uses the full width available
+		   from its parent so cube and Shiba can scale up before the
+		   horizontal clamp binds. The midline gap is the only inner
+		   spacing the visualisation needs. */
+		padding: 8px 0 16px;
 		container-type: inline-size;
 	}
 
