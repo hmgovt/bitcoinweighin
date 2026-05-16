@@ -138,6 +138,18 @@
 	);
 
 	onMount(async () => {
+		// Inject Beehiiv newsletter form loader. Can't put a <script> tag
+		// directly in Svelte markup (it conflicts with the component
+		// script block), so we append it to the form container at runtime.
+		const beehiivContainer = document.getElementById('beehiiv-form');
+		if (beehiivContainer && !beehiivContainer.querySelector('script')) {
+			const s = document.createElement('script');
+			s.async = true;
+			s.src = 'https://subscribe-forms.beehiiv.com/v3/loader.js';
+			s.setAttribute('data-beehiiv-form', '6a25c97c-4b00-4c3e-9ed4-cb25c2db7be2');
+			beehiivContainer.appendChild(s);
+		}
+
 		const res = await fetch('/prices.json');
 		const data: PriceData = await res.json();
 		prices = data;
@@ -187,18 +199,29 @@
 		</div>
 	</div>
 
-	<!-- Header + controls column: text-driven, stays narrow at all widths. -->
-	<div class="mx-auto max-w-2xl px-4 pt-4 sm:pt-6">
-		<header class="mb-4 text-center">
-			<h1 class="sr-only">Bitcoin Weigh-In</h1>
-			<img
-				src="/header.jpg"
-				alt="Bitcoin Weigh-In"
-				width="1600"
-				height="562"
-				class="mx-auto block w-full"
-			/>
-			<p class="mt-2 text-sm text-zinc-500">The purchasing power of one coin, in things you can hold.</p>
+	<!--
+		Header: logo on the left, Beehiiv newsletter form on the right.
+		Wider container than the controls below so both can sit comfortably
+		side-by-side at desktop widths. Stacks vertically on mobile.
+	-->
+	<div class="mx-auto max-w-5xl px-4 pt-4 sm:pt-6">
+		<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
+			<div class="flex-shrink-0">
+				<h1 class="sr-only">Bitcoin Weigh-In</h1>
+				<img
+					src="/header.jpg"
+					alt="Bitcoin Weigh-In"
+					width="1600"
+					height="562"
+					class="block w-full max-w-sm"
+				/>
+				<p class="mt-2 text-sm text-zinc-500">The purchasing power of one coin, in things you can hold.</p>
+			</div>
+			<!--
+				Beehiiv form container. The loader script is injected in
+				onMount; the form renders inside this div at runtime.
+			-->
+			<div id="beehiiv-form" class="w-full min-w-0 sm:flex-1"></div>
 		</header>
 	</div>
 
