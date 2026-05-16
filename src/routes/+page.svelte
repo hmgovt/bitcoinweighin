@@ -66,6 +66,29 @@
 		setBtcFromSlider(sliderToBtc(sliderPos));
 	}
 
+	// Compact pinned bar — appears once the user has scrolled past the
+	// full controls card. Sentinel sits just below the controls; we watch
+	// its IntersectionObserver entry and flip the bar visible when it
+	// has scrolled above the viewport (not just merely off-screen below).
+	let sentinelEl: HTMLElement | undefined = $state();
+	let showStickyBar = $state(false);
+
+	$effect(() => {
+		if (!sentinelEl) return;
+		const obs = new IntersectionObserver((entries) => {
+			for (const entry of entries) {
+				if (entry.isIntersecting) {
+					showStickyBar = false;
+				} else {
+					// Off-screen — distinguish above (scrolled past) from below (not yet reached).
+					showStickyBar = entry.boundingClientRect.top < 0;
+				}
+			}
+		});
+		obs.observe(sentinelEl);
+		return () => obs.disconnect();
+	});
+
 	function handleDateChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		setDateFromPicker(target.value);
@@ -140,11 +163,42 @@
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950 text-zinc-100">
+	<!-- Compact pinned bar — slides in once user has scrolled past the full controls. -->
+	<div class="sticky-bar" class:visible={showStickyBar} aria-hidden={!showStickyBar}>
+		<div class="mx-auto flex h-11 max-w-2xl items-center gap-3 px-4">
+			<span class="min-w-[3.25rem] whitespace-nowrap font-mono text-xs text-amber-400">
+				{formatBtc($btcAmount)}
+			</span>
+			<input
+				type="range"
+				min="0"
+				max={SLIDER_STEPS}
+				value={sliderPos}
+				oninput={handleSliderInput}
+				class="flex-1 accent-amber-500"
+				aria-label="BTC amount"
+				tabindex={showStickyBar ? 0 : -1}
+			/>
+			{#if dayPrices}
+				<span class="min-w-[4.5rem] whitespace-nowrap text-right font-mono text-xs text-zinc-200">
+					{formatUsd($btcAmount * dayPrices.btc)}
+				</span>
+			{/if}
+		</div>
+	</div>
+
 	<!-- Header + controls column: text-driven, stays narrow at all widths. -->
-	<div class="mx-auto max-w-2xl px-4 pt-6 sm:pt-10">
-		<header class="mb-6 text-center">
-			<h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Bitcoin Weigh-In</h1>
-			<p class="mt-1 text-sm text-zinc-500">The purchasing power of one coin, in things you can hold.</p>
+	<div class="mx-auto max-w-2xl px-4 pt-4 sm:pt-6">
+		<header class="mb-4 text-center">
+			<h1 class="sr-only">Bitcoin Weigh-In</h1>
+			<img
+				src="/header.jpg"
+				alt="Bitcoin Weigh-In"
+				width="1600"
+				height="562"
+				class="mx-auto block w-full"
+			/>
+			<p class="mt-2 text-sm text-zinc-500">The purchasing power of one coin, in things you can hold.</p>
 		</header>
 	</div>
 
@@ -214,6 +268,14 @@
 					</button>
 				</div>
 			</div>
+
+			<!--
+				Sentinel: sits just below the controls card. When it scrolls above
+				the viewport the pinned compact bar slides in. The IO entry's
+				boundingClientRect.top < 0 means "above" rather than "below" — so
+				we distinguish "scrolled past" from "not yet reached".
+			-->
+			<div bind:this={sentinelEl} aria-hidden="true" class="h-px"></div>
 		</div>
 
 		<!--
@@ -259,5 +321,33 @@
 		font-size: 0.75rem;
 		color: #71717a; /* zinc-500 */
 		margin-top: 2px;
+	}
+
+	.sticky-bar {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 50;
+		background: rgba(9, 9, 11, 0.92); /* zinc-950 @ 92% */
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		border-bottom: 1px solid #27272a; /* zinc-800 */
+		transform: translateY(-100%);
+		opacity: 0;
+		transition:
+			transform 200ms ease-out,
+			opacity 200ms ease-out;
+		pointer-events: none;
+	}
+	.sticky-bar.visible {
+		transform: translateY(0);
+		opacity: 1;
+		pointer-events: auto;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.sticky-bar {
+			transition: none;
+		}
 	}
 </style>
