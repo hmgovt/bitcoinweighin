@@ -72,10 +72,13 @@ nodes = mat.node_tree.nodes
 links = mat.node_tree.links
 bsdf = nodes["Principled BSDF"]
 
-# Warm yellow base, fully metallic, mirror-polish roughness
-bsdf.inputs["Base Color"].default_value = (1.0, 0.77, 0.34, 1.0)
+# Deep saturated honey-orange base. Earlier 0.95/0.62/0.18 was still
+# washing out under the bright HDRI; pushed to 0.92/0.55/0.08 (deeper
+# red/yellow, lower blue) so the cube reads unmistakably as gold,
+# not pale brass, even after Filmic compresses highlights.
+bsdf.inputs["Base Color"].default_value = (0.92, 0.55, 0.08, 1.0)
 bsdf.inputs["Metallic"].default_value = 1.0
-bsdf.inputs["Roughness"].default_value = 0.08
+bsdf.inputs["Roughness"].default_value = 0.12
 bsdf.inputs["Specular"].default_value = 0.5
 
 tex_coord = nodes.new("ShaderNodeTexCoord")
@@ -92,21 +95,35 @@ bump_node = nodes.new("ShaderNodeBump")
 bump_node.inputs["Strength"].default_value = 0.025
 bump_node.inputs["Distance"].default_value = 0.0002
 links.new(noise.outputs["Fac"], bump_node.inputs["Height"])
-links.new(bump_node.outputs["Normal"], bsdf.inputs["Normal"])
 
-# Macro roughness variation — kept narrow (0.05–0.12) so the
-# front face reads mirror-polished while the bevels and noise
-# still vary enough to avoid the perfect-plastic look. Was
-# 0.15–0.28 in the cast-feel iteration; tightened 2026-04-29 to
-# match the premium-mint bullion brief.
+# Macro bump — low-frequency organic variation stacked on top of the
+# fine grain. Without this the cube reads as a chrome mirror; with it,
+# the surface picks up the subtle wave/flow texture of poured-and-
+# cooled cast metal. Subtle: too strong and the cube loses its cube-ness.
+macro_noise = nodes.new("ShaderNodeTexNoise")
+macro_noise.inputs["Scale"].default_value = 14.0
+macro_noise.inputs["Detail"].default_value = 6.0
+macro_noise.inputs["Roughness"].default_value = 0.55
+links.new(tex_coord.outputs["Object"], macro_noise.inputs["Vector"])
+
+macro_bump = nodes.new("ShaderNodeBump")
+macro_bump.inputs["Strength"].default_value = 0.07
+macro_bump.inputs["Distance"].default_value = 0.0008
+links.new(macro_noise.outputs["Fac"], macro_bump.inputs["Height"])
+links.new(bump_node.outputs["Normal"], macro_bump.inputs["Normal"])
+links.new(macro_bump.outputs["Normal"], bsdf.inputs["Normal"])
+
+# Macro roughness band widened from 0.05–0.12 to 0.08–0.22. The earlier
+# tight band was too uniform — patches of polish + patches of slightly
+# duller cast read as proper bullion rather than chrome plating.
 rn = nodes.new("ShaderNodeTexNoise")
 rn.inputs["Scale"].default_value = 6.0
 rn.inputs["Detail"].default_value = 4.0
 rm = nodes.new("ShaderNodeMapRange")
 rm.inputs["From Min"].default_value = 0.0
 rm.inputs["From Max"].default_value = 1.0
-rm.inputs["To Min"].default_value = 0.05
-rm.inputs["To Max"].default_value = 0.12
+rm.inputs["To Min"].default_value = 0.08
+rm.inputs["To Max"].default_value = 0.22
 links.new(tex_coord.outputs["Object"], rn.inputs["Vector"])
 links.new(rn.outputs["Fac"], rm.inputs["Value"])
 links.new(rm.outputs["Result"], bsdf.inputs["Roughness"])
@@ -124,8 +141,13 @@ world.use_nodes = True
 tree = world.node_tree
 tree.nodes.clear()
 
+# HDRI intensity knocked down from 1.0 to 0.3 so the studio area
+# lights set the directional look rather than the environment
+# washing every face with bright neutral tones. The reference photo
+# has high-contrast chiaroscuro — bright spec highlights against
+# deep shadow — which needed the env contribution dialled back.
 bg = tree.nodes.new("ShaderNodeBackground")
-bg.inputs["Strength"].default_value = 1.0
+bg.inputs["Strength"].default_value = 0.3
 
 env_tex = tree.nodes.new("ShaderNodeTexEnvironment")
 env_tex.image = bpy.data.images.load(HDRI_PATH)
@@ -145,7 +167,7 @@ tree.links.new(bg.outputs["Background"], out_node.inputs["Surface"])
 target = Vector((0, 0, EDGE / 2))
 
 key_data = bpy.data.lights.new(name="KeyLight", type='AREA')
-key_data.energy = 120
+key_data.energy = 220  # was 120; boosted to compensate for HDRI dropped to 0.3
 key_data.size = 2.0
 key_data.color = (1.0, 0.92, 0.78)
 key_obj = bpy.data.objects.new("KeyLight", key_data)
@@ -154,7 +176,7 @@ key_obj.location = (1.2, -1.5, 2.5)
 key_obj.rotation_euler = (target - key_obj.location).to_track_quat('-Z', 'Y').to_euler()
 
 fill_data = bpy.data.lights.new(name="FillLight", type='AREA')
-fill_data.energy = 60
+fill_data.energy = 30  # was 60; halved so shadows stay deep, reference-style
 fill_data.size = 3.0
 fill_data.color = (1.0, 0.95, 0.85)
 fill_obj = bpy.data.objects.new("FillLight", fill_data)
@@ -206,11 +228,18 @@ scene = bpy.context.scene
 scene.render.engine = 'CYCLES'
 scene.cycles.device = 'CPU'
 scene.cycles.samples = 512
+# Cap diffuse/glossy bounces. With the wider roughness band and macro
+# bump, default 12 bounces were exploding the indirect-light cost in
+# the shadow pass (shadow catcher samples every cube→ground bounce).
+# 4 is plenty for hero-shot quality on a metallic cube.
+scene.cycles.max_bounces = 4
+scene.cycles.diffuse_bounces = 2
+scene.cycles.glossy_bounces = 4
 scene.render.resolution_x = 1600
 scene.render.resolution_y = 1600
 scene.render.film_transparent = True
 scene.cycles.use_denoising = True
-scene.view_settings.view_transform = 'Standard'
+scene.view_settings.view_transform = 'Filmic'
 scene.render.image_settings.file_format = 'PNG'
 scene.render.image_settings.color_mode = 'RGBA'
 
@@ -231,6 +260,10 @@ ground.name = "ShadowGround"
 ground.is_shadow_catcher = True
 
 cube.visible_camera = False  # invisible to camera, still casts shadow
+
+# Shadow doesn't need 512 samples — denoiser handles low-frequency
+# contact shadows well. 128 cuts shadow render time by ~4×.
+scene.cycles.samples = 128
 
 scene.render.filepath = OUTPUT_SHADOW
 bpy.ops.render.render(write_still=True)

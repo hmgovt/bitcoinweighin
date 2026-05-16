@@ -7,30 +7,43 @@ The values below were iterated to portfolio quality on `gold_good_delivery_singl
 ## Gold — 24k
 
 ```
-Base colour       (1.000, 0.770, 0.340) linear sRGB    # warm yellow
+Base colour       (0.920, 0.550, 0.080) linear sRGB    # deep saturated honey
 Metallic          1.0
-Roughness         0.08  (base, varied procedurally)
+Roughness         0.12  (base, varied procedurally 0.08–0.22)
 Specular          0.5
-Normal            procedural noise → bump
-Bump strength     0.025
-Bump distance     0.0002
+Normal            fine bump (0.025) + macro bump (0.07) stacked
 ```
 
-**Procedural roughness:** Noise (scale 6.0, detail 4.0) → MapRange(0–1 → 0.05–0.12) → Roughness. Tightened 2026-04-29 from the original cast/satin range (0.15–0.28) to a mirror-polish range so the front face catches sharp studio highlights — premium-mint bullion (PAMP / Argor-Heraeus) rather than LBMA cast satin. Silver inherited this same range when authored, and the result confirmed it reads as desirable polish, prompting the gold retune.
+**Procedural roughness:** Noise (scale 6.0, detail 4.0) → MapRange(0–1 → 0.08–0.22) → Roughness. Widened 2026-05-16 from the 0.05–0.12 mirror-polish band — too uniform read as chrome plating; the wider band gives patches of polish + patches of slightly duller cast that read as proper bullion under the high-contrast lighting.
 
-**Procedural normal:** Noise (scale 120.0, detail 12.0, roughness 0.6) → Bump (strength 0.025, distance 0.0002) → Normal. Fine-grain micro-texture; only visible at close render distance, prevents the "perfectly smooth plastic" look at thumbnail sizes.
+**Procedural normal:** Two bumps stacked. Fine grain: noise (scale 120, detail 12, roughness 0.6) → bump (strength 0.025, distance 0.0002). Macro: noise (scale 14, detail 6, roughness 0.55) → bump (strength 0.07, distance 0.0008) → fine bump's Normal output as input. Added 2026-05-16 — fine grain alone made the cube read as a chrome mirror; the macro bump introduces the subtle wave/flow of poured-cast metal without losing the cube's shape.
 
-**Tex Coord input:** Object (not UV) on both noise nodes — keeps the noise stable as the geometry scales.
+**Tex Coord input:** Object (not UV) on every noise node — keeps the noise stable as the geometry scales.
 
-## Silver, platinum, copper — locked when authored
+**2026-05-16 re-tune log:** Base colour pushed from (1.0, 0.77, 0.34) → (0.95, 0.62, 0.18) → (0.92, 0.55, 0.08) over two iterations. The earlier values rendered as pale champagne/brass even under Filmic; the deeper saturation was needed once the HDRI was dropped to 0.3 strength (which removed the bright neutral wash that was flattening the base colour).
+
+## Silver
+
+```
+Base colour       (0.780, 0.780, 0.760) linear sRGB    # neutral, slightly warm grey
+Metallic          1.0
+Roughness         0.12  (base, varied procedurally 0.08–0.22)
+Specular          0.5
+Normal            fine bump (0.025) + macro bump (0.07) stacked
+```
+
+Inherits the gold procedural rig wholesale (same noise scales, same macro bump). Only the base colour and lighting are silver-specific.
+
+**2026-05-16 re-tune log:** Knocked the base colour from (0.972, 0.960, 0.915) → (0.86, 0.85, 0.82) → (0.78, 0.78, 0.76) — the earlier near-white base rendered as chrome plating because real silver looks bright because of what it reflects, not because it's intrinsically white. The darker base lets the strong directional key produce the white-hot highlights against deep shadow that read as silver bullion.
+
+## Platinum, copper — locked when authored
 
 | Material | Base colour (linear sRGB) | Metallic | Roughness | Notes |
 |---|---|---|---|---|
-| Silver | (0.972, 0.960, 0.915) | 1.0 | 0.08 | Mirror-polished feel; slightly cooler than white |
 | Platinum | (0.673, 0.637, 0.585) | 1.0 | 0.15 | Cooler grey than silver, less reflective |
 | Copper | (0.722, 0.451, 0.200) | 1.0 | 0.22 | Patina variant: (0.654, 0.455, 0.337), roughness 0.45 |
 
-Silver/platinum/copper variants will inherit the gold procedural noise + bump rig with material-specific scale tweaks when authored. Add their procedural details to this file at that point.
+Platinum/copper variants will inherit the gold + silver procedural noise + bump rig with material-specific scale tweaks when authored. Add their procedural details to this file at that point.
 
 ## Plutonium-238
 
@@ -70,19 +83,28 @@ Bump distance     0.0002
 |---|---|
 | Engine | Cycles |
 | Device | CPU (Intel Mac compatibility) |
-| Samples | 512 |
+| Samples | 512 (main) / 128 (shadow pass) |
+| Max bounces | 4 (diffuse 2, glossy 4) |
 | Denoising | On |
 | Resolution | 1600 × 1600 |
 | Film transparent | True |
-| View transform | Standard |
+| View transform | Filmic |
 | File format | PNG, RGBA |
+
+**Bounce cap (2026-05-16):** Default 12 bounces made the shadow catcher pass run 60+ min for gold/silver because the wider roughness band + macro bump exploded the indirect-light cost. 4 max bounces is plenty for hero-quality metallic cubes and cuts shadow time by ~4×.
+
+**Shadow pass samples (2026-05-16):** Dropped from 512 to 128 — denoiser handles low-frequency contact shadows well and the cube itself uses 512.
+
+**View transform (2026-05-16):** Switched from `Standard` to `Filmic`. Standard clipped the top-face highlight to flat white; Filmic preserves the warm gold tint even in the brightest specular hot spot.
 
 ## HDRI environments
 
 | HDRI | Source | Strength | Use case |
 |---|---|---|---|
 | `studio_small_09_4k.exr` | Poly Haven (CC0) | 0.6 | Three-quarter rig template (`rig_three_quarter.py`) |
-| `brown_photostudio_02_4k.exr` | Poly Haven (CC0) | 1.0 | Production gold renders (warmer fall-off) |
+| `brown_photostudio_02_4k.exr` | Poly Haven (CC0) | 0.3 | Production gold / silver cubes (lets directional area lights set the look) |
+
+**HDRI strength (2026-05-16):** Dropped from 1.0 to 0.3 for the cube renders. At 1.0 the environment was washing every face with bright neutral tones, flattening saturation (gold) and dynamic range (silver). At 0.3 the area lights dominate and the cube picks up the reference's chiaroscuro.
 
 HDRIs are not committed (large binary inputs). Pull from `polyhaven.com` to project root before rendering — paths are absolute in the Python pipeline.
 
@@ -102,8 +124,10 @@ Source: `scripts/blender/rig_three_quarter.py`. The `assets/blender/_rigs/three_
 
 | Light | Type | Energy | Size | Colour | Position |
 |---|---|---|---|---|---|
-| Key | Area | 120 | 2.0 | (1.0, 0.92, 0.78) ~5500 K warm | (1.2, −1.5, 2.5) |
-| Fill | Area | 60 | 3.0 | (1.0, 0.95, 0.85) | (1.5, 0.5, 0.8) |
+| Key | Area | 220 | 2.0 | (1.0, 0.92, 0.78) ~5500 K warm | (1.2, −1.5, 2.5) |
+| Fill | Area | 30 | 3.0 | (1.0, 0.95, 0.85) | (1.5, 0.5, 0.8) |
 | Rim | Area | 40 | 1.5 | (1.0, 0.88, 0.7) | (−1.0, 1.2, 1.5) |
 
 All three lights aim at the object centre. Energy values assume the object's longest dimension is normalised to 0.5 m in Blender units.
+
+**2026-05-16 re-tune:** Key boosted 120 → 220 and Fill halved 60 → 30 alongside the HDRI drop to 0.3. The boost compensates for less ambient contribution; the fill cut keeps shadows reference-deep instead of washing them with secondary fill.
