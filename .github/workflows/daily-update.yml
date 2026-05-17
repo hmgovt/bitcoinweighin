@@ -25,15 +25,21 @@ jobs:
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           STOOQ_API_KEY: ${{ secrets.STOOQ_API_KEY }}
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          MASSIVE_QUOTE_URL: ${{ secrets.MASSIVE_QUOTE_URL }}
+          MASSIVE_QUOTE_FIELD: ${{ secrets.MASSIVE_QUOTE_FIELD }}
         run: npm run fetch-daily
 
       - name: Build prices.json
         run: npm run build-prices
 
+      - name: Build dataset artifacts
+        run: npm run build-dataset
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/prices.ndjson static/prices.json static/meta.json static/health.json
+          git add data/prices.ndjson static/prices.json static/meta.json static/health.json static/data static/api
           git diff --cached --quiet || git commit -m "chore: daily price update $(date -u +%Y-%m-%d)"
           git push

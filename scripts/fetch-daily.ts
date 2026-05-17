@@ -16,6 +16,11 @@ import {
 	btcCirculatingSupply,
 } from './sources.js';
 import { fetchStooq, fetchFRED, type FetchResult } from './fetchers.js';
+import {
+	fetchMassiveQuote,
+	MASSIVE_CROSS_VALIDATED,
+	CROSS_VALIDATION_THRESHOLD_PCT,
+} from './fetchers-massive.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -93,7 +98,84 @@ async function main() {
 	appendFileSync(NDJSON_PATH, JSON.stringify(row) + '\n');
 	console.log(`\nAppended row for ${dateStr}`);
 
-	// Update health.json
+	// === Massive secondary-source cross-validation ===
+	// Quality signal only — fails soft, never blocks the build. If
+	// MASSIVE_API_KEY is not set, the fetcher returns null and we log
+	// "skipped" rather than emitting a flag.
+	console.log('\nCross-validating against Massive...');
+	const crossValidation: {
+		status: 'ok' | 'skipped' | 'partial';
+		threshold_pct: number;
+		attempted: string[];
+		skipped: Array<{ field: string; reason: string }>;
+		flags: Array<{
+			date: string;
+			field: string;
+			stooq_value: number;
+			massive_value: number;
+			percent_diff: number;
+		}>;
+	} = {
+		status: 'ok',
+		threshold_pct: CROSS_VALIDATION_THRESHOLD_PCT,
+		attempted: [],
+		skipped: [],
+		flags: [],
+	};
+
+	let anyAttempted = false;
+	for (const { symbol, datasetField } of MASSIVE_CROSS_VALIDATED) {
+		const stooqValue = row[datasetField];
+		if (typeof stooqValue !== 'number') {
+			crossValidation.skipped.push({ field: datasetField, reason: 'no stooq value to compare' });
+			continue;
+		}
+		const result = await fetchMassiveQuote(symbol, dateStr);
+		if (result.value === null) {
+			crossValidation.skipped.push({
+				field: datasetField,
+				reason: result.error || 'no value returned',
+			});
+			continue;
+		}
+		anyAttempted = true;
+		crossValidation.attempted.push(datasetField);
+		const pct = Math.abs((result.value - stooqValue) / stooqValue) * 100;
+		console.log(
+			`  ${datasetField}: stooq=${stooqValue}  massive=${result.value}  diff=${pct.toFixed(3)}%`
+		);
+		if (pct > CROSS_VALIDATION_THRESHOLD_PCT) {
+			crossValidation.flags.push({
+				date: dateStr,
+				field: datasetField,
+				stooq_value: stooqValue,
+				massive_value: result.value,
+				percent_diff: +pct.toFixed(4),
+			});
+		}
+		await new Promise((r) => setTimeout(r, 500));
+	}
+	if (!anyAttempted) {
+		crossValidation.status = 'skipped';
+	} else if (crossValidation.skipped.length > 0) {
+		crossValidation.status = 'partial';
+	}
+
+	// Update health.json — preserve any cross_validation_flags accumulated
+	// across prior runs so historical disagreements remain auditable.
+	let priorFlags: typeof crossValidation.flags = [];
+	if (existsSync(HEALTH_PATH)) {
+		try {
+			const prior = JSON.parse(readFileSync(HEALTH_PATH, 'utf-8'));
+			if (Array.isArray(prior.cross_validation_flags)) {
+				priorFlags = prior.cross_validation_flags;
+			}
+		} catch {
+			// ignore malformed prior health.json
+		}
+	}
+	const cross_validation_flags = [...priorFlags, ...crossValidation.flags];
+
 	writeFileSync(
 		HEALTH_PATH,
 		JSON.stringify(
@@ -102,6 +184,8 @@ async function main() {
 				type: 'daily',
 				date: dateStr,
 				sources: health,
+				cross_validation: crossValidation,
+				cross_validation_flags,
 			},
 			null,
 			2
