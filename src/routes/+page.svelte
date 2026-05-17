@@ -213,7 +213,7 @@
 					class="brand__mark"
 				/>
 				<p class="brand__subtitle">
-					The purchasing power of one coin, in things you can hold.
+					The purchasing power of bitcoin, in&nbsp;things you can hold.
 				</p>
 			</a>
 			<div class="header-pills">
@@ -403,7 +403,7 @@
 		font-size: 14px;
 		font-weight: 400;
 		line-height: 1.35;
-		max-width: 32ch;
+		text-wrap: balance;
 	}
 	.header-pills {
 		width: 100%;
