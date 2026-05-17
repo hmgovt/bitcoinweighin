@@ -1,0 +1,84 @@
+{
+  "entities": [
+    {
+      "slug": "1btc",
+      "label": "1 BTC",
+      "btc": 1,
+      "asOf": null,
+      "type": "benchmark",
+      "source": null,
+      "sourceName": null,
+      "note": "Single-coin reset point."
+    },
+    {
+      "slug": "make-it",
+      "label": "Make it",
+      "btc": 6.15,
+      "asOf": null,
+      "type": "meme",
+      "source": null,
+      "sourceName": "21M ÷ ~3.4M global millionaires",
+      "note": "The 'one stack to financial parity' figure. Often quoted as 6.15 BTC."
+    },
+    {
+      "slug": "el-salvador",
+      "label": "El Salvador",
+      "btc": 7651,
+      "asOf": "2026-05-15",
+      "type": "nation-state",
+      "source": "https://www.bitcoin.gob.sv/",
+      "sourceName": "El Salvador National Bitcoin Office (1 BTC/day DCA)",
+      "note": "Active daily DCA accumulation (~1 BTC/day) via the National Bitcoin Office under President Bukele. Continues post-IMF deal."
+    },
+    {
+      "slug": "us-govt",
+      "label": "US Government",
+      "btc": 328372,
+      "asOf": "2026-05-15",
+      "type": "nation-state",
+      "source": "https://bitcointreasuries.net/",
+      "sourceName": "Bitcoin Treasuries + Arkham Intelligence",
+      "note": "Primarily from seizures (Silk Road, Bitfinex hack, etc.). Estimates range 198k–328k depending on whether seized-but-pending vs. fully forfeited assets are counted; this is the inclusive figure. Strategic Bitcoin Reserve being formalised; no active buying program."
+    },
+    {
+      "slug": "blackrock-ibit",
+      "label": "BlackRock IBIT",
+      "btc": 821512,
+      "asOf": "2026-05-05",
+      "type": "etf",
+      "source": "https://www.ishares.com/us/products/333011/",
+      "sourceName": "iShares Bitcoin Trust holdings + BitBo",
+      "note": "Largest spot Bitcoin ETF globally by AUM. Subject to daily inflows/outflows."
+    },
+    {
+      "slug": "strategy",
+      "label": "Strategy",
+      "btc": 818869,
+      "asOf": "2026-05-11",
+      "type": "corporate",
+      "source": "https://www.strategy.com/btc",
+      "sourceName": "Strategy investor page + SEC 8-K filings",
+      "note": "Formerly MicroStrategy. Largest corporate Bitcoin holder. Average cost basis ~$75,500/BTC. Continues weekly purchases."
+    },
+    {
+      "slug": "satoshi",
+      "label": "Satoshi",
+      "btc": 1096354,
+      "asOf": "2026-01-01",
+      "type": "individual",
+      "source": "https://bitslog.com/2013/04/17/the-well-deserved-fortune-of-satoshi-nakamoto/",
+      "sourceName": "Lerner Patoshi-pattern research",
+      "note": "Estimated from Patoshi-pattern address analysis. Dormant since 2010; widely accepted estimate but not 100% confirmed."
+    },
+    {
+      "slug": "market-cap",
+      "label": "Entire BTC market cap",
+      "btc": 21000000,
+      "asOf": null,
+      "type": "supply",
+      "source": null,
+      "sourceName": "Bitcoin protocol-defined hard cap",
+      "note": "Theoretical maximum supply at the protocol limit."
+    }
+  ]
+}

@@ -13,7 +13,10 @@
     "bootstrap": "tsx scripts/bootstrap.ts",
     "fetch-daily": "tsx scripts/fetch-daily.ts",
     "build-prices": "tsx scripts/build-prices-json.ts",
-    "build-dataset": "tsx scripts/build-dataset-artifacts.ts"
+    "build-dataset": "tsx scripts/build-dataset-artifacts.ts",
+    "holdings:list": "tsx scripts/holdings-list.ts",
+    "holdings:update": "tsx scripts/holdings-update.ts",
+    "holdings:check": "tsx scripts/holdings-check.ts"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.8",
