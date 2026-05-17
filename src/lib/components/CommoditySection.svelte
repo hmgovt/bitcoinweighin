@@ -158,7 +158,9 @@
 				<!-- f. Persistent source attribution. -->
 				<p class="micro sources">
 					Wholesale: UNODC 2024 · Retail: DEA 2024 · Producer: UNODC 2024 ·
-					Illustrative pricing — see methodology.
+					Illustrative pricing — see
+					<a href="/methodology" class="link">methodology</a> ·
+					<a href="/data" class="link">dataset</a>.
 				</p>
 			</div>
 		</StillPanel>
@@ -213,7 +215,9 @@
 		{#if showPu238Fact}
 			<p class="pu238-sources">
 				DOE Office of Nuclear Energy · NASA Planetary Science · The Planetary Society ·
-				Cassini OIG (1997, escalated) · See methodology.
+				Cassini OIG (1997, escalated) · See
+				<a href="/methodology" class="link">methodology</a> ·
+				<a href="/data" class="link">dataset</a>.
 			</p>
 		{/if}
 	{/if}
@@ -297,5 +301,13 @@
 		font-size: 0.7rem;
 		line-height: 1.5;
 		color: #71717a;
+	}
+
+	.link {
+		color: inherit;
+		text-decoration: underline;
+	}
+	.link:hover {
+		text-decoration: none;
 	}
 </style>
