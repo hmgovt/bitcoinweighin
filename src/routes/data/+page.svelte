@@ -380,7 +380,7 @@ const prices = await res.json();`,
 					quality, so coverage begins 2013-01-01. Source outages and
 					cross-validation flags from the secondary feed are logged at
 					<a href={data.buildStatusUrl} class="font-mono underline hover:no-underline"
-						>/health.json</a
+						>health.json</a
 					>.
 				</p>
 			</div>
@@ -419,7 +419,7 @@ const prices = await res.json();`,
 				<div>
 					Build status:
 					<a href={data.buildStatusUrl} class="font-mono underline hover:no-underline"
-						>/health.json</a
+						>health.json</a
 					>
 				</div>
 				{#if data.config.doi}
