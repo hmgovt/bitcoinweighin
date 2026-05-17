@@ -72,7 +72,7 @@
     },
     {
       "slug": "market-cap",
-      "label": "Entire BTC market cap",
+      "label": "Total supply",
       "btc": 21000000,
       "asOf": null,
       "type": "supply",
