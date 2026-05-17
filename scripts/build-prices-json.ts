@@ -31,18 +31,17 @@ function main() {
 	const lines = raw.trim().split('\n');
 	console.log(`Read ${lines.length} rows from prices.ndjson`);
 
-	// Build the pivoted structure: { "2013-01-01": { btc: 13.3, xau: 1664.75, ... }, ... }
+	// Build the pivoted structure: { "2013-01-02": { btc: 13.3, xau: 1664.75, ... }, ... }
 	const prices: Record<string, Record<string, number>> = {};
 	const forwardFilledDates: Set<string> = new Set();
 	let firstDate = '';
 	let lastDate = '';
+	let skippedIncomplete = 0;
 
 	for (const line of lines) {
 		if (!line.trim()) continue;
 		const row = JSON.parse(line);
 		const date = row.date;
-		if (!firstDate) firstDate = date;
-		lastDate = date;
 
 		const entry: Record<string, number> = { btc: row.btc };
 		if (row.btc_supply !== undefined) entry.btc_supply = row.btc_supply;
@@ -59,7 +58,24 @@ function main() {
 			entry[source.field] = value;
 		}
 
+		// Skip leading rows where btc is the only commodity present and
+		// there's no prior row to forward-fill from. In practice this drops
+		// 2013-01-01 (a market-closed holiday with no other commodity closes).
+		const otherCommodityCount = SOURCES.filter(
+			(s) => s.field !== 'btc' && entry[s.field] !== undefined
+		).length;
+		if (otherCommodityCount === 0 && Object.keys(prices).length === 0) {
+			skippedIncomplete += 1;
+			continue;
+		}
+
+		if (!firstDate) firstDate = date;
+		lastDate = date;
 		prices[date] = entry;
+	}
+
+	if (skippedIncomplete > 0) {
+		console.log(`Skipped ${skippedIncomplete} leading row(s) with no commodity closes`);
 	}
 
 	// Write prices.json

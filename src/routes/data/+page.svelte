@@ -377,7 +377,7 @@ const prices = await res.json();`,
 				</p>
 				<p>
 					Pre-2013 data is unavailable across the commodity set at acceptable
-					quality, so coverage begins 2013-01-01. Source outages and
+					quality, so coverage begins 2013-01-02. Source outages and
 					cross-validation flags from the secondary feed are logged at
 					<a href={data.buildStatusUrl} class="font-mono underline hover:no-underline"
 						>health.json</a
