@@ -216,11 +216,9 @@
 					The purchasing power of one coin, in things you can hold.
 				</p>
 			</a>
-			{#if !loading}
-				<div class="header-pills">
-					<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
-				</div>
-			{/if}
+			<div class="header-pills">
+				<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
+			</div>
 		</header>
 	</div>
 
