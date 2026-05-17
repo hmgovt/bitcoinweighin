@@ -277,9 +277,9 @@ const SCHEMA_COLUMNS = [
 	{
 		name: 'coffee_usd',
 		type: 'number',
-		unit: 'USD cents per pound',
+		unit: 'USD per pound',
 		source: 'Stooq kc.c daily close',
-		notes: 'ICE Arabica coffee continuous front-month.',
+		notes: 'ICE Arabica coffee continuous front-month. Stooq quotes in cents/lb; this column is normalised to dollars/lb at build time.',
 	},
 	{
 		name: 'xau_per_btc',
@@ -326,9 +326,9 @@ const SCHEMA_COLUMNS = [
 	{
 		name: 'coffee_per_btc',
 		type: 'number',
-		unit: 'pounds of Arabica coffee per BTC (cents-per-pound denominator)',
+		unit: 'pounds of Arabica coffee per BTC',
 		source: 'Derived (btc_usd / coffee_usd)',
-		notes: 'Coffee is quoted in cents; the ratio reflects that denominator. Divide by 100 if you want pounds per BTC at dollar parity.',
+		notes: 'How many pounds of ICE Arabica coffee 1 BTC could purchase at the day\'s close.',
 	},
 	{
 		name: 'forward_filled',

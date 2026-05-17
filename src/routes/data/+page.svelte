@@ -106,7 +106,13 @@ const prices = await res.json();`,
 								class="underline hover:no-underline">{data.config.doi}</a
 							>
 						{:else}
-							<span class="text-zinc-400">(pending Zenodo release)</span>
+							<span class="text-zinc-400">Zenodo archive pending</span>
+							<span class="mt-0.5 block font-sans text-[11px] text-zinc-500">
+								Issued at first release tag. See
+								<a href="#versions-and-changelog" class="underline hover:no-underline"
+									>changelog</a
+								> for release notes.
+							</span>
 						{/if}
 					</dd>
 				</div>
@@ -346,9 +352,18 @@ const prices = await res.json();`,
 					</div>
 				</div>
 			{/each}
+			<p class="mt-2 text-xs text-zinc-500">
+				For reproducible analysis pinned to a specific dataset version, use the
+				versioned path:
+				<code class="font-mono"
+					>https://bitcoinweighin.com/data/v{data.config.version}/prices.json</code
+				>. The
+				<code class="font-mono">/api/prices.json</code> endpoint always points at the latest;
+				versioned paths never change.
+			</p>
 		</section>
 
-		<section class="mb-10">
+		<section id="versions-and-changelog" class="mb-10">
 			<h2 class="mb-3 text-base font-semibold">Versions and changelog</h2>
 			<div class="changelog text-sm">{@html data.changelogHtml}</div>
 			<p class="mt-3 text-xs text-zinc-500">
@@ -377,10 +392,10 @@ const prices = await res.json();`,
 				</p>
 				<p>
 					Pre-2013 data is unavailable across the commodity set at acceptable
-					quality, so coverage begins 2013-01-01. Source outages and
+					quality, so coverage begins 2013-01-02. Source outages and
 					cross-validation flags from the secondary feed are logged at
 					<a href={data.buildStatusUrl} class="font-mono underline hover:no-underline"
-						>/health.json</a
+						>health.json</a
 					>.
 				</p>
 			</div>
@@ -419,7 +434,7 @@ const prices = await res.json();`,
 				<div>
 					Build status:
 					<a href={data.buildStatusUrl} class="font-mono underline hover:no-underline"
-						>/health.json</a
+						>health.json</a
 					>
 				</div>
 				{#if data.config.doi}

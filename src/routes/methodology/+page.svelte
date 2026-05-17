@@ -44,7 +44,7 @@
 			<h2>What this is</h2>
 			<p>
 				The Bitcoin Weigh-In dataset records daily closing prices in US dollars for a curated set
-				of fungible commodities from 2013-01-01 to the most recent completed UTC day. From those
+				of fungible commodities from 2013-01-02 to the most recent completed UTC day. From those
 				closes it derives per-BTC equivalents (how many troy ounces of gold, pounds of copper, or
 				barrels of crude one bitcoin could have purchased on each day) and pairs them with a
 				deterministically computed BTC circulating supply. The artifact is a single small file —

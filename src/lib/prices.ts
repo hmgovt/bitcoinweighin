@@ -106,11 +106,6 @@ export function computeCommodityAmount(
 	// USD value of the BTC amount
 	const usdValue = btcAmount * btcPrice;
 
-	// For coffee: price is in cents/lb in the data
-	if (commodity.priceField === 'coffee') {
-		return usdValue / (commodityPrice / 100);
-	}
-
 	return usdValue / commodityPrice;
 }
 

@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this dataset, please cite it as below."
+type: dataset
+title: "Bitcoin Weigh-In Daily Commodity Price Dataset"
+authors:
+  - name: "Bitcoin Weigh-In"
+    type: entity
+    email: info@sortathing.com
+version: "1.0.1"
+date-released: "2026-05-17"
+url: "https://bitcoinweighin.com/data"
+repository-code: "https://github.com/hmgovt/bitcoinweighin"
+license: CC-BY-4.0
+# doi: set after Zenodo release; see docs/zenodo-release.md
+abstract: "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, plus derived per-BTC values and a deterministically computed BTC circulating supply."
