@@ -19,8 +19,6 @@ const config = {
 			// to those paths from the /data page don't block the build.
 			handleHttpError: ({ path, message }) => {
 				if (path.startsWith('/data/v') || path.startsWith('/api/')) return;
-				// /methodology arrives in a follow-up commit; ignore for now.
-				if (path === '/methodology') return;
 				throw new Error(message);
 			}
 		}
