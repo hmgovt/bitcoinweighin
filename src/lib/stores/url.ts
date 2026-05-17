@@ -9,12 +9,9 @@ import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { getEntity } from '../holdings.js';
 
-export type UnitSystem = 'metric' | 'imperial';
-
 // ── Raw stores ──────────────────────────────────────────────────
 export const btcAmount = writable<number>(1);
 export const selectedDate = writable<string>('');
-export const unitSystem = writable<UnitSystem>('imperial');
 export const activePreset = writable<string | null>(null);
 export const scrollToCommodity = writable<string | null>(null);
 /** Pu-238 Geiger crackle opt-in. Default off; persists via ?audio=on. */
@@ -35,9 +32,6 @@ function pushToUrl() {
 		const date = get(selectedDate);
 		if (date) params.set('date', date);
 
-		const unit = get(unitSystem);
-		if (unit !== 'imperial') params.set('unit', unit);
-
 		const preset = get(activePreset);
 		if (preset) params.set('preset', preset);
 
@@ -57,7 +51,6 @@ function pushToUrl() {
 if (browser) {
 	btcAmount.subscribe(() => pushToUrl());
 	selectedDate.subscribe(() => pushToUrl());
-	unitSystem.subscribe(() => pushToUrl());
 	activePreset.subscribe(() => pushToUrl());
 	audioEnabled.subscribe(() => pushToUrl());
 }
@@ -94,10 +87,8 @@ export function hydrateFromUrl(latestDate: string) {
 		}
 	}
 
-	const unit = params.get('unit');
-	if (unit === 'metric' || unit === 'imperial') {
-		unitSystem.set(unit);
-	}
+	// ?unit=metric (legacy): silently ignored. The toggle was removed
+	// in May 2026; readouts now ship both units side-by-side.
 
 	const commodity = params.get('commodity');
 	if (commodity) {

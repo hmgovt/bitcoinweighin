@@ -6,7 +6,6 @@
 	import {
 		btcAmount,
 		selectedDate,
-		unitSystem,
 		activePreset,
 		setBtcFromSlider,
 		setDateFromPicker,
@@ -92,10 +91,6 @@
 	function handleDateChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		setDateFromPicker(target.value);
-	}
-
-	function handleUnitToggle() {
-		unitSystem.update((u) => (u === 'metric' ? 'imperial' : 'metric'));
 	}
 
 	function handlePresetSelect(slug: string) {
@@ -307,7 +302,6 @@
 					{amount}
 					btcAmount={$btcAmount}
 					btcUsdPrice={dayPrices?.btc ?? 0}
-					unitSys={$unitSystem}
 				/>
 			{/each}
 		</div>

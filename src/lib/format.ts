@@ -2,7 +2,13 @@
  * Formatting utilities for mass, volume, and commodity amounts.
  */
 
-import type { UnitSystem } from './stores/url.js';
+/**
+ * Unit system. The user-facing toggle was removed in May 2026; readouts now
+ * either render dual-unit pairs (cube-mode) or hardcode imperial-primary
+ * (progression-mode). The type is retained so the formatters can be called
+ * for either system, e.g. when building a pair string.
+ */
+export type UnitSystem = 'metric' | 'imperial';
 
 // ── Mass formatting ─────────────────────────────────────────────
 
