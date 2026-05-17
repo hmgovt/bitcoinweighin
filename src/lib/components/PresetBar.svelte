@@ -32,14 +32,6 @@
 			{/if}
 		</button>
 	{/each}
-	<button
-		type="button"
-		class="preset-pill preset-pill--placeholder"
-		title="More entity presets coming in a future release."
-		aria-label="More presets (placeholder)"
-	>
-		<span class="preset-pill__label">More presets…</span>
-	</button>
 </div>
 
 <style>
@@ -74,13 +66,6 @@
 	}
 	.preset-pill--active:hover {
 		border-color: #f59e0b;
-	}
-	.preset-pill--placeholder {
-		color: #71717a;
-		cursor: default;
-	}
-	.preset-pill--placeholder:hover {
-		border-color: #3a3a3a;
 	}
 	.preset-pill__label {
 		display: block;

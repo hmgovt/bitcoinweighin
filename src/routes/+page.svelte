@@ -133,16 +133,16 @@
 	);
 
 	onMount(async () => {
-		// Inject Beehiiv newsletter form loader. Can't put a <script> tag
-		// directly in Svelte markup (it conflicts with the component
-		// script block), so we append it to the form container at runtime.
-		const beehiivContainer = document.getElementById('beehiiv-form');
-		if (beehiivContainer && !beehiivContainer.querySelector('script')) {
+		// Beehiiv loader self-positions (sticky-bottom). Append to body so
+		// the script governs its own placement rather than getting trapped
+		// inside an inline container.
+		const BEEHIIV_ID = '6a25c97c-4b00-4c3e-9ed4-cb25c2db7be2';
+		if (!document.querySelector(`script[data-beehiiv-form="${BEEHIIV_ID}"]`)) {
 			const s = document.createElement('script');
 			s.async = true;
 			s.src = 'https://subscribe-forms.beehiiv.com/v3/loader.js';
-			s.setAttribute('data-beehiiv-form', '6a25c97c-4b00-4c3e-9ed4-cb25c2db7be2');
-			beehiivContainer.appendChild(s);
+			s.setAttribute('data-beehiiv-form', BEEHIIV_ID);
+			document.body.appendChild(s);
 		}
 
 		const res = await fetch('/prices.json');
@@ -296,17 +296,6 @@
 				/>
 			{/each}
 		</div>
-
-		<!--
-			Beehiiv newsletter form target. Moved out of the main flow so the
-			header → slider → first commodity rhythm isn't disturbed by the
-			form's loaded height. The loader script (injected in onMount)
-			attaches itself to this element; Beehiiv's loader config governs
-			whether the form renders inline here or relocates itself.
-		-->
-		<div class="mx-auto max-w-2xl px-4 pb-10">
-			<div id="beehiiv-form"></div>
-		</div>
 	{/if}
 </div>
 
@@ -404,9 +393,9 @@
 	}
 	.brand__mark {
 		display: block;
-		max-height: 64px;
+		height: 96px;
 		width: auto;
-		height: auto;
+		max-width: 100%;
 	}
 	.brand__subtitle {
 		margin: 0;

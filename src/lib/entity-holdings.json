@@ -12,7 +12,7 @@
     },
     {
       "slug": "make-it",
-      "label": "Make it",
+      "label": "6.15 “Make it stack”",
       "btc": 6.15,
       "asOf": null,
       "type": "meme",
@@ -64,7 +64,7 @@
       "slug": "satoshi",
       "label": "Satoshi",
       "btc": 1096354,
-      "asOf": "2026-01-01",
+      "asOf": null,
       "type": "individual",
       "source": "https://bitslog.com/2013/04/17/the-well-deserved-fortune-of-satoshi-nakamoto/",
       "sourceName": "Lerner Patoshi-pattern research",
