@@ -86,7 +86,7 @@
       "dataQuality": "live",
       "updateCadence": "Daily (ICE close)",
       "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Continuous front-month ICE Arabica coffee futures, USD cents per pound (converted to USD per pound in the dataset)."
+      "notes": "Continuous front-month ICE Arabica coffee futures. Stooq quotes in USD cents per pound; normalised to USD per pound in coffee_usd."
     },
     {
       "commodity": "BTC circulating supply",

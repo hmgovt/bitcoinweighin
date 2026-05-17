@@ -48,9 +48,15 @@ function main() {
 		if (row.btc_supply !== undefined) entry.btc_supply = row.btc_supply;
 
 		for (const source of SOURCES) {
-			if (row[source.field] !== undefined) {
-				entry[source.field] = row[source.field];
-			}
+			if (row[source.field] === undefined) continue;
+			let value: number = row[source.field];
+			// Stooq quotes kc.c in US cents per pound. Normalise to USD per pound
+			// at the pivot so prices.json, the dataset artifacts, and the
+			// /api/prices.json endpoint all carry the same unit. The raw
+			// data/prices.ndjson is left untouched as the upstream log.
+			// Round to 4dp to avoid IEEE-754 trailing noise (168.21 / 100 → 1.6821).
+			if (source.field === 'coffee') value = Math.round((value / 100) * 10000) / 10000;
+			entry[source.field] = value;
 		}
 
 		prices[date] = entry;
