@@ -231,7 +231,7 @@
 			</div>
 		</div>
 	{:else}
-		<div class="mx-auto max-w-2xl px-4">
+		<div class="mx-auto mt-8 max-w-2xl px-4">
 			<!-- Controls — two-row compact panel (~120px tall) -->
 			<div class="controls-panel">
 				<div class="controls-slider">
@@ -278,13 +278,6 @@
 				we distinguish "scrolled past" from "not yet reached".
 			-->
 			<div bind:this={sentinelEl} aria-hidden="true" class="h-px"></div>
-
-			<!--
-				Beehiiv newsletter form target. The loader script (injected in
-				onMount) attaches itself to this element; the rendered form's
-				visual placement is governed by Beehiiv's loader config.
-			-->
-			<div id="beehiiv-form" class="mt-4"></div>
 		</div>
 
 		<!--
@@ -295,7 +288,7 @@
 			absurd stretching on ultrawide displays. CubeRenderer's
 			ResizeObserver picks up the new width automatically.
 		-->
-		<div class="mx-auto max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
+		<div class="mx-auto mt-12 max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
 			{#each commodityAmounts as { commodity, amount } (commodity.id)}
 				<CommoditySection
 					{commodity}
@@ -304,6 +297,17 @@
 					btcUsdPrice={dayPrices?.btc ?? 0}
 				/>
 			{/each}
+		</div>
+
+		<!--
+			Beehiiv newsletter form target. Moved out of the main flow so the
+			header → slider → first commodity rhythm isn't disturbed by the
+			form's loaded height. The loader script (injected in onMount)
+			attaches itself to this element; Beehiiv's loader config governs
+			whether the form renders inline here or relocates itself.
+		-->
+		<div class="mx-auto max-w-2xl px-4 pb-10">
+			<div id="beehiiv-form"></div>
 		</div>
 	{/if}
 </div>
