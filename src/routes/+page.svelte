@@ -98,8 +98,8 @@
 		unitSystem.update((u) => (u === 'metric' ? 'imperial' : 'metric'));
 	}
 
-	function handlePresetSelect(id: string) {
-		activatePreset(id, getDayPrices, lastDate);
+	function handlePresetSelect(slug: string) {
+		activatePreset(slug);
 	}
 
 	const dayPrices = $derived(getDayPrices($selectedDate));
@@ -162,7 +162,7 @@
 		if (!$selectedDate) {
 			selectedDate.set(lastDate);
 		}
-		hydrateFromUrl(lastDate, getDayPrices);
+		hydrateFromUrl(lastDate);
 	});
 </script>
 

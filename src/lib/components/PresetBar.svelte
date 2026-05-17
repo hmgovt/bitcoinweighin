@@ -1,68 +1,99 @@
 <script lang="ts">
-	import { getPinnedPresets, getDrawerPresets, type Preset } from '$lib/presets.js';
+	import { ENTITIES, formatAsOfMonth, formatBtcForPill, type Entity } from '$lib/holdings.js';
 
 	let {
 		activePresetId,
 		onSelect,
 	}: {
 		activePresetId: string | null;
-		onSelect: (id: string) => void;
+		onSelect: (slug: string) => void;
 	} = $props();
 
-	const pinned = getPinnedPresets();
-	const drawer = getDrawerPresets();
-
-	let drawerOpen = $state(false);
-
-	const categoryColors: Record<string, string> = {
-		denomination: 'border-zinc-500 text-zinc-300',
-		absurdity: 'border-red-500/50 text-red-300',
-	};
-
-	function pillClass(preset: Preset): string {
-		const active = activePresetId === preset.id;
-		const color = categoryColors[preset.category] || 'border-zinc-500 text-zinc-300';
-		const base =
-			'shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors cursor-pointer';
-		if (active) {
-			return `${base} bg-zinc-100 text-zinc-900 border-zinc-100 font-semibold`;
-		}
-		return `${base} ${color} hover:bg-zinc-800`;
+	function pillClass(entity: Entity): string {
+		const active = activePresetId === entity.slug;
+		const base = 'preset-pill';
+		return active ? `${base} preset-pill--active` : base;
 	}
 </script>
 
-<div class="mb-4">
-	<!-- Pinned presets — horizontal scroll -->
-	<div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-		{#each pinned as preset (preset.id)}
-			<button
-				class={pillClass(preset)}
-				title={preset.description}
-				onclick={() => onSelect(preset.id)}
-			>
-				{preset.label}
-			</button>
-		{/each}
+<div class="preset-bar">
+	{#each ENTITIES as entity (entity.slug)}
 		<button
-			class="shrink-0 whitespace-nowrap rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-500 hover:bg-zinc-800 transition-colors cursor-pointer"
-			onclick={() => (drawerOpen = !drawerOpen)}
+			type="button"
+			class={pillClass(entity)}
+			title={entity.note}
+			onclick={() => onSelect(entity.slug)}
 		>
-			{drawerOpen ? 'Less' : 'More presets…'}
+			<span class="preset-pill__label">{entity.label}</span>
+			{#if entity.asOf}
+				<span class="preset-pill__subscript">
+					{formatBtcForPill(entity.btc)} · {formatAsOfMonth(entity.asOf)}
+				</span>
+			{/if}
 		</button>
-	</div>
-
-	<!-- Drawer -->
-	{#if drawerOpen}
-		<div class="mt-2 flex flex-wrap gap-2">
-			{#each drawer as preset (preset.id)}
-				<button
-					class={pillClass(preset)}
-					title={preset.description}
-					onclick={() => onSelect(preset.id)}
-				>
-					{preset.label}
-				</button>
-			{/each}
-		</div>
-	{/if}
+	{/each}
+	<button
+		type="button"
+		class="preset-pill preset-pill--placeholder"
+		title="More entity presets coming in a future release."
+		aria-label="More presets (placeholder)"
+	>
+		<span class="preset-pill__label">More presets…</span>
+	</button>
 </div>
+
+<style>
+	.preset-bar {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		gap: 8px;
+	}
+
+	.preset-pill {
+		display: inline-flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 8px 14px;
+		border: 1px solid #3a3a3a;
+		border-radius: 18px;
+		background: transparent;
+		color: #f5f0e6;
+		font: 500 14px/1.2 inherit;
+		cursor: pointer;
+		transition:
+			background-color 120ms ease-out,
+			border-color 120ms ease-out;
+	}
+	.preset-pill:hover {
+		border-color: #5a5a5a;
+	}
+	.preset-pill--active {
+		background: rgba(228, 228, 231, 0.12);
+		border-color: #e4e4e7;
+	}
+	.preset-pill--placeholder {
+		color: #71717a;
+		cursor: default;
+	}
+	.preset-pill--placeholder:hover {
+		border-color: #3a3a3a;
+	}
+	.preset-pill__label {
+		display: block;
+	}
+	.preset-pill__subscript {
+		display: block;
+		margin-top: 2px;
+		font-size: 11px;
+		font-weight: 400;
+		color: #7a7a7a;
+		letter-spacing: 0;
+	}
+
+	@media (max-width: 767px) {
+		.preset-bar {
+			justify-content: flex-start;
+		}
+	}
+</style>

@@ -5,10 +5,9 @@
  * Changes update URL via history.replaceState with 100ms debounce.
  */
 
-import { writable, derived, get } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
-import { getPreset, resolvePresetBtc } from '../presets.js';
-import type { DayPrices } from '../prices.js';
+import { getEntity } from '../holdings.js';
 
 export type UnitSystem = 'metric' | 'imperial';
 
@@ -66,43 +65,29 @@ if (browser) {
 /**
  * Parse URL params and hydrate stores. Call once on page load.
  */
-export function hydrateFromUrl(
-	latestDate: string,
-	dayPricesForDate: (date: string) => DayPrices | undefined
-) {
+export function hydrateFromUrl(latestDate: string) {
 	if (!browser) return;
 
 	const params = new URLSearchParams(window.location.search);
 
-	// Preset takes precedence
-	const presetId = params.get('preset');
-	if (presetId) {
-		const preset = getPreset(presetId);
-		if (preset) {
-			activePreset.set(presetId);
-
-			if (preset.date) {
-				selectedDate.set(preset.date);
-			} else {
-				selectedDate.set(params.get('date') || latestDate);
-			}
-
-			const date = get(selectedDate);
-			const dayPrices = dayPricesForDate(date);
-			const btc = resolvePresetBtc(preset, dayPrices);
-			if (btc !== null) {
-				btcAmount.set(btc);
-			}
+	// Preset slug takes precedence over explicit btc/date params.
+	const presetSlug = params.get('preset');
+	if (presetSlug) {
+		const entity = getEntity(presetSlug);
+		if (entity) {
+			activePreset.set(presetSlug);
+			selectedDate.set(entity.asOf ?? params.get('date') ?? latestDate);
+			btcAmount.set(entity.btc);
 		} else {
-			// Unknown preset — fall back to explicit params
+			// Unknown slug — fall back to explicit params.
 			selectedDate.set(params.get('date') || latestDate);
 		}
 	} else {
 		selectedDate.set(params.get('date') || latestDate);
 	}
 
-	// Explicit btc param overrides preset only if no preset
-	if (!presetId && params.has('btc')) {
+	// Explicit btc param only when no preset is active.
+	if (!presetSlug && params.has('btc')) {
 		const btc = parseFloat(params.get('btc')!);
 		if (!isNaN(btc) && btc > 0) {
 			btcAmount.set(btc);
@@ -141,26 +126,17 @@ export function setDateFromPicker(date: string) {
 }
 
 /**
- * Activate a preset.
+ * Activate a preset by entity slug. Flips selectedDate to the entity's
+ * asOf (so the price calculation matches the dated valuation) and sets
+ * btcAmount to the entity's holdings.
  */
-export function activatePreset(
-	presetId: string,
-	dayPricesForDate: (date: string) => DayPrices | undefined,
-	latestDate: string
-) {
-	const preset = getPreset(presetId);
-	if (!preset) return;
+export function activatePreset(presetSlug: string) {
+	const entity = getEntity(presetSlug);
+	if (!entity) return;
 
-	activePreset.set(presetId);
-
-	if (preset.date) {
-		selectedDate.set(preset.date);
+	activePreset.set(presetSlug);
+	if (entity.asOf) {
+		selectedDate.set(entity.asOf);
 	}
-
-	const date = get(selectedDate) || latestDate;
-	const dayPrices = dayPricesForDate(date);
-	const btc = resolvePresetBtc(preset, dayPrices);
-	if (btc !== null) {
-		btcAmount.set(btc);
-	}
+	btcAmount.set(entity.btc);
 }
