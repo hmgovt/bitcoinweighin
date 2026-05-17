@@ -12,7 +12,6 @@
 	 */
 
 	import type { Commodity, RenderStage } from '$lib/commodities.js';
-	import type { UnitSystem } from '$lib/stores/url.js';
 	import type { TileState } from '$lib/volume.js';
 	import {
 		computeMassGrams,
@@ -37,7 +36,6 @@
 		amount,
 		btcAmount,
 		btcUsdPrice = 0,
-		unitSys,
 		meltWarning = false,
 	}: {
 		commodity: Commodity;
@@ -45,7 +43,6 @@
 		btcAmount: number;
 		/** USD per BTC. Defaults to 0; CommoditySection plumbs the real value in Stage 4 §4. */
 		btcUsdPrice?: number;
-		unitSys: UnitSystem;
 		/**
 		 * Pu-238 only: when true, append "(would melt itself in reality)" to the
 		 * mass line. CommoditySection sets this when massGrams ≥ 1 kg on a
@@ -102,9 +99,8 @@
 	);
 	const usdValue = $derived(btcAmount * btcUsdPrice);
 
-	// Cube-mode readout shows imperial primary regardless of unitSys
-	// (per the 2026-05-04 US-primacy decision and Stage 4 prompt). Metric
-	// users still see the metric value as the secondary half of the pair.
+	// Cube-mode readout shows imperial primary, metric secondary as a
+	// formatted pair per the 2026-05-04 US-primacy decision.
 	const massPair = $derived(
 		massGrams !== null
 			? formatPair(formatMass(massGrams, 'imperial'), formatMass(massGrams, 'metric'))
@@ -168,16 +164,16 @@
 				{formatBtc(btcAmount)} = {formatCommodityAmount(amount, unitLabel(commodity.unit))}
 			</span>
 
-			<!-- Mass -->
+			<!-- Mass — US-primacy: imperial-first per the 2026-05-04 decision. -->
 			{#if massGrams !== null}
 				<span class="readout-metric">
-					{formatMass(massGrams, unitSys)}
+					{formatMass(massGrams, 'imperial')}
 				</span>
 			{/if}
 
 			<!-- Volume -->
 			<span class="readout-metric">
-				{formatVolume(volumeCm3, unitSys)}
+				{formatVolume(volumeCm3, 'imperial')}
 			</span>
 
 			<!-- Count (from countTemplate, if applicable) -->

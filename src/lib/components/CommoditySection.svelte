@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Commodity } from '$lib/commodities.js';
-	import type { UnitSystem } from '$lib/stores/url.js';
 	import { computeMassGrams } from '$lib/volume.js';
 	import { COCAINE_PRICE_DATA } from '$lib/prices.js';
 	import { formatMassConsumer } from '$lib/format.js';
@@ -19,13 +18,11 @@
 		amount,
 		btcAmount,
 		btcUsdPrice,
-		unitSys,
 	}: {
 		commodity: Commodity;
 		amount: number | null;
 		btcAmount: number;
 		btcUsdPrice: number;
-		unitSys: UnitSystem;
 	} = $props();
 
 	const safeAmount = $derived(amount ?? 0);
@@ -176,7 +173,6 @@
 			amount={safeAmount}
 			{btcAmount}
 			{btcUsdPrice}
-			{unitSys}
 			{meltWarning}
 		/>
 

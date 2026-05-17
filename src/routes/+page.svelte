@@ -6,7 +6,6 @@
 	import {
 		btcAmount,
 		selectedDate,
-		unitSystem,
 		activePreset,
 		setBtcFromSlider,
 		setDateFromPicker,
@@ -94,12 +93,8 @@
 		setDateFromPicker(target.value);
 	}
 
-	function handleUnitToggle() {
-		unitSystem.update((u) => (u === 'metric' ? 'imperial' : 'metric'));
-	}
-
-	function handlePresetSelect(id: string) {
-		activatePreset(id, getDayPrices, lastDate);
+	function handlePresetSelect(slug: string) {
+		activatePreset(slug);
 	}
 
 	const dayPrices = $derived(getDayPrices($selectedDate));
@@ -162,7 +157,7 @@
 		if (!$selectedDate) {
 			selectedDate.set(lastDate);
 		}
-		hydrateFromUrl(lastDate, getDayPrices);
+		hydrateFromUrl(lastDate);
 	});
 </script>
 
@@ -200,28 +195,30 @@
 	</div>
 
 	<!--
-		Header: logo on the left, Beehiiv newsletter form on the right.
-		Wider container than the controls below so both can sit comfortably
-		side-by-side at desktop widths. Stacks vertically on mobile.
+		Header: two-zone layout. Brand left (image + subtitle), preset pills
+		right. The subscribe form has moved out of the header — Beehiiv code
+		decides where it surfaces (sticky-bottom or wherever the loader chooses);
+		the markup container lives later in the document so the loader has a
+		DOM target to attach to without crowding the masthead.
 	-->
-	<div class="mx-auto max-w-5xl px-4 pt-4 sm:pt-6">
-		<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
-			<div class="flex-shrink-0">
+	<div class="mx-auto max-w-[1280px] px-6 pt-4 sm:pt-6">
+		<header class="site-header">
+			<a href="/" class="brand" aria-label="Bitcoin Weigh-In home">
 				<h1 class="sr-only">Bitcoin Weigh-In</h1>
 				<img
 					src="/header.jpg"
 					alt="Bitcoin Weigh-In"
 					width="1600"
 					height="562"
-					class="block w-full max-w-sm"
+					class="brand__mark"
 				/>
-				<p class="mt-2 text-sm text-zinc-500">The purchasing power of one coin, in things you can hold.</p>
+				<p class="brand__subtitle">
+					The purchasing power of one coin, in things you can hold.
+				</p>
+			</a>
+			<div class="header-pills">
+				<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
 			</div>
-			<!--
-				Beehiiv form container. The loader script is injected in
-				onMount; the form renders inside this div at runtime.
-			-->
-			<div id="beehiiv-form" class="w-full min-w-0 sm:flex-1"></div>
 		</header>
 	</div>
 
@@ -232,63 +229,43 @@
 			</div>
 		</div>
 	{:else}
-		<div class="mx-auto max-w-2xl px-4">
-			<!-- Preset pills -->
-			<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
-
-			<!-- Controls -->
-			<div class="mb-6 space-y-4 rounded-lg bg-zinc-900 p-4">
-				<!-- BTC slider -->
-				<div>
-					<label class="mb-1 flex items-center justify-between text-sm">
-						<span class="text-zinc-400">BTC amount</span>
-						<span class="font-mono text-amber-400">{formatBtc($btcAmount)}</span>
-					</label>
+		<div class="mx-auto mt-8 max-w-2xl px-4">
+			<!-- Controls — two-row compact panel (~120px tall) -->
+			<div class="controls-panel">
+				<div class="controls-slider">
 					<input
 						type="range"
 						min="0"
 						max={SLIDER_STEPS}
 						value={sliderPos}
 						oninput={handleSliderInput}
-						class="w-full accent-amber-500"
+						class="slider accent-amber-500"
+						aria-label="BTC amount"
 					/>
-					<div class="mt-0.5 flex justify-between text-xs text-zinc-600">
+					<div class="slider-range">
 						<span>1 sat</span>
 						<span>21M</span>
 					</div>
 				</div>
 
-				<!-- Dollar readout: primary UI element -->
-				{#if dayPrices}
-					<div class="dollar-readout text-center">
-						<div class="dollar-value">
-							{formatUsd($btcAmount * dayPrices.btc)}
-						</div>
-						<div class="dollar-secondary">
-							at {formatUsd(dayPrices.btc)} per BTC on {formatDateReadout($selectedDate)}
-						</div>
+				<div class="controls-value-row">
+					<div class="value-block">
+						<div class="value-btc">{formatBtc($btcAmount)}</div>
+						{#if dayPrices}
+							<div class="value-context">
+								{formatUsd($btcAmount * dayPrices.btc)} · {formatDateReadout($selectedDate)}
+							</div>
+						{/if}
 					</div>
-				{/if}
-
-				<!-- Date + Unit row -->
-				<div class="flex items-end gap-3">
-					<div class="flex-1">
-						<label class="mb-1 block text-sm text-zinc-400">Date</label>
-						<input
-							type="date"
-							value={$selectedDate}
-							min={firstDate}
-							max={lastDate}
-							onchange={handleDateChange}
-							class="w-full rounded bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 border border-zinc-700 focus:outline-none focus:border-amber-500"
-						/>
-					</div>
-					<button
-						onclick={handleUnitToggle}
-						class="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors cursor-pointer"
-					>
-						{$unitSystem === 'metric' ? 'Metric' : 'Imperial'}
-					</button>
+					<input
+						type="date"
+						value={$selectedDate}
+						min={firstDate}
+						max={lastDate}
+						onchange={handleDateChange}
+						class="date-input"
+						aria-label="Date"
+					/>
 				</div>
 			</div>
 
@@ -309,41 +286,152 @@
 			absurd stretching on ultrawide displays. CubeRenderer's
 			ResizeObserver picks up the new width automatically.
 		-->
-		<div class="mx-auto max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
+		<div class="mx-auto mt-12 max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
 			{#each commodityAmounts as { commodity, amount } (commodity.id)}
 				<CommoditySection
 					{commodity}
 					{amount}
 					btcAmount={$btcAmount}
 					btcUsdPrice={dayPrices?.btc ?? 0}
-					unitSys={$unitSystem}
 				/>
 			{/each}
+		</div>
+
+		<!--
+			Beehiiv newsletter form target. Moved out of the main flow so the
+			header → slider → first commodity rhythm isn't disturbed by the
+			form's loaded height. The loader script (injected in onMount)
+			attaches itself to this element; Beehiiv's loader config governs
+			whether the form renders inline here or relocates itself.
+		-->
+		<div class="mx-auto max-w-2xl px-4 pb-10">
+			<div id="beehiiv-form"></div>
 		</div>
 	{/if}
 </div>
 
 <style>
-	.dollar-readout {
-		padding: 4px 0 8px;
+	.controls-panel {
+		background: #18181b; /* zinc-900 */
+		border-radius: 8px;
+		padding: 14px 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
 	}
-
-	.dollar-value {
-		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
-		font-variant-numeric: tabular-nums;
-		font-size: 1.75rem;
-		font-weight: 600;
-		line-height: 1.2;
-		color: #e4e4e7; /* zinc-200 */
-		letter-spacing: -0.02em;
+	.controls-slider {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
 	}
-
-	.dollar-secondary {
+	.slider {
+		width: 100%;
+	}
+	.slider-range {
+		display: flex;
+		justify-content: space-between;
 		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
-		font-variant-numeric: tabular-nums;
-		font-size: 0.75rem;
+		font-size: 11px;
 		color: #71717a; /* zinc-500 */
-		margin-top: 2px;
+	}
+	.controls-value-row {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 16px;
+	}
+	.value-block {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+	.value-btc {
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		font-size: 22px;
+		font-weight: 600;
+		line-height: 1.15;
+		color: #f5f0e6;
+		letter-spacing: -0.01em;
+	}
+	.value-context {
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		font-size: 14px;
+		color: #9aa0a6;
+	}
+	.date-input {
+		flex-shrink: 0;
+		background: #27272a; /* zinc-800 */
+		color: #e4e4e7;
+		border: 1px solid #3f3f46; /* zinc-700 */
+		border-radius: 6px;
+		padding: 6px 10px;
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-size: 13px;
+		color-scheme: dark;
+	}
+	.date-input:focus {
+		outline: none;
+		border-color: #f59e0b; /* amber-500 */
+	}
+
+	@media (max-width: 479px) {
+		.controls-value-row {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 8px;
+		}
+		.date-input {
+			width: 100%;
+		}
+	}
+
+	.site-header {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		padding-bottom: 0;
+	}
+	.brand {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		flex-shrink: 0;
+		text-decoration: none;
+		color: inherit;
+	}
+	.brand__mark {
+		display: block;
+		max-height: 64px;
+		width: auto;
+		height: auto;
+	}
+	.brand__subtitle {
+		margin: 0;
+		color: #9aa0a6;
+		font-size: 14px;
+		font-weight: 400;
+		line-height: 1.35;
+		max-width: 32ch;
+	}
+	.header-pills {
+		width: 100%;
+	}
+
+	@media (min-width: 768px) {
+		.site-header {
+			flex-direction: row;
+			align-items: flex-start;
+			gap: 24px;
+		}
+		.brand {
+			flex: 0 0 38%;
+		}
+		.header-pills {
+			flex: 1 1 62%;
+		}
 	}
 
 	.sticky-bar {
