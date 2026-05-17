@@ -106,7 +106,13 @@ const prices = await res.json();`,
 								class="underline hover:no-underline">{data.config.doi}</a
 							>
 						{:else}
-							<span class="text-zinc-400">(pending Zenodo release)</span>
+							<span class="text-zinc-400">Zenodo archive pending</span>
+							<span class="mt-0.5 block font-sans text-[11px] text-zinc-500">
+								Issued at first release tag. See
+								<a href="#versions-and-changelog" class="underline hover:no-underline"
+									>changelog</a
+								> for release notes.
+							</span>
 						{/if}
 					</dd>
 				</div>
@@ -348,7 +354,7 @@ const prices = await res.json();`,
 			{/each}
 		</section>
 
-		<section class="mb-10">
+		<section id="versions-and-changelog" class="mb-10">
 			<h2 class="mb-3 text-base font-semibold">Versions and changelog</h2>
 			<div class="changelog text-sm">{@html data.changelogHtml}</div>
 			<p class="mt-3 text-xs text-zinc-500">
