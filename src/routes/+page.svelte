@@ -200,28 +200,32 @@
 	</div>
 
 	<!--
-		Header: logo on the left, Beehiiv newsletter form on the right.
-		Wider container than the controls below so both can sit comfortably
-		side-by-side at desktop widths. Stacks vertically on mobile.
+		Header: two-zone layout. Brand left (image + subtitle), preset pills
+		right. The subscribe form has moved out of the header — Beehiiv code
+		decides where it surfaces (sticky-bottom or wherever the loader chooses);
+		the markup container lives later in the document so the loader has a
+		DOM target to attach to without crowding the masthead.
 	-->
-	<div class="mx-auto max-w-5xl px-4 pt-4 sm:pt-6">
-		<header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
-			<div class="flex-shrink-0">
+	<div class="mx-auto max-w-[1280px] px-6 pt-4 sm:pt-6">
+		<header class="site-header">
+			<a href="/" class="brand" aria-label="Bitcoin Weigh-In home">
 				<h1 class="sr-only">Bitcoin Weigh-In</h1>
 				<img
 					src="/header.jpg"
 					alt="Bitcoin Weigh-In"
 					width="1600"
 					height="562"
-					class="block w-full max-w-sm"
+					class="brand__mark"
 				/>
-				<p class="mt-2 text-sm text-zinc-500">The purchasing power of one coin, in things you can hold.</p>
-			</div>
-			<!--
-				Beehiiv form container. The loader script is injected in
-				onMount; the form renders inside this div at runtime.
-			-->
-			<div id="beehiiv-form" class="w-full min-w-0 sm:flex-1"></div>
+				<p class="brand__subtitle">
+					The purchasing power of one coin, in things you can hold.
+				</p>
+			</a>
+			{#if !loading}
+				<div class="header-pills">
+					<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
+				</div>
+			{/if}
 		</header>
 	</div>
 
@@ -233,9 +237,6 @@
 		</div>
 	{:else}
 		<div class="mx-auto max-w-2xl px-4">
-			<!-- Preset pills -->
-			<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
-
 			<!-- Controls -->
 			<div class="mb-6 space-y-4 rounded-lg bg-zinc-900 p-4">
 				<!-- BTC slider -->
@@ -299,6 +300,13 @@
 				we distinguish "scrolled past" from "not yet reached".
 			-->
 			<div bind:this={sentinelEl} aria-hidden="true" class="h-px"></div>
+
+			<!--
+				Beehiiv newsletter form target. The loader script (injected in
+				onMount) attaches itself to this element; the rendered form's
+				visual placement is governed by Beehiiv's loader config.
+			-->
+			<div id="beehiiv-form" class="mt-4"></div>
 		</div>
 
 		<!--
@@ -344,6 +352,52 @@
 		font-size: 0.75rem;
 		color: #71717a; /* zinc-500 */
 		margin-top: 2px;
+	}
+
+	.site-header {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		padding-bottom: 0;
+	}
+	.brand {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		flex-shrink: 0;
+		text-decoration: none;
+		color: inherit;
+	}
+	.brand__mark {
+		display: block;
+		max-height: 64px;
+		width: auto;
+		height: auto;
+	}
+	.brand__subtitle {
+		margin: 0;
+		color: #9aa0a6;
+		font-size: 14px;
+		font-weight: 400;
+		line-height: 1.35;
+		max-width: 32ch;
+	}
+	.header-pills {
+		width: 100%;
+	}
+
+	@media (min-width: 768px) {
+		.site-header {
+			flex-direction: row;
+			align-items: flex-start;
+			gap: 24px;
+		}
+		.brand {
+			flex: 0 0 38%;
+		}
+		.header-pills {
+			flex: 1 1 62%;
+		}
 	}
 
 	.sticky-bar {
