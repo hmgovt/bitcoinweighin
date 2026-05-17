@@ -1,0 +1,20 @@
+# Cloudflare Pages custom headers.
+# https://developers.cloudflare.com/pages/configuration/headers/
+#
+# The dataset endpoints are intentionally CORS-open so that any browser-
+# based notebook, dashboard, or research tool can fetch them without a
+# proxy. Cache windows are short enough that a daily cron update is
+# visible within minutes, long enough that a viral citation does not
+# saturate the origin.
+
+/api/prices.json
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Cache-Control: public, max-age=300
+  X-Content-Type-Options: nosniff
+
+/data/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Cache-Control: public, max-age=3600
+  X-Content-Type-Options: nosniff
