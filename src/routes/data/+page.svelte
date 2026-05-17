@@ -352,6 +352,15 @@ const prices = await res.json();`,
 					</div>
 				</div>
 			{/each}
+			<p class="mt-2 text-xs text-zinc-500">
+				For reproducible analysis pinned to a specific dataset version, use the
+				versioned path:
+				<code class="font-mono"
+					>https://bitcoinweighin.com/data/v{data.config.version}/prices.json</code
+				>. The
+				<code class="font-mono">/api/prices.json</code> endpoint always points at the latest;
+				versioned paths never change.
+			</p>
 		</section>
 
 		<section id="versions-and-changelog" class="mb-10">
