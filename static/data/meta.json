@@ -1,0 +1,202 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-05-17T07:16:48.053Z",
+  "coverage": {
+    "first_date": "2013-01-01",
+    "last_date": "2026-05-15"
+  },
+  "row_count": 4879,
+  "title": "Bitcoin Weigh-In Daily Commodity Price Dataset",
+  "abstract": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
+  "homepage": "https://bitcoinweighin.com/data",
+  "license": "CC-BY-4.0",
+  "doi": null,
+  "zenodo_record": null,
+  "sources": [
+    {
+      "id": "btc",
+      "type": "stooq",
+      "symbol": "btcusd",
+      "field": "btc"
+    },
+    {
+      "id": "gold",
+      "type": "stooq",
+      "symbol": "xauusd",
+      "field": "xau"
+    },
+    {
+      "id": "silver",
+      "type": "stooq",
+      "symbol": "xagusd",
+      "field": "xag"
+    },
+    {
+      "id": "platinum",
+      "type": "stooq",
+      "symbol": "xptusd",
+      "field": "xpt"
+    },
+    {
+      "id": "copper",
+      "type": "stooq",
+      "symbol": "hg.c",
+      "field": "hg"
+    },
+    {
+      "id": "wheat",
+      "type": "stooq",
+      "symbol": "zw.c",
+      "field": "wheat"
+    },
+    {
+      "id": "coffee",
+      "type": "stooq",
+      "symbol": "kc.c",
+      "field": "coffee"
+    },
+    {
+      "id": "oil_brent",
+      "type": "fred",
+      "symbol": "DCOILBRENTEU",
+      "field": "brent"
+    }
+  ],
+  "provenance": [
+    {
+      "commodity": "Bitcoin",
+      "ticker": "BTC-USD",
+      "field": "btc_usd",
+      "originalSource": "Stooq",
+      "sourceUrl": "https://stooq.com/q/?s=btcusd",
+      "dataQuality": "live",
+      "updateCadence": "Daily (close)",
+      "licenseOfUnderlyingSource": "Stooq terms of service (free for non-commercial use; API key required)",
+      "notes": "Stooq publishes a continuous BTC-USD daily close aggregated across major spot exchanges."
+    },
+    {
+      "commodity": "Gold",
+      "ticker": "XAU-USD",
+      "field": "xau_usd",
+      "originalSource": "Stooq",
+      "sourceUrl": "https://stooq.com/q/?s=xauusd",
+      "dataQuality": "live",
+      "updateCadence": "Daily (London close)",
+      "licenseOfUnderlyingSource": "Stooq terms of service",
+      "notes": "Spot gold per troy ounce, USD."
+    },
+    {
+      "commodity": "Silver",
+      "ticker": "XAG-USD",
+      "field": "xag_usd",
+      "originalSource": "Stooq",
+      "sourceUrl": "https://stooq.com/q/?s=xagusd",
+      "dataQuality": "live",
+      "updateCadence": "Daily (London close)",
+      "licenseOfUnderlyingSource": "Stooq terms of service",
+      "notes": "Spot silver per troy ounce, USD."
+    },
+    {
+      "commodity": "Platinum",
+      "ticker": "XPT-USD",
+      "field": "xpt_usd",
+      "originalSource": "Stooq",
+      "sourceUrl": "https://stooq.com/q/?s=xptusd",
+      "dataQuality": "live",
+      "updateCadence": "Daily (London close)",
+      "licenseOfUnderlyingSource": "Stooq terms of service",
+      "notes": "Spot platinum per troy ounce, USD."
+    },
+    {
+      "commodity": "Copper",
+      "ticker": "HG (continuous)",
+      "field": "copper_usd",
+      "originalSource": "Stooq",
+      "sourceUrl": "https://stooq.com/q/?s=hg.c",
+      "dataQuality": "live",
+      "updateCadence": "Daily (COMEX close)",
+      "licenseOfUnderlyingSource": "Stooq terms of service",
+      "notes": "Continuous front-month copper futures (COMEX), USD per pound."
+    },
+    {
+      "commodity": "Brent crude",
+      "ticker": "DCOILBRENTEU",
+      "field": "brent_usd",
+      "originalSource": "U.S. Federal Reserve Economic Data (FRED)",
+      "sourceUrl": "https://fred.stlouisfed.org/series/DCOILBRENTEU",
+      "dataQuality": "live",
+      "updateCadence": "Daily (EIA, lagged ~1 business day)",
+      "licenseOfUnderlyingSource": "Public domain (EIA primary; FRED redistribution)",
+      "notes": "Europe Brent spot price FOB, USD per barrel."
+    },
+    {
+      "commodity": "Wheat",
+      "ticker": "ZW (continuous)",
+      "field": "wheat_usd",
+      "originalSource": "Stooq",
+      "sourceUrl": "https://stooq.com/q/?s=zw.c",
+      "dataQuality": "live",
+      "updateCadence": "Daily (CBOT close)",
+      "licenseOfUnderlyingSource": "Stooq terms of service",
+      "notes": "Continuous front-month CBOT wheat futures, USD per bushel. Fetched but not yet rendered in the launch UI."
+    },
+    {
+      "commodity": "Coffee",
+      "ticker": "KC (continuous)",
+      "field": "coffee_usd",
+      "originalSource": "Stooq",
+      "sourceUrl": "https://stooq.com/q/?s=kc.c",
+      "dataQuality": "live",
+      "updateCadence": "Daily (ICE close)",
+      "licenseOfUnderlyingSource": "Stooq terms of service",
+      "notes": "Continuous front-month ICE Arabica coffee futures, USD cents per pound (converted to USD per pound in the dataset)."
+    },
+    {
+      "commodity": "BTC circulating supply",
+      "ticker": "btc_supply",
+      "field": "btc_supply",
+      "originalSource": "Derived from Bitcoin halving schedule",
+      "sourceUrl": "https://github.com/bitcoin/bitcoin",
+      "dataQuality": "derived",
+      "updateCadence": "Deterministic (no API)",
+      "licenseOfUnderlyingSource": "Public protocol",
+      "notes": "Computed in scripts/sources.ts as a pure function of days-since-genesis (2009-01-03), 144 blocks/day target, 50 BTC initial reward, halving every 210,000 blocks. Unit-tested against known halving block dates."
+    },
+    {
+      "commodity": "Plutonium-238",
+      "ticker": "pu238",
+      "field": "(not in prices dataset)",
+      "originalSource": "DOE Office of Nuclear Energy / NASA Planetary Science / Cassini OIG (1997) escalated to 2024",
+      "sourceUrl": "https://www.energy.gov/ne/articles/what-plutonium-238",
+      "dataQuality": "illustrative",
+      "updateCadence": "Composite, as-of 2024-12-31",
+      "licenseOfUnderlyingSource": "Government public-domain sources",
+      "notes": "No spot market exists. Composite material-cost estimate (~$5,000/g midpoint of $4,000-$8,000) drives the visualisation; fully-loaded program cost (~$100,000/g) cited separately on the methodology page. Lives in src/lib/illustrative-prices.json, not in prices.json."
+    },
+    {
+      "commodity": "Cocaine",
+      "ticker": "cocaine",
+      "field": "(not in prices dataset)",
+      "originalSource": "UNODC World Drug Report / DEA NDTA / EMCDDA",
+      "sourceUrl": "https://www.unodc.org/unodc/en/data-and-analysis/world-drug-report.html",
+      "dataQuality": "illustrative",
+      "updateCadence": "Annual reports, as-of 2024-12-31",
+      "licenseOfUnderlyingSource": "Government public-domain sources",
+      "notes": "Three-tier pricing (producer / wholesale / retail-pure-equivalent). Wholesale is the primary tier for BTC-equivalence. Lives in src/lib/illustrative-prices.json, not in prices.json."
+    }
+  ],
+  "forward_fill_provenance": {
+    "note": "Per-row forward-fill provenance is not tracked in v1.0; the forward_filled column is empty for all rows. Prospective tracking begins in v1.1.",
+    "daily_run_health": "/health.json"
+  },
+  "checksums": {
+    "CHANGELOG.md": "eef3d4d5112ecad719795ed93fb2d889b23acf41ee03d577bd2487f3f2b3bafb",
+    "CITATION.cff": "56d54985ff97fc57121afb000baa7ee76c463ab577a49f8f5bdf41c576747b85",
+    "LICENSE.txt": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
+    "prices.csv": "8d9227c78568c63bfca24e564dbbdbe7bc2ad01a6fe373c63f47e3df0b7264e2",
+    "prices.json": "8f097adfb2a8122ed0cbac8c0dae3f96f69a8f779904da949c8b91430c4e66a1",
+    "prices.ndjson": "6faed06aa932b6c3f2c367d29aad457e064ff8e0426a3ff893359707fa91a209",
+    "prices.parquet": "245a8a3dc6e7843ef2e59868eb9e4716633dadd6b125b2c13b24d7ed5f2958e3",
+    "schema.json": "109cbedaf869c0171c58b6f042ba8593b70be5e9d1ed1ebc7937aae94495f4ff"
+  }
+}

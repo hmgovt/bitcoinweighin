@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "doi": null,
+  "zenodo_record": null,
+  "title": "Bitcoin Weigh-In Daily Commodity Price Dataset",
+  "abstract": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
+  "authors": [
+    {
+      "name": "Bitcoin Weigh-In",
+      "type": "entity",
+      "email": "info@sortathing.com"
+    }
+  ],
+  "homepage": "https://bitcoinweighin.com/data",
+  "repository": "https://github.com/hmgovt/bitcoinweighin",
+  "license": "CC-BY-4.0"
+}

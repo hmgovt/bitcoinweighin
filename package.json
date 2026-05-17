@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "bootstrap": "tsx scripts/bootstrap.ts",
     "fetch-daily": "tsx scripts/fetch-daily.ts",
-    "build-prices": "tsx scripts/build-prices-json.ts"
+    "build-prices": "tsx scripts/build-prices-json.ts",
+    "build-dataset": "tsx scripts/build-dataset-artifacts.ts"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.8",
@@ -20,6 +21,7 @@
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "autoprefixer": "^10.4.0",
     "dotenv": "^17.4.2",
+    "parquetjs-lite": "^0.8.7",
     "postcss": "^8.4.0",
     "svelte": "^5.15.0",
     "tailwindcss": "^3.4.0",

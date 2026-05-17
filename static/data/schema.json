@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bitcoin Weigh-In Daily Commodity Price Dataset",
+  "version": "1.0",
+  "description": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
+  "license": "CC-BY-4.0",
+  "columns": [
+    {
+      "name": "date",
+      "type": "string",
+      "unit": "ISO 8601 (YYYY-MM-DD)",
+      "source": "internal",
+      "notes": "Trading day. Every calendar date from coverage start to last update has a row."
+    },
+    {
+      "name": "btc_usd",
+      "type": "number",
+      "unit": "USD per BTC",
+      "source": "Stooq btcusd daily close",
+      "notes": "Continuous BTC-USD spot aggregate. Required field; rows without a btc_usd value are not emitted."
+    },
+    {
+      "name": "btc_supply",
+      "type": "integer",
+      "unit": "BTC",
+      "source": "Derived (Bitcoin halving schedule)",
+      "notes": "Deterministic function of days-since-genesis (2009-01-03) at 144 blocks/day target, halving every 210,000 blocks. No API dependency."
+    },
+    {
+      "name": "xau_usd",
+      "type": "number",
+      "unit": "USD per troy ounce",
+      "source": "Stooq xauusd daily close",
+      "notes": "Spot gold, London close."
+    },
+    {
+      "name": "xag_usd",
+      "type": "number",
+      "unit": "USD per troy ounce",
+      "source": "Stooq xagusd daily close",
+      "notes": "Spot silver, London close."
+    },
+    {
+      "name": "xpt_usd",
+      "type": "number",
+      "unit": "USD per troy ounce",
+      "source": "Stooq xptusd daily close",
+      "notes": "Spot platinum, London close."
+    },
+    {
+      "name": "copper_usd",
+      "type": "number",
+      "unit": "USD per pound",
+      "source": "Stooq hg.c daily close",
+      "notes": "COMEX copper continuous front-month."
+    },
+    {
+      "name": "brent_usd",
+      "type": "number",
+      "unit": "USD per barrel",
+      "source": "FRED DCOILBRENTEU daily",
+      "notes": "Europe Brent spot FOB, sourced from EIA via FRED. Typically lags one business day."
+    },
+    {
+      "name": "wheat_usd",
+      "type": "number",
+      "unit": "USD per bushel",
+      "source": "Stooq zw.c daily close",
+      "notes": "CBOT wheat continuous front-month."
+    },
+    {
+      "name": "coffee_usd",
+      "type": "number",
+      "unit": "USD cents per pound",
+      "source": "Stooq kc.c daily close",
+      "notes": "ICE Arabica coffee continuous front-month."
+    },
+    {
+      "name": "xau_per_btc",
+      "type": "number",
+      "unit": "troy ounces of gold per BTC",
+      "source": "Derived (btc_usd / xau_usd)",
+      "notes": "How many troy ounces of gold 1 BTC could purchase at the day's close."
+    },
+    {
+      "name": "xag_per_btc",
+      "type": "number",
+      "unit": "troy ounces of silver per BTC",
+      "source": "Derived (btc_usd / xag_usd)",
+      "notes": "How many troy ounces of silver 1 BTC could purchase at the day's close."
+    },
+    {
+      "name": "xpt_per_btc",
+      "type": "number",
+      "unit": "troy ounces of platinum per BTC",
+      "source": "Derived (btc_usd / xpt_usd)",
+      "notes": "How many troy ounces of platinum 1 BTC could purchase at the day's close."
+    },
+    {
+      "name": "copper_per_btc",
+      "type": "number",
+      "unit": "pounds of copper per BTC",
+      "source": "Derived (btc_usd / copper_usd)",
+      "notes": "How many pounds of copper 1 BTC could purchase at the day's close."
+    },
+    {
+      "name": "brent_per_btc",
+      "type": "number",
+      "unit": "barrels of Brent crude per BTC",
+      "source": "Derived (btc_usd / brent_usd)",
+      "notes": "How many barrels of Brent crude 1 BTC could purchase at the day's close."
+    },
+    {
+      "name": "wheat_per_btc",
+      "type": "number",
+      "unit": "bushels of wheat per BTC",
+      "source": "Derived (btc_usd / wheat_usd)",
+      "notes": "How many bushels of CBOT wheat 1 BTC could purchase at the day's close."
+    },
+    {
+      "name": "coffee_per_btc",
+      "type": "number",
+      "unit": "pounds of Arabica coffee per BTC (cents-per-pound denominator)",
+      "source": "Derived (btc_usd / coffee_usd)",
+      "notes": "Coffee is quoted in cents; the ratio reflects that denominator. Divide by 100 if you want pounds per BTC at dollar parity."
+    },
+    {
+      "name": "forward_filled",
+      "type": "string",
+      "unit": "pipe-delimited column names",
+      "source": "internal",
+      "notes": "Empty string when no fields were forward-filled, or a pipe-delimited list of field names (e.g. \"xpt_usd|brent_usd\") when some were. Per-row tracking begins 2026-05-17; historical rows carry an empty string regardless of their true fill state."
+    }
+  ]
+}
