@@ -69,8 +69,11 @@
 		border-color: #5a5a5a;
 	}
 	.preset-pill--active {
-		background: rgba(228, 228, 231, 0.12);
-		border-color: #e4e4e7;
+		background: rgba(245, 158, 11, 0.15); /* amber-500 @ 15% — brand orange */
+		border-color: #f59e0b;
+	}
+	.preset-pill--active:hover {
+		border-color: #f59e0b;
 	}
 	.preset-pill--placeholder {
 		color: #71717a;
