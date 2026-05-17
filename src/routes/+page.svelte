@@ -237,59 +237,42 @@
 		</div>
 	{:else}
 		<div class="mx-auto max-w-2xl px-4">
-			<!-- Controls -->
-			<div class="mb-6 space-y-4 rounded-lg bg-zinc-900 p-4">
-				<!-- BTC slider -->
-				<div>
-					<label class="mb-1 flex items-center justify-between text-sm">
-						<span class="text-zinc-400">BTC amount</span>
-						<span class="font-mono text-amber-400">{formatBtc($btcAmount)}</span>
-					</label>
+			<!-- Controls — two-row compact panel (~120px tall) -->
+			<div class="controls-panel">
+				<div class="controls-slider">
 					<input
 						type="range"
 						min="0"
 						max={SLIDER_STEPS}
 						value={sliderPos}
 						oninput={handleSliderInput}
-						class="w-full accent-amber-500"
+						class="slider accent-amber-500"
+						aria-label="BTC amount"
 					/>
-					<div class="mt-0.5 flex justify-between text-xs text-zinc-600">
+					<div class="slider-range">
 						<span>1 sat</span>
 						<span>21M</span>
 					</div>
 				</div>
 
-				<!-- Dollar readout: primary UI element -->
-				{#if dayPrices}
-					<div class="dollar-readout text-center">
-						<div class="dollar-value">
-							{formatUsd($btcAmount * dayPrices.btc)}
-						</div>
-						<div class="dollar-secondary">
-							at {formatUsd(dayPrices.btc)} per BTC on {formatDateReadout($selectedDate)}
-						</div>
+				<div class="controls-value-row">
+					<div class="value-block">
+						<div class="value-btc">{formatBtc($btcAmount)}</div>
+						{#if dayPrices}
+							<div class="value-context">
+								{formatUsd($btcAmount * dayPrices.btc)} · {formatDateReadout($selectedDate)}
+							</div>
+						{/if}
 					</div>
-				{/if}
-
-				<!-- Date + Unit row -->
-				<div class="flex items-end gap-3">
-					<div class="flex-1">
-						<label class="mb-1 block text-sm text-zinc-400">Date</label>
-						<input
-							type="date"
-							value={$selectedDate}
-							min={firstDate}
-							max={lastDate}
-							onchange={handleDateChange}
-							class="w-full rounded bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200 border border-zinc-700 focus:outline-none focus:border-amber-500"
-						/>
-					</div>
-					<button
-						onclick={handleUnitToggle}
-						class="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors cursor-pointer"
-					>
-						{$unitSystem === 'metric' ? 'Metric' : 'Imperial'}
-					</button>
+					<input
+						type="date"
+						value={$selectedDate}
+						min={firstDate}
+						max={lastDate}
+						onchange={handleDateChange}
+						class="date-input"
+						aria-label="Date"
+					/>
 				</div>
 			</div>
 
@@ -332,26 +315,81 @@
 </div>
 
 <style>
-	.dollar-readout {
-		padding: 4px 0 8px;
+	.controls-panel {
+		background: #18181b; /* zinc-900 */
+		border-radius: 8px;
+		padding: 14px 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
 	}
-
-	.dollar-value {
-		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
-		font-variant-numeric: tabular-nums;
-		font-size: 1.75rem;
-		font-weight: 600;
-		line-height: 1.2;
-		color: #e4e4e7; /* zinc-200 */
-		letter-spacing: -0.02em;
+	.controls-slider {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
 	}
-
-	.dollar-secondary {
+	.slider {
+		width: 100%;
+	}
+	.slider-range {
+		display: flex;
+		justify-content: space-between;
 		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
-		font-variant-numeric: tabular-nums;
-		font-size: 0.75rem;
+		font-size: 11px;
 		color: #71717a; /* zinc-500 */
-		margin-top: 2px;
+	}
+	.controls-value-row {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 16px;
+	}
+	.value-block {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+	.value-btc {
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		font-size: 22px;
+		font-weight: 600;
+		line-height: 1.15;
+		color: #f5f0e6;
+		letter-spacing: -0.01em;
+	}
+	.value-context {
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		font-size: 14px;
+		color: #9aa0a6;
+	}
+	.date-input {
+		flex-shrink: 0;
+		background: #27272a; /* zinc-800 */
+		color: #e4e4e7;
+		border: 1px solid #3f3f46; /* zinc-700 */
+		border-radius: 6px;
+		padding: 6px 10px;
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-size: 13px;
+		color-scheme: dark;
+	}
+	.date-input:focus {
+		outline: none;
+		border-color: #f59e0b; /* amber-500 */
+	}
+
+	@media (max-width: 479px) {
+		.controls-value-row {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 8px;
+		}
+		.date-input {
+			width: 100%;
+		}
 	}
 
 	.site-header {
