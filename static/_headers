@@ -18,3 +18,26 @@
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   Cache-Control: public, max-age=3600
   X-Content-Type-Options: nosniff
+
+# SvelteKit's hashed bundles — content-addressed, safe to cache forever.
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Sprite art is large and effectively static. One-week TTL with
+# stale-while-revalidate lets repeat visits skip the network entirely
+# while still picking up re-renders within a reasonable window.
+/sprites/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+# Header art + favicon — same rationale, smaller payload.
+/header.webp
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/header.jpg
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/favicon.png
+  Cache-Control: public, max-age=604800
+
+# prices.json is regenerated daily by the cron — short TTL, but allow
+# CDN to serve while revalidating so a cache miss never blocks render.
+/prices.json
+  Cache-Control: public, max-age=300, stale-while-revalidate=3600

@@ -210,13 +210,18 @@
 		<header class="site-header">
 			<a href="/" class="brand" aria-label="Bitcoin Weigh-In home">
 				<h1 class="sr-only">Bitcoin Weigh-In</h1>
-				<img
-					src="/header.jpg"
-					alt="Bitcoin Weigh-In"
-					width="1600"
-					height="562"
-					class="brand__mark"
-				/>
+				<picture>
+					<source srcset="/header.webp" type="image/webp" />
+					<img
+						src="/header.jpg"
+						alt="Bitcoin Weigh-In"
+						width="1280"
+						height="450"
+						fetchpriority="high"
+						decoding="async"
+						class="brand__mark"
+					/>
+				</picture>
 				<p class="brand__subtitle">
 					The purchasing power of bitcoin, in&nbsp;things you can hold.
 				</p>

@@ -144,6 +144,8 @@
 			alt={reference.description}
 			class="reference-sprite"
 			draggable="false"
+			fetchpriority="high"
+			decoding="async"
 		/>
 	{/if}
 </div>
