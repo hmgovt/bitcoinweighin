@@ -17,6 +17,12 @@ export const scrollToCommodity = writable<string | null>(null);
 /** Pu-238 Geiger crackle opt-in. Default off; persists via ?audio=on. */
 export const audioEnabled = writable<boolean>(false);
 
+// Most recent date present in the price dataset. hydrateFromUrl sets
+// this; activatePreset reads it to clamp entity asOf values that run
+// ahead of the dataset (e.g. holdings figures dated today, before
+// today's closing price has been published).
+let datasetLatestDate = '';
+
 // ── URL sync ────────────────────────────────────────────────────
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -60,6 +66,8 @@ if (browser) {
  */
 export function hydrateFromUrl(latestDate: string) {
 	if (!browser) return;
+
+	datasetLatestDate = latestDate;
 
 	const params = new URLSearchParams(window.location.search);
 
@@ -133,7 +141,14 @@ export function activatePreset(presetSlug: string) {
 
 	activePreset.set(presetSlug);
 	if (entity.asOf) {
-		selectedDate.set(entity.asOf);
+		// Entity asOf can lead the dataset (holdings reported today,
+		// before today's close has been published). Clamp to whichever
+		// date actually has price data.
+		const date =
+			datasetLatestDate && entity.asOf > datasetLatestDate
+				? datasetLatestDate
+				: entity.asOf;
+		selectedDate.set(date);
 	}
 	btcAmount.set(entity.btc);
 }
