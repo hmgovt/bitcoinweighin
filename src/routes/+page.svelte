@@ -90,7 +90,12 @@
 
 	function handleDateChange(e: Event) {
 		const target = e.target as HTMLInputElement;
-		setDateFromPicker(target.value);
+		// Some mobile pickers ignore the `max` attr — clamp defensively.
+		// The dataset uses previous day's close, so today never has data.
+		const picked = target.value;
+		const clamped = picked && picked > lastDate ? lastDate : picked;
+		if (clamped !== picked) target.value = clamped;
+		setDateFromPicker(clamped);
 	}
 
 	function handlePresetSelect(slug: string) {
