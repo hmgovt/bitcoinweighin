@@ -53,8 +53,8 @@
     {
       "slug": "strategy",
       "label": "Strategy",
-      "btc": 818869,
-      "asOf": "2026-05-11",
+      "btc": 843738,
+      "asOf": "2026-05-18",
       "type": "corporate",
       "source": "https://www.strategy.com/btc",
       "sourceName": "Strategy investor page + SEC 8-K filings",
