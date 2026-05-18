@@ -63,20 +63,26 @@ export function hydrateFromUrl(latestDate: string) {
 
 	const params = new URLSearchParams(window.location.search);
 
+	// Dates from URL params or entity asOf are clamped to latestDate —
+	// the dataset uses previous day's close, so "today" never has data.
+	const urlDate = params.get('date');
+	const clamp = (d: string | null | undefined) =>
+		d && d > latestDate ? latestDate : d;
+
 	// Preset slug takes precedence over explicit btc/date params.
 	const presetSlug = params.get('preset');
 	if (presetSlug) {
 		const entity = getEntity(presetSlug);
 		if (entity) {
 			activePreset.set(presetSlug);
-			selectedDate.set(entity.asOf ?? params.get('date') ?? latestDate);
+			selectedDate.set(clamp(entity.asOf ?? urlDate) ?? latestDate);
 			btcAmount.set(entity.btc);
 		} else {
 			// Unknown slug — fall back to explicit params.
-			selectedDate.set(params.get('date') || latestDate);
+			selectedDate.set(clamp(urlDate) || latestDate);
 		}
 	} else {
-		selectedDate.set(params.get('date') || latestDate);
+		selectedDate.set(clamp(urlDate) || latestDate);
 	}
 
 	// Explicit btc param only when no preset is active.
