@@ -172,6 +172,7 @@
 		name="description"
 		content="The purchasing power of bitcoin, measured in commodities you can hold. Gold, silver, copper, oil, and nuclear fuel — at true relative scale."
 	/>
+	<link rel="canonical" href="https://bitcoinweighin.com/" />
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950 text-zinc-100">
