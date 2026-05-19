@@ -14,17 +14,25 @@
 		hydrateFromUrl,
 	} from '$lib/stores/url.js';
 	import { formatBtc } from '$lib/format.js';
-	import CommoditySection from '$lib/components/CommoditySection.svelte';
+	import LazyCommoditySection from '$lib/components/LazyCommoditySection.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
 
 	let { data } = $props();
 
 	// Initial prices are the latest day only (inlined via +page.ts → load
-	// → prices-latest.json). The full archive lazy-loads in onMount.
+	// → prices-latest.json). The full archive lazy-loads in onMount. The
+	// first commodity (gold) renders eagerly so its Shiba ships in the
+	// prerendered HTML and anchors LCP; the other 7 sections lazy-mount
+	// via IntersectionObserver to keep hydration cheap.
 	let prices = $state<PriceData>(data.initialPrices);
 	let firstDate = $state(data.firstDate);
 	let lastDate = $state(data.lastDate);
-	let loading = $state(true);
+
+	// Seed selectedDate before the first reactive read so the inlined day's
+	// data resolves. URL params are applied in onMount once the full archive
+	// is loaded — applying them earlier would cause a hydration mismatch
+	// when the URL date isn't in the inlined day.
+	selectedDate.set(data.lastDate);
 
 	function getDayPrices(date: string): DayPrices | undefined {
 		return prices?.[date];
@@ -227,19 +235,18 @@
 		}
 
 		// Background load of the full archive so the slider/preset can
-		// reach historical dates. Initial render uses the inlined latest
-		// day; this fills in the rest.
+		// reach historical dates. Initial render already has today's
+		// prices inlined; this fills in the rest.
 		const res = await fetch('/prices.json');
 		const archive: PriceData = await res.json();
 		prices = archive;
 		const dates = Object.keys(archive).sort();
 		firstDate = dates[0];
 		lastDate = dates[dates.length - 1];
-		loading = false;
 
-		if (!$selectedDate) {
-			selectedDate.set(lastDate);
-		}
+		// URL params come in after the archive arrives so the requested date
+		// is guaranteed to be in `prices`. A brief flicker on deep-links is
+		// the cost of avoiding an SSR/client hydration mismatch.
 		hydrateFromUrl(lastDate);
 	});
 </script>
@@ -331,14 +338,7 @@
 		</header>
 	</div>
 
-	{#if loading}
-		<div class="mx-auto max-w-2xl px-4 pb-6 sm:pb-10">
-			<div class="flex items-center justify-center py-20">
-				<div class="text-zinc-500 text-sm">Loading price data…</div>
-			</div>
-		</div>
-	{:else}
-		<div class="mx-auto mt-8 max-w-2xl px-4">
+	<div class="mx-auto mt-8 max-w-2xl px-4">
 			<!-- Controls — two-row compact panel (~120px tall) -->
 			<div class="controls-panel">
 				<div class="controls-slider">
@@ -396,17 +396,17 @@
 			ResizeObserver picks up the new width automatically.
 		-->
 		<div class="mx-auto mt-12 max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
-			{#each commodityAmounts as { commodity, amount } (commodity.id)}
-				<CommoditySection
+			{#each commodityAmounts as { commodity, amount }, i (commodity.id)}
+				<LazyCommoditySection
 					{commodity}
 					{amount}
 					btcAmount={$btcAmount}
 					btcUsdPrice={dayPrices?.btc ?? 0}
 					{prices}
+					priority={i === 0}
 				/>
 			{/each}
 		</div>
-	{/if}
 </div>
 
 <style>
