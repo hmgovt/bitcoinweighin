@@ -8,6 +8,11 @@ dist/
 build/
 .svelte-kit/
 
+# Video generator output (scripts/make-gold-video.ts) — frames are large
+# and re-derivable from the script + prices.json. Final videos in
+# output/video/ should be moved to static/video/ once authored.
+output/
+
 # Environment variables
 .env
 .env.local
