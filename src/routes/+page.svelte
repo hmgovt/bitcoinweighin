@@ -15,6 +15,7 @@
 	import { formatBtc } from '$lib/format.js';
 	import CommoditySection from '$lib/components/CommoditySection.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
+	import ShareButton from '$lib/components/ShareButton.svelte';
 
 	let { data } = $props();
 
@@ -266,6 +267,7 @@
 					{formatUsd($btcAmount * dayPrices.btc)}
 				</span>
 			{/if}
+			<ShareButton {prices} variant="compact" />
 		</div>
 	</div>
 
@@ -340,15 +342,18 @@
 							</div>
 						{/if}
 					</div>
-					<input
-						type="date"
-						value={$selectedDate}
-						min={firstDate}
-						max={lastDate}
-						onchange={handleDateChange}
-						class="date-input"
-						aria-label="Date"
-					/>
+					<div class="value-controls">
+						<input
+							type="date"
+							value={$selectedDate}
+							min={firstDate}
+							max={lastDate}
+							onchange={handleDateChange}
+							class="date-input"
+							aria-label="Date"
+						/>
+						<ShareButton {prices} />
+					</div>
 				</div>
 			</div>
 
@@ -433,6 +438,12 @@
 		font-size: 14px;
 		color: #9aa0a6;
 	}
+	.value-controls {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-shrink: 0;
+	}
 	.date-input {
 		flex-shrink: 0;
 		background: #27272a; /* zinc-800 */
@@ -455,8 +466,12 @@
 			align-items: stretch;
 			gap: 8px;
 		}
-		.date-input {
+		.value-controls {
 			width: 100%;
+			justify-content: space-between;
+		}
+		.date-input {
+			flex: 1;
 		}
 	}
 
