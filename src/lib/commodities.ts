@@ -213,7 +213,7 @@ const pu238: Commodity = {
 	geigerCrackle: true,
 	specificActivityCiPerGram: 17,
 	brandVoiceClarification:
-		'Plutonium-238 — the radioisotope that powers spacecraft. Non-fissile, not weapons material.',
+		'The radioisotope that powers spacecraft. Non-fissile, not weapons material.',
 	unit: 'gram',
 	unitMassGrams: 1,
 	densityGPerCm3: 19.8,

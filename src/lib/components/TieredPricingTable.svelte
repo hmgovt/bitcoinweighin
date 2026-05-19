@@ -18,112 +18,137 @@
 
 <script lang="ts">
 	/**
-	 * TieredPricingTable — three-row table for cocaine: producer,
-	 * wholesale, retail-pure-equivalent. The wholesale row is highlighted
-	 * as the primary tier (drives the headline BTC equivalence).
+	 * TieredPricingTable — three-column grid: Wholesale (primary) ·
+	 * Retail (street-purity) · Retail · pure-equivalent. Each column
+	 * shows the USD value of the current BTC at that market tier.
 	 *
-	 * Each row uses the tier's pricePerKg (already the methodology-defined
-	 * midpoint) for BTC equivalence; the published range is shown alongside.
-	 *
-	 * Wired up to the cocaine panel in Stage 5.
+	 * Wholesale anchors the headline equivalence and is rendered larger.
+	 * Retail-street-purity is derived from the pure-adjusted retail tier
+	 * by undoing the ~40 % purity assumption (UNODC / DEA standard).
 	 */
-
-	import { formatBtc } from '$lib/format.js';
 
 	let {
 		commodityId,
 		currentBtc,
 		priceData,
-		btcPriceUsd
+		btcPriceUsd,
+		accent = '#e8e0d2',
 	}: {
 		commodityId: string;
 		currentBtc: number;
 		priceData: CocainePriceData;
 		btcPriceUsd: number;
+		accent?: string;
 	} = $props();
 
-	const tierOrder = ['producer', 'wholesale', 'retail'] as const;
+	// Implied street purity for the retail tier — UNODC / EMCDDA 2024
+	// document a 30-50 % range; midpoint 0.40 used to derive the
+	// "street-purity" column from the pure-adjusted retail price.
+	const STREET_PURITY = 0.4;
 
-	function btcEquivalentKg(pricePerKg: number): number {
-		if (pricePerKg <= 0 || btcPriceUsd <= 0 || currentBtc <= 0) return 0;
-		return (currentBtc * btcPriceUsd) / pricePerKg;
-	}
+	const wholesalePerKg = $derived(priceData.tiers.wholesale.pricePerKg);
+	const retailPurePerKg = $derived(priceData.tiers.retail.pricePerKg);
+	const retailStreetPerKg = $derived(retailPurePerKg * STREET_PURITY);
 
-	function formatRange(range: [number, number]): string {
-		return `$${range[0].toLocaleString()}–$${range[1].toLocaleString()}/kg`;
-	}
+	// Mass of cocaine the BTC buys at the canonical (wholesale) tier.
+	const usdValue = $derived(currentBtc * btcPriceUsd);
+	const massKg = $derived(wholesalePerKg > 0 ? usdValue / wholesalePerKg : 0);
 
-	function formatKg(kg: number): string {
-		if (kg <= 0) return '—';
-		if (kg < 0.001) return `${(kg * 1000).toFixed(2)} g`;
-		if (kg < 1) return `${(kg * 1000).toFixed(0)} g`;
-		if (kg < 10) return `${kg.toFixed(2)} kg`;
-		if (kg < 1000) return `${kg.toFixed(1)} kg`;
-		return `${(kg / 1000).toFixed(1)} tonnes`;
-	}
+	const wholesaleUsd = $derived(massKg * wholesalePerKg);
+	const retailStreetUsd = $derived(massKg * retailStreetPerKg);
+	const retailPureUsd = $derived(massKg * retailPurePerKg);
 
-	function tierLabel(tier: 'producer' | 'wholesale' | 'retail'): string {
-		return tier.charAt(0).toUpperCase() + tier.slice(1);
+	function formatUsd(v: number): string {
+		if (v <= 0) return '$0';
+		if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+		if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+		if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
+		if (v >= 1000) return `$${Math.round(v / 1000).toLocaleString('en-US')}K`;
+		if (v >= 1) return `$${Math.round(v).toLocaleString('en-US')}`;
+		return `$${v.toFixed(2)}`;
 	}
 </script>
 
-<table class="tiered-pricing" data-commodity-id={commodityId}>
-	<thead>
-		<tr>
-			<th class="col-tier">Tier</th>
-			<th class="col-range">Price range</th>
-			<th class="col-equiv">{formatBtc(currentBtc)} ≈</th>
-		</tr>
-	</thead>
-	<tbody>
-		{#each tierOrder as tier (tier)}
-			{@const t = priceData.tiers[tier]}
-			{@const isPrimary = tier === priceData.primaryTier}
-			<tr class:primary={isPrimary}>
-				<td class="col-tier">
-					{tierLabel(tier)}
-					{#if isPrimary}<span class="primary-marker">primary</span>{/if}
-				</td>
-				<td class="col-range">{formatRange(t.range)}</td>
-				<td class="col-equiv">{formatKg(btcEquivalentKg(t.pricePerKg))}</td>
-			</tr>
-		{/each}
-	</tbody>
-</table>
+<div class="tiered-pricing" data-commodity-id={commodityId}>
+	<div class="col col-primary">
+		<div class="label" style="color: {accent};">Wholesale</div>
+		<div class="value value-primary">{formatUsd(wholesaleUsd)}</div>
+		<div class="sub">UNODC midpoint · ≥80% pure</div>
+	</div>
+	<div class="col">
+		<div class="label">Retail</div>
+		<div class="value">{formatUsd(retailStreetUsd)}</div>
+		<div class="sub">DEA · street-purity</div>
+	</div>
+	<div class="col">
+		<div class="label">Retail · pure-equivalent</div>
+		<div class="value">{formatUsd(retailPureUsd)}</div>
+		<div class="sub">Adjusted to 100%</div>
+	</div>
+</div>
 
 <style>
 	.tiered-pricing {
-		width: 100%;
-		border-collapse: collapse;
-		font-size: 0.9375rem;
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
+		gap: 0;
+		font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 		font-variant-numeric: tabular-nums;
 	}
-	.tiered-pricing th,
-	.tiered-pricing td {
-		padding: 0.5rem 0.75rem;
-		text-align: left;
-		border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
+	.col {
+		padding: 0 18px;
+		border-left: 1px solid #27272a; /* zinc-800 */
+		min-width: 0;
 	}
-	.tiered-pricing th {
-		font-weight: 600;
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		color: var(--color-text-secondary, #666);
+	.col:first-child {
+		padding-left: 0;
+		border-left: none;
 	}
-	.col-equiv {
-		text-align: right;
+	.col:last-child {
+		padding-right: 0;
 	}
-	.primary {
-		background: var(--color-bg-secondary, rgba(0, 0, 0, 0.03));
+	.label {
+		font-size: 10px;
 		font-weight: 500;
-	}
-	.primary-marker {
-		margin-left: 0.5rem;
-		font-size: 0.6875rem;
+		letter-spacing: 0.18em;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--color-text-secondary, #666);
+		color: #52525b; /* zinc-600 */
+		margin-bottom: 6px;
+	}
+	.value {
+		font-weight: 600;
+		font-size: 22px;
+		color: #a1a1aa; /* zinc-400 */
+		line-height: 1;
+		letter-spacing: -0.012em;
+	}
+	.value-primary {
+		font-size: 28px;
+		color: #fafafa; /* zinc-50 */
+	}
+	.sub {
+		font-size: 11px;
 		font-weight: 400;
+		color: #52525b; /* zinc-600 */
+		margin-top: 5px;
+		line-height: 1.4;
+	}
+
+	@media (max-width: 540px) {
+		.tiered-pricing {
+			grid-template-columns: 1fr;
+		}
+		.col {
+			padding: 0;
+			border-left: none;
+			border-top: 1px solid #27272a;
+			padding-top: 14px;
+			margin-top: 14px;
+		}
+		.col:first-child {
+			border-top: none;
+			padding-top: 0;
+			margin-top: 0;
+		}
 	}
 </style>

@@ -76,9 +76,9 @@ describe('CommoditySection: Pu-238 panel wiring', () => {
 				unitSys: 'imperial',
 			},
 		});
-		expect(out.body).toContain('Activity:');
+		expect(out.body).toContain('activity');
 		expect(out.body).toContain('272 Ci');
-		expect(out.body).toContain('disintegrations/sec');
+		expect(out.body).toContain('disintegrations / sec');
 	});
 
 	it('renders the source attribution row', () => {
@@ -122,7 +122,7 @@ describe('CommoditySection: Pu-238 panel wiring', () => {
 				unitSys: 'imperial',
 			},
 		});
-		expect(out.body).not.toContain('would melt itself in reality');
+		expect(out.body).not.toContain('Would melt itself in reality');
 	});
 
 	it('shows the melt warning at and above 1 kg', () => {
@@ -135,7 +135,7 @@ describe('CommoditySection: Pu-238 panel wiring', () => {
 				unitSys: 'imperial',
 			},
 		});
-		expect(out.body).toContain('would melt itself in reality');
+		expect(out.body).toContain('Would melt itself in reality');
 	});
 
 	it('does not fall through to PhysicalRep\'s "Unknown renderStyle" path', () => {
