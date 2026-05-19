@@ -51,8 +51,11 @@
 		{:else}
 			<img
 				src={imagePath}
+				srcset="{imagePath.replace('.webp', '@1x.webp')} 1x, {imagePath} 2x"
 				alt="{commodityId} forensic still"
 				class="still-image"
+				loading="lazy"
+				decoding="async"
 				onerror={() => (imageFailed = true)}
 			/>
 		{/if}

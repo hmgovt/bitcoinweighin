@@ -141,6 +141,7 @@
 	{:else}
 		<img
 			src={reference.spritePath}
+			srcset="{reference.spritePath.replace('.webp', '@1x.webp')} 1x, {reference.spritePath} 2x"
 			alt={reference.description}
 			class="reference-sprite"
 			draggable="false"

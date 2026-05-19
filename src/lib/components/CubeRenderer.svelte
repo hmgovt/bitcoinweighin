@@ -191,6 +191,7 @@
 				{#if commodity.cubeShadowPath && !spriteFailed}
 					<img
 						src={commodity.cubeShadowPath}
+						srcset="{commodity.cubeShadowPath.replace('@2x.webp', '@1x.webp')} 1x, {commodity.cubeShadowPath} 2x"
 						alt=""
 						class="cube-shadow"
 						aria-hidden="true"
@@ -204,6 +205,7 @@
 				{#if !spriteFailed}
 					<img
 						src={commodity.cubeSpritePath}
+						srcset="{commodity.cubeSpritePath.replace('@2x.webp', '@1x.webp')} 1x, {commodity.cubeSpritePath} 2x"
 						alt="{commodity.displayName} cube at {cubeEdgeMm.toFixed(1)} mm edge length"
 						class="cube-sprite"
 						class:cube-sprite-glowing={glow !== null}

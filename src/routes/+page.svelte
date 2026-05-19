@@ -212,12 +212,15 @@
 			<a href="/" class="brand" aria-label="Bitcoin Weigh-In home">
 				<h1 class="sr-only">Bitcoin Weigh-In</h1>
 				<picture>
-					<source srcset="/header.webp" type="image/webp" />
+					<source
+						srcset="/header@1x.webp 1x, /header.webp 2x"
+						type="image/webp"
+					/>
 					<img
 						src="/header.jpg"
 						alt="Bitcoin Weigh-In"
-						width="1280"
-						height="450"
+						width="960"
+						height="340"
 						fetchpriority="high"
 						decoding="async"
 						class="brand__mark"
