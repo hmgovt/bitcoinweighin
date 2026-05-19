@@ -19,6 +19,7 @@
     "holdings:check": "tsx scripts/holdings-check.ts"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260519.1",
     "@sveltejs/adapter-static": "^3.0.8",
     "@sveltejs/kit": "^2.15.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
@@ -34,6 +35,7 @@
     "vitest": "^2.1.0"
   },
   "dependencies": {
-    "@google/model-viewer": "^4.2.0"
+    "@google/model-viewer": "^4.2.0",
+    "workers-og": "^0.0.27"
   }
 }

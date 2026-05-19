@@ -137,6 +137,58 @@
 		}))
 	);
 
+	// ── Open Graph metadata (reactive) ──────────────────────────
+	// og:image points at /og-image (functions/og-image.ts) so the share
+	// preview reflects the current slider state. Title and description
+	// quote the gold readout when prices are loaded; otherwise fall back
+	// to brand copy. Server-prerender bakes the defaults; client hydration
+	// updates them for JS-aware crawlers.
+	const goldReadoutText = $derived.by(() => {
+		const gold = CORE_COMMODITIES.find((c) => c.id === 'gold');
+		if (!gold || !dayPrices) return null;
+		const amt = computeCommodityAmount($btcAmount, gold, dayPrices);
+		if (amt === null || !isFinite(amt) || amt <= 0) return null;
+		const formatted =
+			amt >= 1000 ? Math.round(amt).toLocaleString('en-US')
+				: amt >= 1 ? amt.toFixed(2)
+					: amt.toPrecision(3);
+		return `${formatted} troy oz`;
+	});
+
+	const ogTitle = $derived(
+		goldReadoutText
+			? `${formatBtc($btcAmount)} = ${goldReadoutText} of gold · Bitcoin Weigh-In`
+			: 'Bitcoin Weigh-In — What does a bitcoin weigh?'
+	);
+
+	const ogDescription = $derived(
+		goldReadoutText
+			? `What does ${formatBtc($btcAmount)} buy? ${goldReadoutText} of gold today. Explore BTC purchasing power across gold, silver, plutonium-238 and more.`
+			: 'BTC purchasing power visualised across commodities, at true relative scale.'
+	);
+
+	const ogPageUrl = $derived.by(() => {
+		const params = new URLSearchParams();
+		if ($btcAmount !== 1) params.set('btc', String($btcAmount));
+		if ($selectedDate) params.set('date', $selectedDate);
+		if ($activePreset) params.set('preset', $activePreset);
+		const qs = params.toString();
+		return `https://bitcoinweighin.com/${qs ? '?' + qs : ''}`;
+	});
+
+	const ogImageUrl = $derived.by(() => {
+		const params = new URLSearchParams();
+		params.set('btc', String($btcAmount));
+		if ($selectedDate) params.set('date', $selectedDate);
+		return `https://bitcoinweighin.com/og-image?${params.toString()}`;
+	});
+
+	const ogImageAlt = $derived(
+		goldReadoutText
+			? `${formatBtc($btcAmount)} buys ${goldReadoutText} of gold`
+			: 'Bitcoin Weigh-In — BTC purchasing power in physical commodities'
+	);
+
 	onMount(async () => {
 		// Beehiiv loader self-positions (sticky-bottom). Append to body so
 		// the script governs its own placement rather than getting trapped
@@ -167,12 +219,29 @@
 </script>
 
 <svelte:head>
-	<title>Bitcoin Weigh-In — What does a bitcoin weigh?</title>
-	<meta
-		name="description"
-		content="The purchasing power of bitcoin, measured in commodities you can hold. Gold, silver, copper, oil, and nuclear fuel — at true relative scale."
-	/>
+	<title>{ogTitle}</title>
+	<meta name="description" content={ogDescription} />
 	<link rel="canonical" href="https://bitcoinweighin.com/" />
+	<!--
+		Open Graph + Twitter cards. The og:image hits the /og-image Pages
+		Function (functions/og-image.ts) with the current slider state, so
+		share previews reflect the URL's btc / date / commodity params.
+		Defaults bake into the prerendered HTML for non-JS crawlers; the
+		reactive bindings update for JS-aware crawlers and post-hydration.
+	-->
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="Bitcoin Weigh-In" />
+	<meta property="og:title" content={ogTitle} />
+	<meta property="og:description" content={ogDescription} />
+	<meta property="og:url" content={ogPageUrl} />
+	<meta property="og:image" content={ogImageUrl} />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta property="og:image:alt" content={ogImageAlt} />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={ogTitle} />
+	<meta name="twitter:description" content={ogDescription} />
+	<meta name="twitter:image" content={ogImageUrl} />
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950 text-zinc-100">
