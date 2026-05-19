@@ -273,11 +273,16 @@
 				<a href="/data" class="link">dataset</a>
 			</p>
 		{/if}
-
-		<div class="panel-actions">
-			<ShareButton {prices} {commodity} />
-		</div>
 	{/if}
+
+	<!--
+		Per-panel share action. Lives outside the still/cube branch so every
+		commodity gets the same affordance — cocaine included. URL carries
+		?commodity={id} so the receiving viewer lands on this exact panel.
+	-->
+	<div class="panel-actions">
+		<ShareButton {prices} {commodity} />
+	</div>
 </section>
 
 <style>
