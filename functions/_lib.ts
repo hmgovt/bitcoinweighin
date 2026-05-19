@@ -18,6 +18,8 @@ export interface OgCommodity {
 	illustrativePricePerUnit?: number;
 	/** Hex accent for the readout chrome. */
 	accentColor: string;
+	/** Relative path under /sprites/og/ — fetched and inlined into the OG. */
+	cubeSpritePath?: string;
 }
 
 export const OG_COMMODITIES: Record<string, OgCommodity> = {
@@ -31,6 +33,7 @@ export const OG_COMMODITIES: Record<string, OgCommodity> = {
 		priceField: 'xau',
 		dataQuality: 'live',
 		accentColor: '#fbbf24',
+		cubeSpritePath: '/sprites/og/gold-cube.png',
 	},
 	silver: {
 		id: 'silver',
@@ -42,6 +45,7 @@ export const OG_COMMODITIES: Record<string, OgCommodity> = {
 		priceField: 'xag',
 		dataQuality: 'live',
 		accentColor: '#e5e7eb',
+		cubeSpritePath: '/sprites/og/silver-cube.png',
 	},
 	pu238: {
 		id: 'pu238',
@@ -54,6 +58,7 @@ export const OG_COMMODITIES: Record<string, OgCommodity> = {
 		dataQuality: 'illustrative',
 		illustrativePricePerUnit: 5000,
 		accentColor: '#fb923c',
+		cubeSpritePath: '/sprites/og/pu238-cube.png',
 	},
 	cocaine: {
 		id: 'cocaine',
@@ -69,6 +74,24 @@ export const OG_COMMODITIES: Record<string, OgCommodity> = {
 		accentColor: '#f4f4f5',
 	},
 };
+
+// Sprite-canvas geometry, measured directly from the shipped 1600×1600
+// assets and mirrored from src/lib/volume.ts so the OG scene matches the
+// page's framing rule. Fractions are independent of the rendered PNG
+// resolution (we ship the PNGs at 800×800 via sips, same proportions).
+export const SCENE = {
+	SHIBA_HEIGHT_M: 0.4,
+	VIEWPORT_MARGIN: 1.1,
+	CUBE_VISIBLE_WIDTH_FRACTION: (1296 - 244) / 1600,
+	CUBE_VISIBLE_HEIGHT_FRACTION: (1409 - 331) / 1600,
+	CUBE_LEFT_MARGIN_FRACTION: 244 / 1600,
+	CUBE_TOP_MARGIN_FRACTION: 331 / 1600,
+	SHIBA_VISIBLE_WIDTH_FRACTION: (1008 - 486) / 1600,
+	SHIBA_VISIBLE_HEIGHT_FRACTION: (1203 - 490) / 1600,
+	SHIBA_LEFT_MARGIN_FRACTION: 486 / 1600,
+	SHIBA_TOP_MARGIN_FRACTION: 490 / 1600,
+	SHIBA_SPRITE_PATH: '/sprites/og/shiba.png',
+} as const;
 
 export interface DayPrices {
 	btc: number;
@@ -184,6 +207,26 @@ export function formatCubeEdge(edgeCm: number): string {
 /** Commodity amount in its native unit: "23.5 troy oz". */
 export function formatAmount(amount: number, commodity: OgCommodity): string {
 	return `${sigFigs(amount)} ${commodity.unitLabel}`;
+}
+
+/**
+ * Headline readout — picks the unit that reads best at the current scale.
+ * - Metals (unit=troy_oz): keep troy oz (the bullion unit users expect).
+ * - Grams-unit commodities (Pu-238, cocaine): switch to kg / tonnes when
+ *   the amount makes "29000 g" look silly. The point of the readout is
+ *   to land — bullion vocabulary doesn't fit cocaine, gram vocabulary
+ *   doesn't fit kilo-scale buys.
+ */
+export function formatHeadlineAmount(amount: number, commodity: OgCommodity): string {
+	if (commodity.unit === 'troy_oz') return formatAmount(amount, commodity);
+	if (commodity.unit === 'gram') {
+		const g = amount;
+		if (g >= 1_000_000) return `${sigFigs(g / 1_000_000)} tonnes`;
+		if (g >= 1000) return `${sigFigs(g / 1000)} kg`;
+		if (g < 1) return `${sigFigs(g * 1000)} mg`;
+		return `${sigFigs(g)} g`;
+	}
+	return formatAmount(amount, commodity);
 }
 
 /** BTC amount: tight formatter that handles 1 sat through 21M BTC. */

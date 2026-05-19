@@ -7,6 +7,7 @@
 		btcAmount,
 		selectedDate,
 		activePreset,
+		scrollToCommodity,
 		setBtcFromSlider,
 		setDateFromPicker,
 		activatePreset,
@@ -15,7 +16,6 @@
 	import { formatBtc } from '$lib/format.js';
 	import CommoditySection from '$lib/components/CommoditySection.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
-	import ShareButton from '$lib/components/ShareButton.svelte';
 
 	let { data } = $props();
 
@@ -140,31 +140,50 @@
 
 	// ── Open Graph metadata (reactive) ──────────────────────────
 	// og:image points at /og-image (functions/og-image.ts) so the share
-	// preview reflects the current slider state. Title and description
-	// quote the gold readout when prices are loaded; otherwise fall back
-	// to brand copy. Server-prerender bakes the defaults; client hydration
-	// updates them for JS-aware crawlers.
-	const goldReadoutText = $derived.by(() => {
-		const gold = CORE_COMMODITIES.find((c) => c.id === 'gold');
-		if (!gold || !dayPrices) return null;
-		const amt = computeCommodityAmount($btcAmount, gold, dayPrices);
+	// preview reflects the current slider state. When ?commodity=X is set
+	// (via deep-link or a per-panel share button), the title and image
+	// pivot to that commodity; otherwise gold is the default voice.
+	// Server-prerender bakes the defaults; client hydration updates the
+	// reactive bindings for JS-aware crawlers.
+	const ogCommodity = $derived(
+		CORE_COMMODITIES.find((c) => c.id === $scrollToCommodity) ??
+			CORE_COMMODITIES.find((c) => c.id === 'gold')
+	);
+
+	const ogReadoutText = $derived.by(() => {
+		if (!ogCommodity || !dayPrices) return null;
+		const amt = computeCommodityAmount($btcAmount, ogCommodity, dayPrices);
 		if (amt === null || !isFinite(amt) || amt <= 0) return null;
-		const formatted =
-			amt >= 1000 ? Math.round(amt).toLocaleString('en-US')
-				: amt >= 1 ? amt.toFixed(2)
-					: amt.toPrecision(3);
-		return `${formatted} troy oz`;
+		if (ogCommodity.unit === 'troy_oz') {
+			const formatted =
+				amt >= 1000 ? Math.round(amt).toLocaleString('en-US')
+					: amt >= 1 ? amt.toFixed(2)
+						: amt.toPrecision(3);
+			return `${formatted} troy oz`;
+		}
+		// Grams-unit commodities use the consumer ladder (kg/tonnes at scale).
+		if (ogCommodity.unit === 'gram' && ogCommodity.unitMassGrams) {
+			// Inline grams formatter — mirrors functions/_lib.ts formatHeadlineAmount
+			const g = amt * ogCommodity.unitMassGrams;
+			if (g >= 1_000_000) return `${(g / 1_000_000).toFixed(2)} tonnes`;
+			if (g >= 1000) return `${(g / 1000).toFixed(2)} kg`;
+			if (g < 1) return `${(g * 1000).toFixed(0)} mg`;
+			return `${g.toFixed(1)} g`;
+		}
+		return null;
 	});
 
+	const ogCommodityName = $derived(ogCommodity?.displayName.toLowerCase() ?? 'gold');
+
 	const ogTitle = $derived(
-		goldReadoutText
-			? `${formatBtc($btcAmount)} = ${goldReadoutText} of gold · Bitcoin Weigh-In`
+		ogReadoutText
+			? `${formatBtc($btcAmount)} = ${ogReadoutText} of ${ogCommodityName} · Bitcoin Weigh-In`
 			: 'Bitcoin Weigh-In — What does a bitcoin weigh?'
 	);
 
 	const ogDescription = $derived(
-		goldReadoutText
-			? `What does ${formatBtc($btcAmount)} buy? ${goldReadoutText} of gold today. Explore BTC purchasing power across gold, silver, plutonium-238 and more.`
+		ogReadoutText
+			? `What does ${formatBtc($btcAmount)} buy? ${ogReadoutText} of ${ogCommodityName} today. Explore BTC purchasing power across gold, silver, plutonium-238 and more.`
 			: 'BTC purchasing power visualised across commodities, at true relative scale.'
 	);
 
@@ -173,6 +192,7 @@
 		if ($btcAmount !== 1) params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
 		if ($activePreset) params.set('preset', $activePreset);
+		if ($scrollToCommodity) params.set('commodity', $scrollToCommodity);
 		const qs = params.toString();
 		return `https://bitcoinweighin.com/${qs ? '?' + qs : ''}`;
 	});
@@ -181,12 +201,13 @@
 		const params = new URLSearchParams();
 		params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
+		if ($scrollToCommodity) params.set('commodity', $scrollToCommodity);
 		return `https://bitcoinweighin.com/og-image?${params.toString()}`;
 	});
 
 	const ogImageAlt = $derived(
-		goldReadoutText
-			? `${formatBtc($btcAmount)} buys ${goldReadoutText} of gold`
+		ogReadoutText
+			? `${formatBtc($btcAmount)} buys ${ogReadoutText} of ${ogCommodityName}`
 			: 'Bitcoin Weigh-In — BTC purchasing power in physical commodities'
 	);
 
@@ -267,7 +288,6 @@
 					{formatUsd($btcAmount * dayPrices.btc)}
 				</span>
 			{/if}
-			<ShareButton {prices} variant="compact" />
 		</div>
 	</div>
 
@@ -342,18 +362,15 @@
 							</div>
 						{/if}
 					</div>
-					<div class="value-controls">
-						<input
-							type="date"
-							value={$selectedDate}
-							min={firstDate}
-							max={lastDate}
-							onchange={handleDateChange}
-							class="date-input"
-							aria-label="Date"
-						/>
-						<ShareButton {prices} />
-					</div>
+					<input
+						type="date"
+						value={$selectedDate}
+						min={firstDate}
+						max={lastDate}
+						onchange={handleDateChange}
+						class="date-input"
+						aria-label="Date"
+					/>
 				</div>
 			</div>
 
@@ -381,6 +398,7 @@
 					{amount}
 					btcAmount={$btcAmount}
 					btcUsdPrice={dayPrices?.btc ?? 0}
+					{prices}
 				/>
 			{/each}
 		</div>
@@ -438,12 +456,6 @@
 		font-size: 14px;
 		color: #9aa0a6;
 	}
-	.value-controls {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		flex-shrink: 0;
-	}
 	.date-input {
 		flex-shrink: 0;
 		background: #27272a; /* zinc-800 */
@@ -466,12 +478,8 @@
 			align-items: stretch;
 			gap: 8px;
 		}
-		.value-controls {
-			width: 100%;
-			justify-content: space-between;
-		}
 		.date-input {
-			flex: 1;
+			width: 100%;
 		}
 	}
 

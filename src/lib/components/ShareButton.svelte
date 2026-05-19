@@ -1,76 +1,118 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { btcAmount, selectedDate } from '$lib/stores/url.js';
-	import { CORE_COMMODITIES } from '$lib/commodities.js';
+	import type { Commodity } from '$lib/commodities.js';
 	import {
 		computeCommodityAmount,
 		type DayPrices,
 		type PriceData,
 	} from '$lib/prices.js';
-	import { formatBtc } from '$lib/format.js';
+	import { formatBtc, formatMass, formatMassConsumer } from '$lib/format.js';
 
 	interface Props {
-		/** Loaded price dataset; used to compute the gold readout for share text. */
+		/** Loaded price dataset; used to compute the readout for the share text. */
 		prices: PriceData | null;
-		/** Visual variant. `compact` hides the label on all sizes (for the sticky bar). */
-		variant?: 'default' | 'compact';
+		/**
+		 * The commodity this button shares. When set, the shared URL carries
+		 * ?commodity={id} and the readout/copy quote that commodity. When
+		 * omitted, the share is page-level and quotes gold by default.
+		 */
+		commodity?: Commodity;
+		/** Optional inline style overrides (e.g. to absolute-position in a panel). */
+		style?: string;
 	}
 
-	let { prices, variant = 'default' }: Props = $props();
+	let { prices, commodity, style }: Props = $props();
 
 	let popoverOpen = $state(false);
 	let copyConfirmed = $state(false);
-	let supportsWebShare = $state(false);
+	/**
+	 * `true` only on touch-first devices (phones, tablets). Desktop —
+	 * including macOS Safari, which technically supports navigator.share
+	 * but routes to a thin macOS share sheet (Notes/Reminders/Messages
+	 * only) — falls back to the platform popover. Coarse pointer is the
+	 * correct signal here, not feature-detection of navigator.share.
+	 */
+	let useNativeShare = $state(false);
 	let buttonEl: HTMLButtonElement | undefined = $state();
 	let popoverEl: HTMLDivElement | undefined = $state();
 
 	onMount(() => {
-		// Detect Web Share API. Desktop Chrome/Firefox return false; iOS
-		// Safari, Android Chrome, and desktop Safari/Edge return true.
-		supportsWebShare = typeof navigator !== 'undefined' && 'share' in navigator;
+		const coarsePointer =
+			typeof window !== 'undefined' &&
+			typeof window.matchMedia === 'function' &&
+			window.matchMedia('(pointer: coarse)').matches;
+		const hasShare = typeof navigator !== 'undefined' && 'share' in navigator;
+		useNativeShare = coarsePointer && hasShare;
 	});
 
 	// ── Share text composition ─────────────────────────────────
-	const gold = CORE_COMMODITIES.find((c) => c.id === 'gold');
 
 	const dayPrices = $derived<DayPrices | undefined>(
 		prices && $selectedDate ? prices[$selectedDate] : undefined,
 	);
 
-	const goldReadout = $derived.by(() => {
-		if (!gold || !dayPrices) return null;
-		const amt = computeCommodityAmount($btcAmount, gold, dayPrices);
+	const readout = $derived.by(() => {
+		const c = commodity;
+		if (!c || !dayPrices) return null;
+		const amt = computeCommodityAmount($btcAmount, c, dayPrices);
 		if (amt === null || !isFinite(amt) || amt <= 0) return null;
+		// Pick the right unit vocabulary per commodity. Metals stay in
+		// troy oz (the bullion unit); grams-unit commodities switch to
+		// kg/tonnes at scale via the consumer ladder.
+		if (c.unit === 'troy_oz') {
+			const formatted =
+				amt >= 1000 ? Math.round(amt).toLocaleString('en-US')
+					: amt >= 1 ? amt.toFixed(2)
+						: amt.toPrecision(3);
+			return `${formatted} troy oz`;
+		}
+		if (c.unit === 'gram' && c.unitMassGrams) {
+			return formatMassConsumer(amt * c.unitMassGrams, 'metric');
+		}
 		const formatted =
 			amt >= 1000 ? Math.round(amt).toLocaleString('en-US')
 				: amt >= 1 ? amt.toFixed(2)
 					: amt.toPrecision(3);
-		return `${formatted} troy oz`;
+		return `${formatted} ${c.unit.replace('_', ' ')}`;
 	});
+
+	const commodityName = $derived(commodity?.displayName.toLowerCase() ?? 'gold');
 
 	function buildShareText(): string {
 		const btc = formatBtc($btcAmount);
-		if (!goldReadout) {
+		if (!readout) {
 			return `What does ${btc} weigh? Find out at Bitcoin Weigh-In.`;
 		}
 		const templates = [
-			`${btc} buys ${goldReadout} of gold. What does yours buy?`,
-			`${goldReadout} of gold — that's what ${btc} gets you today.`,
-			`Ever wondered what ${btc} weighs in gold? ${goldReadout}.`,
+			`${btc} buys ${readout} of ${commodityName}. What does yours buy?`,
+			`${readout} of ${commodityName} — that's what ${btc} gets you today.`,
+			`Ever wondered what ${btc} weighs in ${commodityName}? ${readout}.`,
 		];
 		return templates[Math.floor(Math.random() * templates.length)];
 	}
 
 	function getShareUrl(): string {
+		// Build a canonical, commodity-aware URL on the current origin so
+		// the share lands on the same view the user is looking at.
 		if (typeof window === 'undefined') return 'https://bitcoinweighin.com/';
-		return window.location.href;
+		const params = new URLSearchParams();
+		params.set('btc', String($btcAmount));
+		if ($selectedDate) params.set('date', $selectedDate);
+		if (commodity?.id) params.set('commodity', commodity.id);
+		return `${window.location.origin}/?${params.toString()}`;
 	}
 
 	function getOgImageUrl(): string {
 		const params = new URLSearchParams();
 		params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
-		return `https://bitcoinweighin.com/og-image?${params.toString()}`;
+		if (commodity?.id) params.set('commodity', commodity.id);
+		const origin =
+			typeof window !== 'undefined'
+				? window.location.origin
+				: 'https://bitcoinweighin.com';
+		return `${origin}/og-image?${params.toString()}`;
 	}
 
 	// ── Action handlers ────────────────────────────────────────
@@ -78,17 +120,16 @@
 		const url = getShareUrl();
 		const text = buildShareText();
 
-		if (supportsWebShare) {
+		if (useNativeShare) {
 			try {
 				await navigator.share({ title: 'Bitcoin Weigh-In', text, url });
 				return;
 			} catch (e: unknown) {
-				// AbortError = user cancelled the native sheet; not a failure.
 				if (e instanceof Error && e.name === 'AbortError') return;
-				// Fall through to popover for other failures.
+				// Other failures: fall through to popover.
 			}
 		}
-		popoverOpen = true;
+		popoverOpen = !popoverOpen;
 	}
 
 	function openTarget(href: string) {
@@ -105,17 +146,13 @@
 				copyConfirmed = false;
 			}, 1500);
 		} catch {
-			// Clipboard write blocked (insecure context, permissions). Fall
-			// back to a brief select-and-prompt — rare path.
 			window.prompt('Copy this URL:', url);
 		}
 	}
 
 	function shareX() {
-		const url = getShareUrl();
-		const text = buildShareText();
 		openTarget(
-			`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+			`https://x.com/intent/tweet?text=${encodeURIComponent(buildShareText())}&url=${encodeURIComponent(getShareUrl())}`,
 		);
 	}
 	function shareFacebook() {
@@ -124,10 +161,8 @@
 		);
 	}
 	function shareReddit() {
-		const url = getShareUrl();
-		const text = buildShareText();
 		openTarget(
-			`https://reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}`,
+			`https://reddit.com/submit?url=${encodeURIComponent(getShareUrl())}&title=${encodeURIComponent(buildShareText())}`,
 		);
 	}
 	function shareLinkedIn() {
@@ -136,17 +171,23 @@
 		);
 	}
 	function sharePinterest() {
-		const url = getShareUrl();
-		const text = buildShareText();
-		const media = getOgImageUrl();
 		openTarget(
-			`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(url)}&media=${encodeURIComponent(media)}&description=${encodeURIComponent(text)}`,
+			`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(getShareUrl())}&media=${encodeURIComponent(getOgImageUrl())}&description=${encodeURIComponent(buildShareText())}`,
 		);
 	}
 	function shareWhatsApp() {
-		const url = getShareUrl();
-		const text = buildShareText();
-		openTarget(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`);
+		openTarget(
+			`https://wa.me/?text=${encodeURIComponent(buildShareText() + ' ' + getShareUrl())}`,
+		);
+	}
+	function shareEmail() {
+		const subject = commodity
+			? `Bitcoin Weigh-In — ${formatBtc($btcAmount)} in ${commodityName}`
+			: 'Bitcoin Weigh-In';
+		const body = `${buildShareText()}\n\n${getShareUrl()}`;
+		// mailto: opens the default mail client without a popup.
+		window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+		popoverOpen = false;
 	}
 
 	// ── Dismiss handlers ───────────────────────────────────────
@@ -177,22 +218,23 @@
 	});
 </script>
 
-<div class="share-wrap">
+<div class="share-wrap" {style}>
 	<button
 		bind:this={buttonEl}
 		type="button"
 		class="share-button"
-		class:compact={variant === 'compact'}
-		aria-label="Share this page"
-		aria-haspopup="dialog"
+		aria-label={commodity
+			? `Share this ${commodity.displayName} view`
+			: 'Share this page'}
+		aria-haspopup={useNativeShare ? undefined : 'dialog'}
 		aria-expanded={popoverOpen}
 		onclick={handlePrimaryShare}
 	>
 		<svg
 			class="icon"
 			viewBox="0 0 24 24"
-			width="18"
-			height="18"
+			width="16"
+			height="16"
 			fill="none"
 			stroke="currentColor"
 			stroke-width="1.8"
@@ -204,9 +246,7 @@
 			<polyline points="16 6 12 2 8 6" />
 			<line x1="12" y1="2" x2="12" y2="15" />
 		</svg>
-		{#if variant !== 'compact'}
-			<span class="label">Share</span>
-		{/if}
+		<span class="label">Share</span>
 	</button>
 
 	{#if popoverOpen}
@@ -252,6 +292,13 @@
 				</svg>
 				<span>Pinterest</span>
 			</button>
+			<button type="button" class="opt" onclick={shareEmail} aria-label="Share via email">
+				<svg class="opt-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<rect x="2" y="4" width="20" height="16" rx="2"/>
+					<path d="M22 7 12 13 2 7"/>
+				</svg>
+				<span>Email</span>
+			</button>
 			<button
 				type="button"
 				class="opt copy"
@@ -289,7 +336,7 @@
 		border: 1px solid #3f3f46; /* zinc-700 */
 		color: #d4d4d8; /* zinc-300 */
 		border-radius: 6px;
-		padding: 6px 10px;
+		padding: 6px 12px;
 		font-size: 13px;
 		font-family: inherit;
 		cursor: pointer;
@@ -301,14 +348,6 @@
 		border-color: #71717a;
 		background: rgba(255, 255, 255, 0.03);
 		outline: none;
-	}
-	.share-button.compact {
-		padding: 4px 6px;
-		border-color: transparent;
-	}
-	.share-button.compact:hover,
-	.share-button.compact:focus-visible {
-		border-color: #3f3f46;
 	}
 	.icon {
 		display: block;
@@ -370,14 +409,5 @@
 		margin-top: 2px;
 		border-top: 1px solid #27272a;
 		border-radius: 0 0 5px 5px;
-	}
-
-	@media (max-width: 479px) {
-		.share-button .label {
-			display: none;
-		}
-		.share-button {
-			padding: 6px 8px;
-		}
 	}
 </style>

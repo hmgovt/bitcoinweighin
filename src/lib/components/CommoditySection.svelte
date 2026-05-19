@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Commodity } from '$lib/commodities.js';
 	import { computeMassGrams } from '$lib/volume.js';
-	import { COCAINE_PRICE_DATA } from '$lib/prices.js';
+	import { COCAINE_PRICE_DATA, type PriceData } from '$lib/prices.js';
 	import { formatMassConsumer } from '$lib/format.js';
 	import { system, toggleSystem } from '$lib/stores/system.js';
 	import QualityBadge from './QualityBadge.svelte';
@@ -13,17 +13,20 @@
 	import CocaineDenominationRow from './CocaineDenominationRow.svelte';
 	import TieredPricingTable from './TieredPricingTable.svelte';
 	import GeigerCrackle from './GeigerCrackle.svelte';
+	import ShareButton from './ShareButton.svelte';
 
 	let {
 		commodity,
 		amount,
 		btcAmount,
 		btcUsdPrice,
+		prices,
 	}: {
 		commodity: Commodity;
 		amount: number | null;
 		btcAmount: number;
 		btcUsdPrice: number;
+		prices: PriceData | null;
 	} = $props();
 
 	const safeAmount = $derived(amount ?? 0);
@@ -270,6 +273,10 @@
 				<a href="/data" class="link">dataset</a>
 			</p>
 		{/if}
+
+		<div class="panel-actions">
+			<ShareButton {prices} {commodity} />
+		</div>
 	{/if}
 </section>
 
@@ -303,6 +310,13 @@
 	/* ── Shared card spacing ───────────────────────────────────── */
 	.card-wrap {
 		margin-top: 22px;
+	}
+
+	/* ── Per-panel share action ────────────────────────────────── */
+	.panel-actions {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 18px;
 	}
 
 	/* ── Cocaine still-panel readout ───────────────────────────── */
