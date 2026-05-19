@@ -17,6 +17,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
 const NDJSON_PATH = join(ROOT, 'data', 'prices.ndjson');
 const PRICES_PATH = join(ROOT, 'static', 'prices.json');
+const PRICES_LATEST_PATH = join(ROOT, 'static', 'prices-latest.json');
 const META_PATH = join(ROOT, 'static', 'meta.json');
 
 function main() {
@@ -86,6 +87,16 @@ function main() {
 	const sizeBytes = Buffer.byteLength(jsonStr, 'utf-8');
 	const sizeMB = (sizeBytes / 1024 / 1024).toFixed(2);
 	console.log(`Wrote prices.json: ${sizeMB} MB (${Object.keys(prices).length} dates)`);
+
+	// Latest-day-only payload for SSR/prerender. +page.ts fetches this in
+	// load() so the cube renderer can mount in the prerendered HTML — the
+	// full prices.json would otherwise get inlined into the page by
+	// SvelteKit's fetch-response caching, ballooning HTML from a few KB
+	// to ~830 KB.
+	const latest = { [lastDate]: prices[lastDate] };
+	const latestStr = JSON.stringify(latest);
+	writeFileSync(PRICES_LATEST_PATH, latestStr);
+	console.log(`Wrote prices-latest.json: ${latestStr.length} B (${lastDate})`);
 
 	// Write meta.json
 	const meta = {

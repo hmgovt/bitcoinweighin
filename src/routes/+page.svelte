@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { CORE_COMMODITIES } from '$lib/commodities.js';
 	import { computeCommodityAmount } from '$lib/prices.js';
 	import type { PriceData, DayPrices } from '$lib/prices.js';
@@ -19,10 +20,23 @@
 
 	let { data } = $props();
 
-	let prices = $state<PriceData | null>(null);
+	// Prerendered with the latest day's prices inlined (via +page.ts).
+	// The cube renderer can mount in the prerendered HTML, so the LCP
+	// Shiba paints at FCP instead of after onMount's archive fetch.
+	let prices = $state<PriceData>(data.initialPrices);
 	let firstDate = $state(data.firstDate);
 	let lastDate = $state(data.lastDate);
-	let loading = $state(true);
+
+	// Seed selectedDate before first render so dayPrices resolves to the
+	// inlined day. In the browser we also fold in URL params now (rather
+	// than waiting for onMount), avoiding a flicker when deep-links carry
+	// a preset or explicit ?date= older than the inlined day.
+	if (browser) {
+		hydrateFromUrl(data.lastDate);
+		if (!$selectedDate) selectedDate.set(data.lastDate);
+	} else {
+		selectedDate.set(data.lastDate);
+	}
 
 	function getDayPrices(date: string): DayPrices | undefined {
 		return prices?.[date];
@@ -224,19 +238,15 @@
 			document.body.appendChild(s);
 		}
 
+		// Background load of the full archive so the slider/preset can
+		// reach historical dates. Initial render already has today's
+		// prices inlined; this fills in the rest.
 		const res = await fetch('/prices.json');
-		const data: PriceData = await res.json();
-		prices = data;
-		const dates = Object.keys(data).sort();
+		const archive: PriceData = await res.json();
+		prices = archive;
+		const dates = Object.keys(archive).sort();
 		firstDate = dates[0];
 		lastDate = dates[dates.length - 1];
-		loading = false;
-
-		// Set default date, then hydrate URL params
-		if (!$selectedDate) {
-			selectedDate.set(lastDate);
-		}
-		hydrateFromUrl(lastDate);
 	});
 </script>
 
@@ -327,14 +337,7 @@
 		</header>
 	</div>
 
-	{#if loading}
-		<div class="mx-auto max-w-2xl px-4 pb-6 sm:pb-10">
-			<div class="flex items-center justify-center py-20">
-				<div class="text-zinc-500 text-sm">Loading price data…</div>
-			</div>
-		</div>
-	{:else}
-		<div class="mx-auto mt-8 max-w-2xl px-4">
+	<div class="mx-auto mt-8 max-w-2xl px-4">
 			<!-- Controls — two-row compact panel (~120px tall) -->
 			<div class="controls-panel">
 				<div class="controls-slider">
@@ -402,7 +405,6 @@
 				/>
 			{/each}
 		</div>
-	{/if}
 </div>
 
 <style>
