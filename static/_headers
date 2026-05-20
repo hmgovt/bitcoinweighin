@@ -41,3 +41,18 @@
 # CDN to serve while revalidating so a cache miss never blocks render.
 /prices.json
   Cache-Control: public, max-age=300, stale-while-revalidate=3600
+
+# Prerendered HTML. Default SvelteKit emits max-age=0,must-revalidate which
+# makes Cloudflare flag the response cf-cache-status: DYNAMIC and serve it
+# from origin every time — measurable TTFB regression on the LCP path.
+#
+# The pages are fully static (rebuilt nightly by the price-update workflow,
+# which redeploys and purges the CF cache), so it's safe to cache at the
+# edge for hours. Browsers revalidate on each visit (max-age=60) but the
+# revalidate is a fast 304 against the edge copy, not a fresh origin hit.
+/
+  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+/data
+  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+/methodology
+  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800

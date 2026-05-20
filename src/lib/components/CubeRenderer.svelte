@@ -80,7 +80,17 @@
 
 	let viewportPx = $state(0);
 	let windowHeightPx = $state(0);
-	const VIEWPORT_FALLBACK_PX = 600;
+	// Fallback width used during SSR/prerender, when the real viewport
+	// isn't known. 400 is a mobile-typical CSS width (Moto G Power is
+	// 412, iPhone 12 is 390) and matters because Lighthouse mobile is
+	// the LCP-sensitive target. A larger fallback (we had 600) renders
+	// the Shiba slot ~3× bigger than the post-hydration runtime size on
+	// mobile, forcing a major repaint when JS upgrades — the upgrade
+	// resets the LCP candidate and pushes Largest Contentful Paint past
+	// where it could have fired on the SSR paint. Desktop visitors get
+	// a briefly-smaller initial render that JS upgrades within one
+	// frame, which is invisible on a fast device.
+	const VIEWPORT_FALLBACK_PX = 400;
 	const WINDOW_HEIGHT_FALLBACK_PX = 720;
 
 	const widthPx = $derived(viewportPx > 0 ? viewportPx : VIEWPORT_FALLBACK_PX);
