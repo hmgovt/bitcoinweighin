@@ -98,7 +98,8 @@
 <div
 	bind:this={containerEl}
 	class="lazy-section"
-	class:lazy-section--pending={!mounted}
+	style:--reserved-mobile="{commodity.expectedHeightPx?.mobile ?? 720}px"
+	style:--reserved-desktop="{commodity.expectedHeightPx?.desktop ?? 800}px"
 >
 	{#if mounted}
 		<CommoditySection {commodity} {amount} {btcAmount} {btcUsdPrice} {prices} />
@@ -106,19 +107,18 @@
 </div>
 
 <style>
+	/* Reserve the section's full natural height in BOTH placeholder and
+	   mounted states. Measured per-commodity via Playwright (see
+	   scripts/_measure-sections.ts) and padded ~5%. Identical min-height
+	   pre- and post-mount means hydration never shifts the section's
+	   bounds — eliminates the CLS spike DevTools was attributing to the
+	   lazy mount cascade as the user scrolled the page. */
 	.lazy-section {
-		/* Reserve roughly one panel of vertical space so the IO has room to
-		   distribute the observers across the page. Real panels override
-		   this once mounted — content sets the height. */
-		min-height: 0;
+		min-height: var(--reserved-mobile);
 	}
-	.lazy-section--pending {
-		min-height: 520px;
-	}
-
-	@media (max-width: 767px) {
-		.lazy-section--pending {
-			min-height: 420px;
+	@media (min-width: 768px) {
+		.lazy-section {
+			min-height: var(--reserved-desktop);
 		}
 	}
 </style>
