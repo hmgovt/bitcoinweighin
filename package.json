@@ -6,7 +6,7 @@
   "description": "What does a bitcoin weigh? BTC purchasing power visualised across commodities.",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && tsx scripts/inline-critical-css.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
