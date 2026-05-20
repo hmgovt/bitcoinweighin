@@ -49,10 +49,17 @@ def jobs() -> list[Job]:
     out: list[Job] = []
 
     # ── Shiba (LCP element) ──────────────────────────────────────
+    # Moto G Power (Lighthouse mobile target) is DPR 1.75 at a 412 CSS-px
+    # viewport: the Shiba slot tops out near 490 CSS px, so @2x needs only
+    # ~860 device px. We keep the unsuffixed shiba_inu.webp as the 1200-px
+    # master for any non-srcset consumer, but the srcset now points to a
+    # dedicated @2x file so Slow-4G mobile fetches ~half the bytes.
     shiba = SPRITES / "references" / "shiba_inu.webp"
     out.append(Job(shiba, shiba, max_dim=1200, quality=82))
+    out.append(Job(shiba, shiba.with_name("shiba_inu@2x.webp"),
+                   max_dim=980, quality=80))
     out.append(Job(shiba, shiba.with_name("shiba_inu@1x.webp"),
-                   max_dim=600, quality=80))
+                   max_dim=500, quality=78))
 
     # ── Cube sprites (gold, silver, pu238) ───────────────────────
     for material in ("gold", "silver", "pu238"):
@@ -73,10 +80,13 @@ def jobs() -> list[Job]:
                    max_dim=350, quality=80))
 
     # ── Brand mark (header.webp) ─────────────────────────────────
+    # Displays at 273×96 (height-capped via CSS). Moto G 1.75 DPR needs
+    # ~478 device px; we render the @2x at 560 wide so it still looks
+    # sharp on desktop 2× displays without paying for the old 960 master.
     header = STATIC / "header.webp"
-    out.append(Job(header, header, max_dim=960, quality=82))
+    out.append(Job(header, header, max_dim=560, quality=82))
     out.append(Job(header, header.with_name("header@1x.webp"),
-                   max_dim=480, quality=80))
+                   max_dim=280, quality=80))
 
     return out
 

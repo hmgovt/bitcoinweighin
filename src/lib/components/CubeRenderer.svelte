@@ -141,9 +141,6 @@
 	}
 
 	onMount(() => {
-		const img = new Image();
-		img.src = SHIBA.spritePath;
-
 		windowHeightPx = window.innerHeight;
 		const onResize = () => {
 			windowHeightPx = window.innerHeight;
