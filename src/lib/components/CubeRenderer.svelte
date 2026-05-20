@@ -150,8 +150,16 @@
 		};
 		window.addEventListener('resize', onResize);
 
+		// Defer ResizeObserver setup one frame. observe() fires a synchronous
+		// initial callback that touches state → drives downstream $derived
+		// recomputations → inline-style updates on the cube + Shiba slots.
+		// Doing that during hydration costs measurable TBT (Lighthouse flagged
+		// the cascade at ~100 ms+ for the gold section alone). rAF defers
+		// the cascade to the next frame, after the initial paint, dropping
+		// it out of the TBT-measurement window for the priority section.
 		let ro: ResizeObserver | null = null;
-		if (sceneEl) {
+		const rafId = requestAnimationFrame(() => {
+			if (!sceneEl) return;
 			ro = new ResizeObserver((entries) => {
 				for (const entry of entries) {
 					if (entry.target === sceneEl) {
@@ -160,9 +168,10 @@
 				}
 			});
 			ro.observe(sceneEl);
-		}
+		});
 
 		return () => {
+			cancelAnimationFrame(rafId);
 			window.removeEventListener('resize', onResize);
 			ro?.disconnect();
 		};

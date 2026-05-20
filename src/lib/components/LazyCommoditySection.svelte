@@ -44,17 +44,54 @@
 
 	onMount(() => {
 		if (mounted || !containerEl) return;
+
+		// Two-track mount trigger:
+		//   1. requestIdleCallback fires the mount once the browser has spare
+		//      CPU — typically after FCP/LCP/TBT-window have closed. This is
+		//      the dominant path for users who don't scroll immediately.
+		//   2. IntersectionObserver with a tight 50 px margin fires the mount
+		//      if the user scrolls the section into view before the idle
+		//      callback runs. Without it, fast scrollers see empty placeholders.
+		//
+		// First trigger to fire wins; the other is cancelled. rootMargin: 400px
+		// was the earlier setup — too generous, since on desktop several
+		// below-fold sections were within that range and mounted eagerly.
+		let idleId: number | null = null;
+		const cancelIdle = () => {
+			if (idleId === null) return;
+			if (typeof cancelIdleCallback === 'function') {
+				cancelIdleCallback(idleId);
+			} else {
+				clearTimeout(idleId);
+			}
+			idleId = null;
+		};
+
+		const mount = () => {
+			if (mounted) return;
+			mounted = true;
+			cancelIdle();
+			io.disconnect();
+		};
+
+		if (typeof requestIdleCallback === 'function') {
+			idleId = requestIdleCallback(mount, { timeout: 3000 });
+		} else {
+			idleId = window.setTimeout(mount, 800) as unknown as number;
+		}
+
 		const io = new IntersectionObserver(
 			(entries) => {
-				if (entries[0]?.isIntersecting) {
-					mounted = true;
-					io.disconnect();
-				}
+				if (entries[0]?.isIntersecting) mount();
 			},
-			{ rootMargin: '400px' }
+			{ rootMargin: '50px' }
 		);
 		io.observe(containerEl);
-		return () => io.disconnect();
+
+		return () => {
+			io.disconnect();
+			cancelIdle();
+		};
 	});
 </script>
 

@@ -224,14 +224,22 @@
 	onMount(async () => {
 		// Beehiiv loader self-positions (sticky-bottom). Append to body so
 		// the script governs its own placement rather than getting trapped
-		// inside an inline container.
+		// inside an inline container. Defer to idle — the subscribe form is
+		// below the fold and not needed for first paint; injecting the
+		// script during onMount adds ~30 ms to the TBT measurement window.
 		const BEEHIIV_ID = '6a25c97c-4b00-4c3e-9ed4-cb25c2db7be2';
-		if (!document.querySelector(`script[data-beehiiv-form="${BEEHIIV_ID}"]`)) {
+		const insertBeehiiv = () => {
+			if (document.querySelector(`script[data-beehiiv-form="${BEEHIIV_ID}"]`)) return;
 			const s = document.createElement('script');
 			s.async = true;
 			s.src = 'https://subscribe-forms.beehiiv.com/v3/loader.js';
 			s.setAttribute('data-beehiiv-form', BEEHIIV_ID);
 			document.body.appendChild(s);
+		};
+		if (typeof requestIdleCallback === 'function') {
+			requestIdleCallback(insertBeehiiv, { timeout: 4000 });
+		} else {
+			setTimeout(insertBeehiiv, 1500);
 		}
 
 		// Background load of the full archive so the slider/preset can
