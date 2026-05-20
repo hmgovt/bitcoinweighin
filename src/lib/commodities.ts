@@ -112,6 +112,14 @@ export interface Commodity {
 	dataQuality: 'live' | 'indicative' | 'historical' | 'illustrative';
 	/** Field name in prices.json (live) or key into illustrative-prices.json (illustrative). */
 	priceField: string;
+	/**
+	 * Reserved-height hint for the section's lazy-mount wrapper. Used as
+	 * min-height on both the placeholder (pre-mount) and the mounted
+	 * CommoditySection so that mounting causes zero layout shift —
+	 * measured via Playwright at typical BTC amounts, padded ~5% for the
+	 * tallest content state (long descriptions + maxed cube row).
+	 */
+	expectedHeightPx?: { mobile: number; desktop: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +187,7 @@ const gold: Commodity = {
 		{ template: 'about {n} standard wedding rings (~4 g each)', divisor_kg: 0.004 },
 		{ template: '{n} Good Delivery bars (400 oz each)', divisor_kg: 12.4 },
 	],
+	expectedHeightPx: { mobile: 720, desktop: 800 },
 };
 
 const silver: Commodity = {
@@ -201,6 +210,7 @@ const silver: Commodity = {
 		{ template: '{n} 1-oz American Silver Eagles', divisor_kg: 0.0311035 },
 		{ template: '{n} US Mint "monster boxes" (500 oz each)', divisor_kg: 15.55 },
 	],
+	expectedHeightPx: { mobile: 870, desktop: 920 },
 };
 
 const pu238: Commodity = {
@@ -224,6 +234,7 @@ const pu238: Commodity = {
 	dataQuality: 'illustrative',
 	priceField: 'pu238',
 	facts: [],
+	expectedHeightPx: { mobile: 1130, desktop: 1030 },
 };
 
 const cocaine: Commodity = {
@@ -239,6 +250,7 @@ const cocaine: Commodity = {
 	dataQuality: 'illustrative',
 	priceField: 'cocaine',
 	facts: [],
+	expectedHeightPx: { mobile: 1010, desktop: 1130 },
 };
 
 const copper: Commodity = {
