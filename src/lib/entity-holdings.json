@@ -31,6 +31,16 @@
       "note": "Active daily DCA accumulation (~1 BTC/day) via the National Bitcoin Office under President Bukele. Continues post-IMF deal."
     },
     {
+      "slug": "spacex",
+      "label": "SpaceX",
+      "btc": 18712,
+      "asOf": "2026-05-21",
+      "type": "corporate",
+      "source": "https://bitcointreasuries.net/",
+      "sourceName": "Bitcoin Treasuries + Arkham Intelligence",
+      "note": "Privately held; figure derived from on-chain address attribution rather than corporate disclosure. Tesla sister-company under Musk; no public buying programme."
+    },
+    {
       "slug": "us-govt",
       "label": "US Government",
       "btc": 328372,
