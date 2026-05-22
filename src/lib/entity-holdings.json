@@ -23,11 +23,11 @@
     {
       "slug": "el-salvador",
       "label": "El Salvador",
-      "btc": 7651,
-      "asOf": "2026-05-15",
+      "btc": 7659,
+      "asOf": "2026-05-22",
       "type": "nation-state",
-      "source": "https://www.bitcoin.gob.sv/",
-      "sourceName": "El Salvador National Bitcoin Office (1 BTC/day DCA)",
+      "source": "https://bitcointreasuries.net/governments/el-salvador",
+      "sourceName": "Bitcoin Treasuries (mirrors El Salvador National Bitcoin Office)",
       "note": "Active daily DCA accumulation (~1 BTC/day) via the National Bitcoin Office under President Bukele. Continues post-IMF deal."
     },
     {
@@ -53,11 +53,11 @@
     {
       "slug": "blackrock-ibit",
       "label": "BlackRock IBIT",
-      "btc": 821512,
-      "asOf": "2026-05-05",
+      "btc": 811291,
+      "asOf": "2026-05-22",
       "type": "etf",
-      "source": "https://www.ishares.com/us/products/333011/",
-      "sourceName": "iShares Bitcoin Trust holdings + BitBo",
+      "source": "https://bitcointreasuries.net/etfs-and-exchanges/ishares-bitcoin-trust",
+      "sourceName": "Bitcoin Treasuries (mirrors iShares daily holdings)",
       "note": "Largest spot Bitcoin ETF globally by AUM. Subject to daily inflows/outflows."
     },
     {
