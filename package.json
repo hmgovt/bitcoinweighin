@@ -16,7 +16,8 @@
     "build-dataset": "tsx scripts/build-dataset-artifacts.ts",
     "holdings:list": "tsx scripts/holdings-list.ts",
     "holdings:update": "tsx scripts/holdings-update.ts",
-    "holdings:check": "tsx scripts/holdings-check.ts"
+    "holdings:check": "tsx scripts/holdings-check.ts",
+    "holdings:sync": "tsx scripts/holdings-sync.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260519.1",

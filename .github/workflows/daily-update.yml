@@ -36,10 +36,20 @@ jobs:
       - name: Build dataset artifacts
         run: npm run build-dataset
 
+      - name: Sync entity holdings
+        run: npm run holdings:sync
+        continue-on-error: true # a transient scrape miss must not block the price commit
+
+      - name: Validate entity holdings
+        run: npm run holdings:check
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          DATE=$(date -u +%Y-%m-%d)
           git add data/prices.ndjson static/prices.json static/prices-latest.json static/meta.json static/health.json static/data static/api
-          git diff --cached --quiet || git commit -m "chore: daily price update $(date -u +%Y-%m-%d)"
+          git diff --cached --quiet || git commit -m "chore: daily price update $DATE"
+          git add src/lib/entity-holdings.json
+          git diff --cached --quiet || git commit -m "chore(holdings): daily sync $DATE"
           git push
