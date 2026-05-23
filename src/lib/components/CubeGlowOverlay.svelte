@@ -24,8 +24,20 @@
 	const params: GlowParams = $derived(computeGlowParams(massGrams));
 </script>
 
+<!--
+  Two concentric atmospheric layers, both behind the sprite.
+  The tight layer concentrates the halo near the cube; the wide layer
+  gives the impression of the dark room being lit up in orange.
+-->
 <div
-	class="cube-glow-overlay"
+	class="cube-glow-tight"
+	style:--glow-color={params.color}
+	style:--glow-opacity={Math.min(1, params.opacity * 1.3)}
+	style:--glow-bloom="{params.bloomPx * 0.4}px"
+	aria-hidden="true"
+></div>
+<div
+	class="cube-glow-wide"
 	style:--glow-color={params.color}
 	style:--glow-opacity={params.opacity}
 	style:--glow-bloom="{params.bloomPx}px"
@@ -33,20 +45,34 @@
 ></div>
 
 <style>
-	.cube-glow-overlay {
+	.cube-glow-tight,
+	.cube-glow-wide {
 		position: absolute;
 		inset: -50%;
 		pointer-events: none;
-		opacity: var(--glow-opacity);
-		background: radial-gradient(
-			circle at center,
-			var(--glow-color) 0%,
-			transparent 65%
-		);
-		filter: blur(calc(var(--glow-bloom) * 0.5));
 		mix-blend-mode: screen;
 		transition:
 			opacity 200ms ease-out,
 			filter 200ms ease-out;
+	}
+
+	.cube-glow-tight {
+		opacity: var(--glow-opacity);
+		background: radial-gradient(
+			circle at center,
+			var(--glow-color) 0%,
+			transparent 55%
+		);
+		filter: blur(calc(var(--glow-bloom) * 0.6));
+	}
+
+	.cube-glow-wide {
+		opacity: var(--glow-opacity);
+		background: radial-gradient(
+			circle at center,
+			var(--glow-color) 0%,
+			transparent 70%
+		);
+		filter: blur(calc(var(--glow-bloom) * 0.5));
 	}
 </style>

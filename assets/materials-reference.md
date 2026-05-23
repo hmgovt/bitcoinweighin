@@ -69,7 +69,11 @@ Bump distance     0.0002
 
 **Tex Coord input:** Object on all noise nodes — same convention as the noble metals.
 
-**Note on emission:** No emissive shader baked in. The cube's incandescent appearance at higher masses is composed in CSS via `<CubeGlowOverlay>` (radial halo) + `filter: drop-shadow()` + `filter: brightness()` on the sprite. A single bare-metal sprite covers the full slider range. If a future revisit wants pre-baked emissive variants for gallery thumbnails, render with `bsdf.inputs["Emission Strength"].default_value` set above 0 and varying the emission colour along the blackbody ladder — but the production pipeline does not need them.
+**Emission (baked in):** Cherry-red baseline — `Add Shader` combining Principled BSDF + `Emission` node. Emission color `(1.0, 0.03, 0.0)`, strength 0.5. Calibrated so the sprite alone (no CSS overlay) reads as a deep cherry-red self-illuminating object matching the ~1 BTC / 16 g mark on the blackbody ladder. CSS (`CubeGlowOverlay`) amplifies toward orange-yellow at higher masses via screen-mode overlays + inner core glow. Environment near-black (HDRI strength 0.03). Studio lights: dim key (12) + rim (18) for edge definition only; fill removed. View transform: Filmic (no contrast look).
+
+**View transform:** Filmic (was incorrectly Standard in earlier renders).
+
+**Render note:** Shadow pass retains the dim key/rim lights, so the contact shadow PNG is near-transparent. At runtime, the CSS ground light pool (`cube-ground-glow`) provides the correct warm light-on-surface effect; the shadow PNG has negligible visible impact under `mix-blend-mode: multiply` at near-zero opacity.
 
 ## Steel — drums, tankers, vessel sprites
 

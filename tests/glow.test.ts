@@ -143,8 +143,8 @@ describe('computeGlowParams', () => {
 		expect(computeGlowParams(1e10).opacity).toBeCloseTo(0.9, 6);
 	});
 
-	it('bloomPx peaks at 64 px at very high intensity', () => {
-		expect(computeGlowParams(1e10).bloomPx).toBeCloseTo(64, 6);
+	it('bloomPx peaks at 120 px at very high intensity', () => {
+		expect(computeGlowParams(1e10).bloomPx).toBeCloseTo(120, 6);
 	});
 
 	it('opacity is 0 below the intensity threshold (0.1 g)', () => {

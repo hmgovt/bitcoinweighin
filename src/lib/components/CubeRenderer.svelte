@@ -35,7 +35,6 @@
 	} from '$lib/volume.js';
 	import scaleReferencesData from '$lib/scale-references.json';
 	import ScaleRef from './ScaleReference.svelte';
-	import CubeGlowOverlay from './CubeGlowOverlay.svelte';
 	import { computeGlowParams } from './CubeGlowOverlay.helpers.js';
 
 	// Single universal reference (the Shiba). Stage 4 of the marathon
@@ -204,19 +203,26 @@
 				style="width: {cubeSlotPx}px; height: {cubeSlotPx}px;"
 				title="{commodity.displayName} cube — {cubeEdgeMm.toFixed(1)} mm edge"
 			>
+				{#if glow}
+					<div
+						class="cube-outer-glow"
+						style:--glow-color={glow.ambientColor}
+						style:--glow-opacity={glow.opacity}
+						style:--glow-bloom="{glow.bloomPx}px"
+						aria-hidden="true"
+					></div>
+				{/if}
 				{#if commodity.cubeShadowPath && !spriteFailed}
 					<img
 						src={commodity.cubeShadowPath}
 						srcset="{commodity.cubeShadowPath.replace('@2x.webp', '@1x.webp')} 1x, {commodity.cubeShadowPath} 2x"
 						alt=""
 						class="cube-shadow"
+						class:cube-shadow-hidden={glow !== null && massGrams > 1}
 						aria-hidden="true"
 						draggable="false"
 						onerror={() => { /* shadow optional; main sprite carries the asset-gap signal */ }}
 					/>
-				{/if}
-				{#if glow}
-					<CubeGlowOverlay massGrams={massGrams} />
 				{/if}
 				{#if !spriteFailed}
 					<img
@@ -239,6 +245,38 @@
 						style:--glow-color={glow?.color ?? 'transparent'}
 						style:--glow-opacity={glow?.opacity ?? 0}
 						style:--glow-bloom="{glow?.bloomPx ?? 0}px"
+					></div>
+				{/if}
+
+				{#if glow}
+					<!--
+						Inner core glow — sits on top of the sprite, positioned within
+						the cube's visible bbox (margins measured from the 1600×1600
+						canvas: top 20.69 %, left 15.25 %, right 19 %, bottom 11.94 %).
+						The radial gradient places a bright white-hot centre at ~42 % /
+						38 % (offset toward the key-light direction) fading to the
+						emission colour then to transparent, simulating heat radiating
+						from within the material. mix-blend-mode: screen adds brightness
+						to the sprite underneath without obscuring surface detail.
+					-->
+					<div
+						class="cube-inner-glow"
+						style:--inner-color={glow.color}
+						style:--center-color={glow.centerColor}
+						style:--inner-opacity={glow.innerOpacity}
+						aria-hidden="true"
+					></div>
+
+					<!--
+						Ground light pool — warm radial gradient anchored at the cube's
+						visible base, spreading outward to simulate the orange ambient
+						light a hot object casts onto the surface beneath it.
+					-->
+					<div
+						class="cube-ground-glow"
+						style:--glow-color={glow.ambientColor}
+						style:--ground-opacity={glow.groundOpacity}
+						aria-hidden="true"
 					></div>
 				{/if}
 			</div>
@@ -290,6 +328,32 @@
 	   anchor. translateY pushes the slot down by its own bottom-margin
 	   fraction so the visible bottom sits on the row baseline.
 	*/
+	/*
+	 * Outer atmospheric glow — plain opacity, no mix-blend-mode.
+	 * mix-blend-mode: screen cannot escape the isolation group created by
+	 * container-type: inline-size on .cube-scene; it would composite against
+	 * transparent rather than the dark page background and produce grey.
+	 * A semi-transparent warm orange on a dark background reads as orange
+	 * without any blending. Rendered before the sprite so the cube sits
+	 * on top. inset: -50% scales the glow with the cube — small cube,
+	 * small glow; large cube, large glow.
+	 */
+	.cube-outer-glow {
+		position: absolute;
+		inset: -80%;
+		background: radial-gradient(
+			circle at center,
+			var(--glow-color) 0%,
+			transparent 55%
+		);
+		filter: blur(calc(var(--glow-bloom) * 0.4));
+		opacity: calc(var(--glow-opacity) * 0.80);
+		pointer-events: none;
+		transition:
+			opacity 200ms ease-out,
+			filter 200ms ease-out;
+	}
+
 	.cube-anchor {
 		position: absolute;
 		bottom: 0;
@@ -313,6 +377,13 @@
 		opacity: 0.6;
 		mix-blend-mode: multiply;
 		pointer-events: none;
+		transition: opacity 400ms ease-out;
+	}
+
+	/* Hide contact shadow when the cube is self-illuminating — the CSS
+	   ground-glow div provides the correct warm light effect instead. */
+	.cube-shadow-hidden {
+		opacity: 0;
 	}
 
 	.cube-sprite {
@@ -333,7 +404,7 @@
 	 */
 	.cube-sprite-glowing {
 		filter:
-			brightness(calc(1 + var(--glow-opacity, 0) * 0.45))
+			brightness(calc(1 + var(--glow-opacity, 0) * 0.15))
 			drop-shadow(0 0 var(--glow-bloom, 0) var(--glow-color, transparent));
 		transition:
 			filter 200ms ease-out;
@@ -366,10 +437,75 @@
 
 	.cube-placeholder-glowing {
 		filter:
-			brightness(calc(1 + var(--glow-opacity, 0) * 0.45))
+			brightness(calc(1 + var(--glow-opacity, 0) * 0.15))
 			drop-shadow(0 0 var(--glow-bloom, 0) var(--glow-color, transparent));
 		transition:
 			filter 200ms ease-out;
+	}
+
+	/*
+	 * Inner core glow — overlays the cube's visible face area. Bright
+	 * white-yellow centre fades to the emission colour at the edges,
+	 * giving the "glowing from within" look that a pure drop-shadow
+	 * cannot achieve. The bbox percentages match the canonical sprite
+	 * margins (see cube-placeholder above).
+	 */
+	/*
+	 * Inner core glow — gradient centre at (42 %, 38 %) puts the
+	 * hot-spot on the top face (upper-left area in the three-quarter
+	 * projection), matching real RTG pellet photos where the top face
+	 * is always the brightest. Transparent stop at 55 % keeps the
+	 * gradient well inside the opaque sprite pixels — no bleed into
+	 * the transparent canvas corners.
+	 */
+	/*
+	 * Inner core glow — warm colour tint over the cube's visible face area.
+	 * No mix-blend-mode: screen here; screen + brightness-filter pushes the
+	 * already-bright Blender top face to pure white regardless of how the
+	 * colour is capped. Plain compositing lets the gradient tint the top face
+	 * a warmer amber without blowing out surface detail. The brightness()
+	 * filter on the sprite itself handles the "gets brighter as mass grows"
+	 * effect; the inner glow adds the "top face is hotter in colour" effect.
+	 */
+	.cube-inner-glow {
+		position: absolute;
+		top: 20.69%;
+		left: 15.25%;
+		right: 19%;
+		bottom: 11.94%;
+		background: radial-gradient(
+			ellipse at 42% 38%,
+			var(--center-color) 0%,
+			var(--inner-color) 32%,
+			transparent 55%
+		);
+		opacity: var(--inner-opacity);
+		pointer-events: none;
+		transition: opacity 200ms ease-out;
+	}
+
+	/*
+	 * Ground light pool — warm radial anchored at the cube's base,
+	 * spreading left/right to simulate the orange light a hot object
+	 * casts onto the surface beneath it. Replaces the contact shadow
+	 * (which reads as wrong under a self-illuminating material) with
+	 * the correct physical behaviour.
+	 */
+	.cube-ground-glow {
+		position: absolute;
+		bottom: 8%;
+		left: 5%;
+		right: 5%;
+		height: 18%;
+		background: radial-gradient(
+			ellipse at 50% 100%,
+			var(--glow-color) 0%,
+			transparent 80%
+		);
+		mix-blend-mode: screen;
+		opacity: var(--ground-opacity);
+		pointer-events: none;
+		transition: opacity 200ms ease-out;
 	}
 
 	.caption-strip {

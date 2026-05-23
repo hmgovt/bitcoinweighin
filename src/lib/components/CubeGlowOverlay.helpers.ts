@@ -96,10 +96,29 @@ export function interpolateColor(t: number): string {
 export interface GlowParams {
 	/** Interpolated emission colour at the current colour temperature. */
 	color: string;
-	/** intensity × 0.9 — peak 0.9 so the glow never fully obscures the cube. */
+	/**
+	 * Ambient glow colour — same ladder but capped at amber-orange (t ≤ 0.62).
+	 * The outer atmospheric halo represents the heat radiated into the room,
+	 * which visually reads orange-amber even when the surface is white-hot.
+	 */
+	ambientColor: string;
+	/**
+	 * Centre colour for the inner core gradient. Climbs the blackbody ladder
+	 * faster than `color` — colorTemp + intensity×0.4 — so the hot-spot reads
+	 * deep red at 1 BTC, orange at 10 BTC, amber-gold at high masses.
+	 * Capped at t=0.75 (amber-yellow, ~1200 °C) so it never reaches pure
+	 * white: screen-blending white against any colour always produces white,
+	 * erasing all metallic surface detail.
+	 */
+	centerColor: string;
+	/** intensity × 0.9 — outer atmospheric glow opacity. */
 	opacity: number;
-	/** intensity × 64 — peak 64 px bloom radius. */
+	/** intensity × 120 — outer atmospheric bloom radius in px. */
 	bloomPx: number;
+	/** intensity × 0.35 — inner core warm tint opacity (plain composite, no blend mode). */
+	innerOpacity: number;
+	/** intensity × 0.30 — warm ground light pool opacity below the cube. */
+	groundOpacity: number;
 	/**
 	 * True at mass ≥ 1 kg, where pure plutonium metal would self-melt.
 	 * Parent panel appends "(would melt itself in reality)" to the readout.
@@ -112,8 +131,12 @@ export function computeGlowParams(massGrams: number): GlowParams {
 	const intensity = massToIntensity(massGrams);
 	return {
 		color: interpolateColor(colorTemp),
+		ambientColor: interpolateColor(Math.min(colorTemp, 0.62)),
+		centerColor: interpolateColor(Math.min(0.75, colorTemp + intensity * 0.4)),
 		opacity: intensity * 0.9,
-		bloomPx: intensity * 64,
+		bloomPx: intensity * 120,
+		innerOpacity: intensity * 0.35,
+		groundOpacity: intensity * 0.30,
 		warningCaption: massGrams >= 1000,
 	};
 }

@@ -1,23 +1,15 @@
-"""Pu-238 Cube — production render for cube-mode (Stage 6).
+"""Pu-238 Cube — production render for cube-mode.
 
-Authors a 100 mm Pu-238 metal cube. Inherits the silver_cube.py rig
-wholesale — same camera, lighting, HDRI, render settings — and swaps
-the material for Pu-238 metal per assets/materials-reference.md.
+Authors a 100 mm Pu-238 cube that reads as self-illuminating: the cube
+emits its own cherry-red/orange light, matching the appearance of actual
+Pu-238 RTG fuel pellets photographed in darkness. The studio lights are
+reduced to a very dim rim for edge definition; the environment is near-
+black. CSS (CubeGlowOverlay) then amplifies toward orange-yellow at
+higher masses and adds the outer atmospheric bloom + ground light pool.
 
-Pu-238's 5f electron structure makes it a poorer optical metal than
-the noble metals: lower effective reflectance, higher base roughness,
-and in practice a thin yellow-grey oxide patina that builds within
-hours of air exposure (real Pu samples are almost never the bright
-silver of fresh lab-cleaned metal). The sprite targets the appearance
-of a recently-handled industrial sample: muted silvery-grey with a
-faint warm cast, matte rather than mirror, with slightly more macro
-roughness variation than silver to suggest the patchy oxide layer.
-
-The on-screen cube glows under the CubeGlowOverlay at higher masses;
-the underlying surface render is the cool baseline before any glow
-filter is applied. A more aggressive emissive material is *not* baked
-into the asset — emission is a CSS-side concern (drop-shadow + brightness
-filter) so a single sprite covers the full slider range.
+Calibration target: the 1 BTC / ~16 g mark should look like a dull
+cherry-red glow — visible warmth, clearly self-lit, but not blown out.
+CSS carries it to bright orange-yellow at 100 BTC and above.
 
 Run headless:
   /Applications/Blender.app/Contents/MacOS/Blender \\
@@ -29,7 +21,10 @@ import math
 import os
 from mathutils import Vector
 
-PROJECT = "/Users/tim50cycles/Projects/bitcoinweighin"
+# Derive project root from this script's location (scripts/blender/ → ../../)
+_here = os.path.dirname(os.path.abspath(__file__))
+PROJECT = os.path.dirname(os.path.dirname(_here))
+
 HDRI_PATH = os.path.join(PROJECT, "brown_photostudio_02_4k.exr")
 OUTPUT_SPRITE = os.path.join(PROJECT, "static/sprites/pu238/cube@2x.png")
 OUTPUT_SHADOW = os.path.join(PROJECT, "static/sprites/pu238/cube-shadow@2x.png")
@@ -96,7 +91,9 @@ bsdf = nodes["Principled BSDF"]
 bsdf.inputs["Base Color"].default_value = (0.74, 0.72, 0.67, 1.0)
 bsdf.inputs["Metallic"].default_value = 0.95
 bsdf.inputs["Roughness"].default_value = 0.18
-bsdf.inputs["Specular"].default_value = 0.5
+# "Specular" renamed to "Specular IOR Level" in Blender 4.0+
+specular_key = "Specular IOR Level" if "Specular IOR Level" in bsdf.inputs else "Specular"
+bsdf.inputs[specular_key].default_value = 0.5
 
 tex_coord = nodes.new("ShaderNodeTexCoord")
 
@@ -142,10 +139,12 @@ links.new(rm.outputs["Result"], bsdf.inputs["Roughness"])
 oxide_noise = nodes.new("ShaderNodeTexNoise")
 oxide_noise.inputs["Scale"].default_value = 3.0
 oxide_noise.inputs["Detail"].default_value = 2.0
-oxide_mix = nodes.new("ShaderNodeMixRGB")
+# ShaderNodeMixRGB removed in Blender 5.x; use ShaderNodeMix in color mode
+oxide_mix = nodes.new("ShaderNodeMix")
+oxide_mix.data_type = 'RGBA'
 oxide_mix.blend_type = 'MIX'
-oxide_mix.inputs["Color1"].default_value = (0.74, 0.72, 0.67, 1.0)  # base
-oxide_mix.inputs["Color2"].default_value = (0.66, 0.62, 0.55, 1.0)  # subtle patina
+oxide_mix.inputs["A"].default_value = (0.74, 0.72, 0.67, 1.0)   # base
+oxide_mix.inputs["B"].default_value = (0.66, 0.62, 0.55, 1.0)   # subtle patina
 oxide_factor = nodes.new("ShaderNodeMapRange")
 oxide_factor.inputs["From Min"].default_value = 0.0
 oxide_factor.inputs["From Max"].default_value = 1.0
@@ -153,13 +152,44 @@ oxide_factor.inputs["To Min"].default_value = 0.0
 oxide_factor.inputs["To Max"].default_value = 0.18
 links.new(tex_coord.outputs["Object"], oxide_noise.inputs["Vector"])
 links.new(oxide_noise.outputs["Fac"], oxide_factor.inputs["Value"])
-links.new(oxide_factor.outputs["Result"], oxide_mix.inputs["Fac"])
-links.new(oxide_mix.outputs["Color"], bsdf.inputs["Base Color"])
+links.new(oxide_factor.outputs["Result"], oxide_mix.inputs["Factor"])
+links.new(oxide_mix.outputs["Result"], bsdf.inputs["Base Color"])
+
+# Self-emission — cherry-red baseline calibrated to the ~1 BTC (16 g)
+# mark on the blackbody ladder (#a83000 ≈ 800 °C). CSS (CubeGlowOverlay)
+# amplifies toward orange-yellow at higher masses; this sprite covers the
+# full slider range. The emission combines with the BSDF surface so the
+# cube retains its metallic microstructure in the highlights even while
+# glowing. Strength 5 under near-black environment with Filmic produces a
+# clearly warm, self-lit appearance without blowing out surface detail.
+emission = nodes.new("ShaderNodeEmission")
+emission.inputs["Color"].default_value = (1.0, 0.03, 0.0, 1.0)
+emission.inputs["Strength"].default_value = 0.5
+
+add_shader = nodes.new("ShaderNodeAddShader")
+mat_output = nodes["Material Output"]
+
+# Remove the auto-created BSDF → Material Output link, route via AddShader.
+for link in list(mat.node_tree.links):
+    if link.to_node == mat_output and link.from_node == bsdf:
+        mat.node_tree.links.remove(link)
+        break
+
+links.new(bsdf.outputs["BSDF"], add_shader.inputs[0])
+links.new(emission.outputs["Emission"], add_shader.inputs[1])
+links.new(add_shader.outputs["Shader"], mat_output.inputs["Surface"])
 
 cube.data.materials.append(mat)
-bpy.ops.object.shade_smooth()
-cube.data.use_auto_smooth = True
-cube.data.auto_smooth_angle = math.radians(30)
+try:
+    # Blender 4.1+: shade_smooth_by_angle operator replaces use_auto_smooth
+    bpy.ops.object.shade_smooth_by_angle(angle=math.radians(30))
+except AttributeError:
+    bpy.ops.object.shade_smooth()
+    try:
+        cube.data.use_auto_smooth = True
+        cube.data.auto_smooth_angle = math.radians(30)
+    except AttributeError:
+        pass
 
 # === HDRI ===
 world = bpy.data.worlds.new(name="HDRIWorld")
@@ -169,7 +199,11 @@ tree = world.node_tree
 tree.nodes.clear()
 
 bg = tree.nodes.new("ShaderNodeBackground")
-bg.inputs["Strength"].default_value = 1.0
+# Near-black environment — the cube is its own light source. A trace of
+# ambient (0.03) stops the shadows behind the cube from being absolute
+# digital black, which reads as fake. The photostudio HDRI still sets the
+# colour of this trace ambient; its influence at 0.03 is imperceptible.
+bg.inputs["Strength"].default_value = 0.03
 
 env_tex = tree.nodes.new("ShaderNodeTexEnvironment")
 env_tex.image = bpy.data.images.load(HDRI_PATH)
@@ -185,11 +219,16 @@ tree.links.new(mn.outputs["Vector"], env_tex.inputs["Vector"])
 tree.links.new(env_tex.outputs["Color"], bg.inputs["Color"])
 tree.links.new(bg.outputs["Background"], out_node.inputs["Surface"])
 
-# === LIGHTING (locked, same studio as gold/silver) ===
+# === LIGHTING — self-illumination rig ===
+# The cube emits its own light, so studio lights are reduced to the minimum
+# needed to define its silhouette against the near-black background.
+# Key: very dim frontal, enough to catch the top-face specular highlight.
+# Fill: removed — would flatten the self-lit look.
+# Rim: slightly stronger than key to define the back edges cleanly.
 target = Vector((0, 0, EDGE / 2))
 
 key_data = bpy.data.lights.new(name="KeyLight", type='AREA')
-key_data.energy = 120
+key_data.energy = 12
 key_data.size = 2.0
 key_data.color = (1.0, 0.92, 0.78)
 key_obj = bpy.data.objects.new("KeyLight", key_data)
@@ -197,17 +236,8 @@ bpy.context.collection.objects.link(key_obj)
 key_obj.location = (1.2, -1.5, 2.5)
 key_obj.rotation_euler = (target - key_obj.location).to_track_quat('-Z', 'Y').to_euler()
 
-fill_data = bpy.data.lights.new(name="FillLight", type='AREA')
-fill_data.energy = 60
-fill_data.size = 3.0
-fill_data.color = (1.0, 0.95, 0.85)
-fill_obj = bpy.data.objects.new("FillLight", fill_data)
-bpy.context.collection.objects.link(fill_obj)
-fill_obj.location = (1.5, 0.5, 0.8)
-fill_obj.rotation_euler = (target - fill_obj.location).to_track_quat('-Z', 'Y').to_euler()
-
 rim_data = bpy.data.lights.new(name="RimLight", type='AREA')
-rim_data.energy = 40
+rim_data.energy = 18
 rim_data.size = 1.5
 rim_data.color = (1.0, 0.88, 0.7)
 rim_obj = bpy.data.objects.new("RimLight", rim_data)
@@ -241,11 +271,14 @@ scene = bpy.context.scene
 scene.render.engine = 'CYCLES'
 scene.cycles.device = 'CPU'
 scene.cycles.samples = 512
+scene.cycles.max_bounces = 4
+scene.cycles.diffuse_bounces = 2
+scene.cycles.glossy_bounces = 4
 scene.render.resolution_x = 1600
 scene.render.resolution_y = 1600
 scene.render.film_transparent = True
 scene.cycles.use_denoising = True
-scene.view_settings.view_transform = 'Standard'
+scene.view_settings.view_transform = 'Filmic'
 scene.render.image_settings.file_format = 'PNG'
 scene.render.image_settings.color_mode = 'RGBA'
 
