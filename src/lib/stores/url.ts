@@ -27,8 +27,15 @@ let datasetLatestDate = '';
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Stays false until hydrateFromUrl has read the incoming params. Without
+// this guard, the store subscriptions below fire at module load with
+// default values (btc=1, date='') and a debounced pushToUrl can rewrite
+// the URL to bare '/' before hydration reads it — wiping deep-link params
+// whenever the archive fetch (which gates hydration) takes >debounce ms.
+let hydrated = false;
+
 function pushToUrl() {
-	if (!browser) return;
+	if (!browser || !hydrated) return;
 	if (debounceTimer) clearTimeout(debounceTimer);
 	debounceTimer = setTimeout(() => {
 		const params = new URLSearchParams();
@@ -112,6 +119,12 @@ export function hydrateFromUrl(latestDate: string) {
 	if (params.get('audio') === 'on') {
 		audioEnabled.set(true);
 	}
+
+	// Open the gate only after params are read, then emit the canonical URL
+	// once. Store writes above happened while hydrated=false, so none of them
+	// raced a premature write.
+	hydrated = true;
+	pushToUrl();
 }
 
 /**
