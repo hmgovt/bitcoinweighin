@@ -134,19 +134,27 @@ async function injectCaption(page: Page, caption: string): Promise<void> {
 	}, caption);
 }
 
-// ── Main ──────────────────────────────────────────────────────────
+// ── Reusable render ─────────────────────────────────────────────────
 
-async function main() {
-	const args = parseArgs(process.argv.slice(2));
-	const date = args.date ?? (await latestDatasetDate());
+export interface RenderOpts {
+	btc: number;
+	commodity: string;
+	date?: string;
+	caption?: string;
+	/** Absolute or relative-to-output/cards path. */
+	out: string;
+}
 
-	const outPath = isAbsolute(args.out) ? args.out : join(OUT_DIR, args.out);
+/** Render one share card to `out`. Returns the absolute path written. */
+export async function renderCard(opts: RenderOpts): Promise<string> {
+	if (!KNOWN_COMMODITIES.has(opts.commodity)) {
+		throw new Error(`Unknown commodity "${opts.commodity}"`);
+	}
+	const date = opts.date ?? (await latestDatasetDate());
+	const outPath = isAbsolute(opts.out) ? opts.out : join(OUT_DIR, opts.out);
 	await fs.mkdir(dirname(outPath), { recursive: true });
 
-	const url = `${SITE_BASE_URL}/?btc=${args.btc}&commodity=${args.commodity}&date=${date}`;
-	console.log(`Card: ${args.commodity} @ ${args.btc} BTC, ${date}`);
-	console.log(`  url: ${url}`);
-
+	const url = `${SITE_BASE_URL}/?btc=${opts.btc}&commodity=${opts.commodity}&date=${date}`;
 	const browser = await chromium.launch({ headless: true });
 	try {
 		const context = await browser.newContext({
@@ -155,17 +163,29 @@ async function main() {
 		});
 		const page = await context.newPage();
 		await page.goto(url, { waitUntil: 'networkidle', timeout: 30_000 });
-		await waitForReady(page, date, args.commodity);
-		await scrollToCommodity(page, args.commodity);
-		if (args.caption) await injectCaption(page, args.caption);
+		await waitForReady(page, date, opts.commodity);
+		await scrollToCommodity(page, opts.commodity);
+		if (opts.caption) await injectCaption(page, opts.caption);
 		await page.screenshot({ path: outPath, type: 'png', fullPage: false });
-		console.log(`  ✓ ${outPath}`);
+		return outPath;
 	} finally {
 		await browser.close();
 	}
 }
 
-main().catch((err) => {
-	console.error(err);
-	process.exit(1);
-});
+// ── CLI ─────────────────────────────────────────────────────────────
+
+async function main() {
+	const args = parseArgs(process.argv.slice(2));
+	const date = args.date ?? (await latestDatasetDate());
+	console.log(`Card: ${args.commodity} @ ${args.btc} BTC, ${date}`);
+	const out = await renderCard(args);
+	console.log(`  ✓ ${out}`);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+	main().catch((err) => {
+		console.error(err);
+		process.exit(1);
+	});
+}

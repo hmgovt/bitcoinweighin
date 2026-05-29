@@ -53,6 +53,21 @@ function clientFromEnv(): TwitterApi {
 	});
 }
 
+/**
+ * Upload `imagePath` and post `caption`. Returns the new tweet id.
+ * Throws on any failure (caller decides whether to swallow).
+ */
+export async function postTweet(imagePath: string, caption: string): Promise<string> {
+	if (caption.length > 280) throw new Error(`Caption ${caption.length} chars > 280 limit.`);
+	const client = clientFromEnv();
+	const mediaId = await client.v1.uploadMedia(imagePath);
+	const { data } = await client.v2.tweet({
+		text: caption,
+		media: { media_ids: [mediaId] },
+	});
+	return data.id;
+}
+
 async function main() {
 	const args = parseArgs(process.argv.slice(2));
 	const imagePath = resolve(args.image);
@@ -85,11 +100,13 @@ async function main() {
 	console.log(`✓ Posted: https://x.com/bitcoinweighin/status/${data.id}`);
 }
 
-main().catch((err) => {
-	console.error('✗ Post failed.');
-	console.error('  message:', err?.data?.detail || err?.message || String(err));
-	if (err?.code === 403) {
-		console.error('  → 403: tokens likely read-only. Set Read+Write, then regenerate Access Token & Secret.');
-	}
-	process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+	main().catch((err) => {
+		console.error('✗ Post failed.');
+		console.error('  message:', err?.data?.detail || err?.message || String(err));
+		if (err?.code === 403) {
+			console.error('  → 403: tokens likely read-only. Set Read+Write, then regenerate Access Token & Secret.');
+		}
+		process.exit(1);
+	});
+}

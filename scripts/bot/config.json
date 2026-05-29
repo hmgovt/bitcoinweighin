@@ -1,0 +1,24 @@
+{
+	"_doc": "Runtime config for the X bot. Four scheduled slots/day, one per commodity, with varied format so it doesn't read as a ticker. run.ts maps the current UTC hour to a slot (or takes --slot explicitly). Budget guard tracks spend against the prepaid X credit balance.",
+	"siteBase": "https://bitcoinweighin.com",
+	"handle": "bitcoinweighin",
+	"budget": {
+		"balanceCents": 500,
+		"centsPerPost": 2,
+		"monthlyCap": 120,
+		"_note": "balanceCents is the prepaid X credit pool (authoritative balance lives at X; this is a local guard). At 2c/post, 500c ~= 250 posts. monthlyCap caps posts per calendar month regardless of remaining balance."
+	},
+	"physical": {
+		"gold": { "display": "Gold", "noun": "gold", "shape": "cube", "densityGPerCm3": 19.3 },
+		"silver": { "display": "Silver", "noun": "silver", "shape": "cube", "densityGPerCm3": 10.49 },
+		"cocaine": { "display": "Cocaine", "noun": "cocaine", "shape": "mass" },
+		"pu238": { "display": "Plutonium-238", "noun": "plutonium-238", "shape": "cube", "densityGPerCm3": 19.8, "novelty": true }
+	},
+	"slots": [
+		{ "id": "gold-am", "utcHour": 13, "commodity": "gold", "format": "absolute", "btc": 1 },
+		{ "id": "silver-mid", "utcHour": 17, "commodity": "silver", "format": "delta", "btc": 1 },
+		{ "id": "cocaine-eve", "utcHour": 21, "commodity": "cocaine", "format": "absolute", "btc": 1 },
+		{ "id": "pu238-night", "utcHour": 1, "commodity": "pu238", "format": "absolute", "btc": 1 }
+	],
+	"slotMatchToleranceHours": 2
+}
