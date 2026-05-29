@@ -1,0 +1,85 @@
+{
+	"_doc": "Weight-delta object ladders for the X bot's daily reframe. The engine computes grams-of-commodity per 1 BTC for two consecutive days, takes the delta, and picks the ladder object whose weight is nearest |delta|. Each commodity sits at a different value-density, so each gets its own object world. Ladders cover ~0.2% to ±50% single-day BTC moves (the credible historical ceiling).",
+	"asOfSnapshot": {
+		"date": "2026-05-28",
+		"btcUsd": 73716.9,
+		"gramsPerBtc": { "pu238": 14.7, "gold": 510, "cocaine": 2457, "silver": 30309 },
+		"note": "Snapshot only — the engine recomputes gramsPerBtc live from prices. Used to sanity-check ladder coverage."
+	},
+	"troyOzGrams": 31.1035,
+	"pricing": {
+		"gold": { "kind": "live", "field": "xau", "perTroyOz": true },
+		"silver": { "kind": "live", "field": "xag", "perTroyOz": true },
+		"cocaine": { "kind": "fixed", "usdPerGram": 30, "tier": "wholesale" },
+		"pu238": { "kind": "fixed", "usdPerGram": 5000 }
+	},
+	"nouns": {
+		"gold": "gold",
+		"silver": "silver",
+		"cocaine": "cocaine",
+		"pu238": "plutonium-238"
+	},
+	"verbs": {
+		"gain": ["put on", "gained", "added", "grew heavier by", "picked up"],
+		"loss": ["shed", "lost", "dropped", "grew lighter by", "gave back"],
+		"steady": ["held steady at"]
+	},
+	"ladders": {
+		"pu238": [
+			{ "g": 0.03, "name": "a grain of rice" },
+			{ "g": 0.1, "name": "a honeybee" },
+			{ "g": 0.5, "name": "a Tic Tac" },
+			{ "g": 1, "name": "a paperclip" },
+			{ "g": 2.5, "name": "a US penny" },
+			{ "g": 4, "name": "a sugar cube" },
+			{ "g": 5, "name": "a US nickel" },
+			{ "g": 5.67, "name": "a US quarter" },
+			{ "g": 7.5, "name": "a 2-euro coin" }
+		],
+		"gold": [
+			{ "g": 5, "name": "a US nickel" },
+			{ "g": 10, "name": "a poker chip" },
+			{ "g": 11.5, "name": "a AAA battery" },
+			{ "g": 16, "name": "a CD" },
+			{ "g": 23, "name": "a AA battery" },
+			{ "g": 28, "name": "a slice of bread" },
+			{ "g": 46, "name": "a golf ball" },
+			{ "g": 57, "name": "a chicken egg" },
+			{ "g": 94, "name": "a deck of cards" },
+			{ "g": 113, "name": "a stick of butter" },
+			{ "g": 145, "name": "a baseball" },
+			{ "g": 160, "name": "a hockey puck" },
+			{ "g": 200, "name": "a large chocolate bar" },
+			{ "g": 255, "name": "a full can of soda" }
+		],
+		"cocaine": [
+			{ "g": 28, "name": "a slice of bread" },
+			{ "g": 46, "name": "a golf ball" },
+			{ "g": 57, "name": "a chicken egg" },
+			{ "g": 94, "name": "a deck of cards" },
+			{ "g": 113, "name": "a stick of butter" },
+			{ "g": 145, "name": "a baseball" },
+			{ "g": 200, "name": "a large chocolate bar" },
+			{ "g": 300, "name": "a full can of soda" },
+			{ "g": 450, "name": "a loaf of bread" },
+			{ "g": 624, "name": "a basketball" },
+			{ "g": 900, "name": "a pineapple" },
+			{ "g": 1000, "name": "a bag of sugar" },
+			{ "g": 1200, "name": "a full wine bottle" }
+		],
+		"silver": [
+			{ "g": 330, "name": "a full can of soda" },
+			{ "g": 450, "name": "a loaf of bread" },
+			{ "g": 624, "name": "a basketball" },
+			{ "g": 1000, "name": "a bag of sugar" },
+			{ "g": 1500, "name": "a laptop" },
+			{ "g": 2000, "name": "a house brick" },
+			{ "g": 3300, "name": "a newborn baby" },
+			{ "g": 4500, "name": "a house cat" },
+			{ "g": 6000, "name": "a bowling ball" },
+			{ "g": 9000, "name": "a car tyre" },
+			{ "g": 12000, "name": "a microwave oven" },
+			{ "g": 15000, "name": "a medium-sized dog" }
+		]
+	}
+}

@@ -1,0 +1,44 @@
+name: X bot
+
+# STUB — wiring only. No schedule yet, so it never fires automatically.
+# Flip to scheduled posting (build order step 8) once scripts/bot/* exist
+# and a week of --dry-run drafts has been reviewed.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Compose + render + log, but do not post'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write # to commit data/bot-state.json back
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Run bot
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: |
+          echo "STUB: scripts/bot/run.ts not implemented yet."
+          echo "dry_run=${{ inputs.dry_run }}"
+          # npm run bot -- ${{ inputs.dry_run && '--dry-run' || '' }}
+          # git config user.name "github-actions[bot]"
+          # git config user.email "github-actions[bot]@users.noreply.github.com"
+          # git add data/bot-state.json
+          # git diff --cached --quiet || git commit -m "chore(bot): state $(date -u +%Y-%m-%d)"
+          # git push
