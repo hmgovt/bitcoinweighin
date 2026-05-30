@@ -42,7 +42,7 @@ interface Config {
 	budget: { balanceCents: number; centsPerPost: number; monthlyCap: number };
 	physical: Record<CommodityId, { display: string; noun: string; shape: 'cube' | 'mass'; densityGPerCm3?: number; novelty?: boolean }>;
 	slots: Slot[];
-	slotMatchToleranceHours: number;
+	slotCatchupHours: number;
 }
 interface State {
 	monthKey: string;
@@ -130,21 +130,29 @@ function buildDelta(slot: Slot, cfg: Config, objs: any, prices: PriceData, dates
 	return { caption: `${r.caption}\n${link}`, btc: slot.btc, commodity: slot.commodity };
 }
 
-function pickSlot(cfg: Config, now: Date): Slot | null {
+/**
+ * Catch-up slot selection. GitHub frequently delays scheduled runs by
+ * 1–4h, so matching "current hour == slot hour" silently drops late runs.
+ * Instead, pick the earliest slot scheduled *today* (UTC) whose time has
+ * passed, hasn't posted today, and is no more than `slotCatchupHours` old.
+ * A delayed run still fires the right slot; a missed slot is recovered by
+ * the next run within the window. Earliest-first so backlogs drain in order.
+ */
+export function pickSlot(cfg: Config, now: Date, state: State, today: string): Slot | null {
 	const explicit = arg('slot');
 	if (explicit) {
 		const s = cfg.slots.find((x) => x.id === explicit);
 		if (!s) throw new Error(`Unknown --slot "${explicit}". Options: ${cfg.slots.map((x) => x.id).join(', ')}`);
 		return s;
 	}
-	const hour = now.getUTCHours();
-	const tol = cfg.slotMatchToleranceHours;
-	// nearest slot whose hour is within tolerance (handle wrap at 0/24)
-	let best: { slot: Slot; dist: number } | null = null;
+	const lookbackMs = cfg.slotCatchupHours * 3_600_000;
+	let best: { slot: Slot; sched: number } | null = null;
 	for (const s of cfg.slots) {
-		let d = Math.abs(s.utcHour - hour);
-		d = Math.min(d, 24 - d);
-		if (d <= tol && (!best || d < best.dist)) best = { slot: s, dist: d };
+		if (state.lastSlotDate[s.id] === today) continue; // already posted today
+		const sched = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), s.utcHour, 0, 0);
+		const age = now.getTime() - sched;
+		if (age < 0 || age > lookbackMs) continue; // not due yet, or too stale
+		if (!best || sched < best.sched) best = { slot: s, sched };
 	}
 	return best?.slot ?? null;
 }
@@ -168,13 +176,13 @@ async function main() {
 		state.postsThisMonth = 0;
 	}
 
-	const slot = pickSlot(cfg, now);
+	const today = isoDate(now);
+	const slot = pickSlot(cfg, now, state, today);
 	if (!slot) {
 		console.log(`No slot due at UTC hour ${now.getUTCHours()}. Slots: ${cfg.slots.map((s) => `${s.id}@${s.utcHour}`).join(', ')}.`);
 		return;
 	}
 
-	const today = isoDate(now);
 	console.log(`Slot: ${slot.id} (${slot.commodity}/${slot.format})  mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`);
 
 	// ── Guards ──────────────────────────────────────────────────────
@@ -236,7 +244,9 @@ async function main() {
 	console.log(`State updated: ${state.postsThisMonth}/${cfg.budget.monthlyCap} this month, ${cfg.budget.balanceCents - state.creditsSpentCents}c left.`);
 }
 
-main().catch((err) => {
-	console.error('✗ run failed:', err?.message || err);
-	process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+	main().catch((err) => {
+		console.error('✗ run failed:', err?.message || err);
+		process.exit(1);
+	});
+}

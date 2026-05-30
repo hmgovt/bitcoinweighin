@@ -1,15 +1,21 @@
 name: X bot
 
 # Four posts/day, one per commodity, varied format (see scripts/bot/config.json).
-# run.ts maps the firing UTC hour to the due slot. Cron times are UTC and
-# correspond to ~9a / 1p / 5p / 9p ET (EDT). GitHub may delay scheduled runs
-# under load; the ±2h slot-match tolerance absorbs that.
+# run.ts uses catch-up selection: each run posts the earliest slot due today
+# (UTC) that hasn't posted yet and is within slotCatchupHours. GitHub often
+# delays scheduled runs 1–4h, so each slot has a primary cron at its time plus
+# a +2h catch-up cron; whichever fires first within the window posts the slot.
+# Cron times are UTC (~9a / 1p / 5p / 9p ET, EDT).
 on:
   schedule:
-    - cron: '0 13 * * *' # gold-am     (~9a ET)
-    - cron: '0 17 * * *' # silver-mid  (~1p ET)
-    - cron: '0 21 * * *' # cocaine-eve (~5p ET)
-    - cron: '0 1 * * *'  # pu238-night (~9p ET previous day)
+    - cron: '0 13 * * *' # gold-am     primary  (~9a ET)
+    - cron: '0 15 * * *' # gold-am     catch-up
+    - cron: '0 17 * * *' # silver-mid  primary  (~1p ET)
+    - cron: '0 19 * * *' # silver-mid  catch-up
+    - cron: '0 21 * * *' # cocaine-eve primary  (~5p ET)
+    - cron: '0 23 * * *' # cocaine-eve catch-up
+    - cron: '0 1 * * *'  # pu238-night primary  (~9p ET previous day)
+    - cron: '0 3 * * *'  # pu238-night catch-up
   workflow_dispatch:
     inputs:
       slot:

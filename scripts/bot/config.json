@@ -20,5 +20,5 @@
 		{ "id": "cocaine-eve", "utcHour": 21, "commodity": "cocaine", "format": "absolute", "btc": 1 },
 		{ "id": "pu238-night", "utcHour": 1, "commodity": "pu238", "format": "absolute", "btc": 1 }
 	],
-	"slotMatchToleranceHours": 2
+	"slotCatchupHours": 6
 }
