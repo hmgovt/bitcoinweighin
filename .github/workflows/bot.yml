@@ -47,6 +47,7 @@ jobs:
 
       - name: Run bot
         env:
+          SITE_BASE_URL: https://bitcoinweighin.com
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
