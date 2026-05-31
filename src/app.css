@@ -57,8 +57,3 @@
 .scrollbar-hide::-webkit-scrollbar {
 	display: none;
 }
-
-/* Date input styling for dark theme */
-input[type='date']::-webkit-calendar-picker-indicator {
-	filter: invert(0.7);
-}

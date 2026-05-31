@@ -61,19 +61,59 @@
 		return Math.round(raw * 100000000) / 100000000;
 	}
 
+	// Dual-mode slider: 'btc' adjusts BTC amount; 'date' locks BTC and scrubs through history.
+	let sliderMode = $state<'btc' | 'date'>('btc');
+	let lockedBtcForDateMode = $state(1);
+
+	const sortedDates = $derived(prices ? Object.keys(prices).sort() : []);
+
+	function dateToSliderIdx(date: string, dates: string[]): number {
+		if (!dates.length) return SLIDER_STEPS;
+		let idx = dates.indexOf(date);
+		if (idx === -1) {
+			idx = dates.findIndex(d => d >= date);
+			if (idx === -1) idx = dates.length - 1;
+		}
+		return Math.round((idx / Math.max(1, dates.length - 1)) * SLIDER_STEPS);
+	}
+
+	function sliderIdxToDate(pos: number, dates: string[]): string {
+		if (!dates.length) return '';
+		const idx = Math.round((pos / SLIDER_STEPS) * (dates.length - 1));
+		return dates[Math.max(0, Math.min(dates.length - 1, idx))];
+	}
+
 	let sliderPos = $state(btcToSlider(1));
 
 	$effect(() => {
-		const newPos = btcToSlider($btcAmount);
-		if (Math.abs(newPos - sliderPos) > 1) {
-			sliderPos = newPos;
+		if (sliderMode === 'btc') {
+			const newPos = btcToSlider($btcAmount);
+			if (Math.abs(newPos - sliderPos) > 1) sliderPos = newPos;
+		} else {
+			const newPos = dateToSliderIdx($selectedDate, sortedDates);
+			if (Math.abs(newPos - sliderPos) > 1) sliderPos = newPos;
 		}
 	});
 
 	function handleSliderInput(e: Event) {
 		const target = e.target as HTMLInputElement;
 		sliderPos = parseInt(target.value);
-		setBtcFromSlider(sliderToBtc(sliderPos));
+		if (sliderMode === 'btc') {
+			setBtcFromSlider(sliderToBtc(sliderPos));
+		} else {
+			setDateFromPicker(sliderIdxToDate(sliderPos, sortedDates));
+		}
+	}
+
+	function handleSliderDblClick() {
+		if (sortedDates.length <= 1) return;
+		if (sliderMode === 'btc') {
+			lockedBtcForDateMode = $btcAmount;
+			sliderMode = 'date';
+		} else {
+			sliderMode = 'btc';
+			setBtcFromSlider(lockedBtcForDateMode);
+		}
 	}
 
 	// Compact pinned bar — appears once the user has scrolled past the
@@ -99,17 +139,8 @@
 		return () => obs.disconnect();
 	});
 
-	function handleDateChange(e: Event) {
-		const target = e.target as HTMLInputElement;
-		// Some mobile pickers ignore the `max` attr — clamp defensively.
-		// The dataset uses previous day's close, so today never has data.
-		const picked = target.value;
-		const clamped = picked && picked > lastDate ? lastDate : picked;
-		if (clamped !== picked) target.value = clamped;
-		setDateFromPicker(clamped);
-	}
-
 	function handlePresetSelect(slug: string) {
+		sliderMode = 'btc';
 		activatePreset(slug);
 	}
 
@@ -290,21 +321,35 @@
 	<div class="sticky-bar" class:visible={showStickyBar} aria-hidden={!showStickyBar}>
 		<div class="mx-auto flex h-11 max-w-2xl items-center gap-3 px-4">
 			<span class="min-w-[3.25rem] whitespace-nowrap font-mono text-xs text-amber-400">
-				{formatBtc($btcAmount)}
+				{sliderMode === 'btc' ? formatBtc($btcAmount) : formatBtc(lockedBtcForDateMode)}
 			</span>
-			<input
-				type="range"
-				min="0"
-				max={SLIDER_STEPS}
-				value={sliderPos}
-				oninput={handleSliderInput}
-				class="flex-1 accent-amber-500"
-				aria-label="BTC amount"
-				tabindex={showStickyBar ? 0 : -1}
-			/>
-			{#if dayPrices}
+			<div
+				class="slider-wrap slider-wrap--below flex-1 min-w-0"
+				data-tooltip={sliderMode === 'btc' ? 'double-click to lock BTC amount and change date' : 'double-click to lock date and change BTC amount'}
+			>
+				<input
+					type="range"
+					min="0"
+					max={SLIDER_STEPS}
+					value={sliderPos}
+					oninput={handleSliderInput}
+					ondblclick={handleSliderDblClick}
+					class="w-full"
+					class:accent-amber-500={sliderMode === 'btc'}
+					class:accent-sky-400={sliderMode === 'date'}
+					aria-label={sliderMode === 'btc' ? 'BTC amount' : 'Date'}
+					tabindex={showStickyBar ? 0 : -1}
+				/>
+			</div>
+			{#if sliderMode === 'btc'}
+				{#if dayPrices}
+					<span class="min-w-[4.5rem] whitespace-nowrap text-right font-mono text-xs text-zinc-200">
+						{formatUsd($btcAmount * dayPrices.btc)}
+					</span>
+				{/if}
+			{:else}
 				<span class="min-w-[4.5rem] whitespace-nowrap text-right font-mono text-xs text-zinc-200">
-					{formatUsd($btcAmount * dayPrices.btc)}
+					{formatDateReadout($selectedDate)}
 				</span>
 			{/if}
 		</div>
@@ -350,39 +395,57 @@
 			<!-- Controls — two-row compact panel (~120px tall) -->
 			<div class="controls-panel">
 				<div class="controls-slider">
-					<input
-						type="range"
-						min="0"
-						max={SLIDER_STEPS}
-						value={sliderPos}
-						oninput={handleSliderInput}
-						class="slider accent-amber-500"
-						aria-label="BTC amount"
-					/>
+					<div
+						class="slider-wrap"
+						data-tooltip={sliderMode === 'btc' ? 'double-click to lock BTC amount and change date' : 'double-click to lock date and change BTC amount'}
+					>
+						<input
+							type="range"
+							min="0"
+							max={SLIDER_STEPS}
+							value={sliderPos}
+							oninput={handleSliderInput}
+							ondblclick={handleSliderDblClick}
+							class="slider"
+							class:accent-amber-500={sliderMode === 'btc'}
+							class:accent-sky-400={sliderMode === 'date'}
+							aria-label={sliderMode === 'btc' ? 'BTC amount' : 'Date'}
+						/>
+					</div>
 					<div class="slider-range">
-						<span>1 sat</span>
-						<span>21M</span>
+						{#if sliderMode === 'btc'}
+							<span>1 sat</span>
+							<span>21M</span>
+						{:else}
+							<span>{firstDate ? firstDate.slice(0, 4) : ''}</span>
+							<span>Today</span>
+						{/if}
 					</div>
 				</div>
 
 				<div class="controls-value-row">
 					<div class="value-block">
-						<div class="value-btc">{formatBtc($btcAmount)}</div>
-						{#if dayPrices}
-							<div class="value-context">
-								{formatUsd($btcAmount * dayPrices.btc)} · {formatDateReadout($selectedDate)}
-							</div>
+						{#if sliderMode === 'btc'}
+							<div class="value-btc">{formatBtc($btcAmount)}</div>
+							{#if dayPrices}
+								<div class="value-context">
+									{formatUsd($btcAmount * dayPrices.btc)} · {formatDateReadout($selectedDate)}
+								</div>
+							{/if}
+						{:else}
+							<div class="value-btc">{formatDateReadout($selectedDate)}</div>
+							{#if dayPrices}
+								<div class="value-context">
+									{formatBtc(lockedBtcForDateMode)} locked · {formatUsd(lockedBtcForDateMode * dayPrices.btc)}
+								</div>
+							{:else}
+								<div class="value-context">{formatBtc(lockedBtcForDateMode)} locked</div>
+							{/if}
 						{/if}
 					</div>
-					<input
-						type="date"
-						value={$selectedDate}
-						min={firstDate}
-						max={lastDate}
-						onchange={handleDateChange}
-						class="date-input"
-						aria-label="Date"
-					/>
+					{#if sliderMode === 'date'}
+						<div class="mode-badge">DATE</div>
+					{/if}
 				</div>
 			</div>
 
@@ -431,6 +494,41 @@
 		flex-direction: column;
 		gap: 4px;
 	}
+	.slider-wrap {
+		position: relative;
+		width: 100%;
+	}
+	.slider-wrap::after {
+		content: attr(data-tooltip);
+		position: absolute;
+		bottom: calc(100% + 6px);
+		left: 50%;
+		transform: translateX(-50%) translateY(4px);
+		background: #27272a; /* zinc-800 */
+		color: #a1a1aa;
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-size: 11px;
+		padding: 4px 8px;
+		border-radius: 4px;
+		white-space: nowrap;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 150ms ease, transform 150ms ease;
+		border: 1px solid #3f3f46; /* zinc-700 */
+		z-index: 10;
+	}
+	.slider-wrap:hover::after {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0);
+	}
+	.slider-wrap--below::after {
+		bottom: auto;
+		top: calc(100% + 6px);
+		transform: translateX(-50%) translateY(-4px);
+	}
+	.slider-wrap--below:hover::after {
+		transform: translateX(-50%) translateY(0);
+	}
 	.slider {
 		width: 100%;
 	}
@@ -468,31 +566,18 @@
 		font-size: 14px;
 		color: #9aa0a6;
 	}
-	.date-input {
+	.mode-badge {
 		flex-shrink: 0;
-		background: #27272a; /* zinc-800 */
-		color: #e4e4e7;
-		border: 1px solid #3f3f46; /* zinc-700 */
-		border-radius: 6px;
-		padding: 6px 10px;
+		align-self: flex-end;
 		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
-		font-size: 13px;
-		color-scheme: dark;
-	}
-	.date-input:focus {
-		outline: none;
-		border-color: #f59e0b; /* amber-500 */
-	}
-
-	@media (max-width: 479px) {
-		.controls-value-row {
-			flex-direction: column;
-			align-items: stretch;
-			gap: 8px;
-		}
-		.date-input {
-			width: 100%;
-		}
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		color: #71717a; /* zinc-500 */
+		background: #27272a; /* zinc-800 */
+		border: 1px solid #3f3f46; /* zinc-700 */
+		border-radius: 4px;
+		padding: 4px 7px;
 	}
 
 	.site-header {
