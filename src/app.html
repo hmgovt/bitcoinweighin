@@ -25,6 +25,21 @@
 			imagesrcset="%sveltekit.assets%/sprites/references/shiba_inu@1x.webp 1x, %sveltekit.assets%/sprites/references/shiba_inu@2x.webp 2x"
 			fetchpriority="high"
 		/>
+		<!-- Privacy-friendly analytics by Plausible -->
+		<script async src="https://plausible.io/js/pa-vdAGMCTZCfgkdxvEf8I4J.js"></script>
+		<script>
+			window.plausible =
+				window.plausible ||
+				function () {
+					(plausible.q = plausible.q || []).push(arguments);
+				};
+			plausible.init =
+				plausible.init ||
+				function (i) {
+					plausible.o = i || {};
+				};
+			plausible.init();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
