@@ -1,9 +1,10 @@
 {
   "monthKey": "2026-05",
-  "postsThisMonth": 1,
-  "creditsSpentCents": 2,
+  "postsThisMonth": 2,
+  "creditsSpentCents": 4,
   "lastSlotDate": {
-    "gold-am": "2026-05-31"
+    "gold-am": "2026-05-31",
+    "silver-mid": "2026-05-31"
   },
   "posts": [
     {
@@ -12,6 +13,13 @@
       "commodity": "gold",
       "tweetId": "2061028030496039079",
       "caption": "1 BTC today = a 30 mm gold cube. Fits in your palm. Weighs 503 g (1.11 lb).\nhttps://bitcoinweighin.com/?btc=1&commodity=gold"
+    },
+    {
+      "at": "2026-05-31T17:58:01.733Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2061145204682260814",
+      "caption": "In silver, 1 BTC held steady overnight — within a rounding error of yesterday's close.\nhttps://bitcoinweighin.com/?btc=1&commodity=silver"
     }
   ]
 }
