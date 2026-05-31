@@ -1,7 +1,17 @@
 {
-	"monthKey": "",
-	"postsThisMonth": 0,
-	"creditsSpentCents": 0,
-	"lastSlotDate": {},
-	"posts": []
+  "monthKey": "2026-05",
+  "postsThisMonth": 1,
+  "creditsSpentCents": 2,
+  "lastSlotDate": {
+    "gold-am": "2026-05-31"
+  },
+  "posts": [
+    {
+      "at": "2026-05-31T10:12:25.343Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2061028030496039079",
+      "caption": "1 BTC today = a 30 mm gold cube. Fits in your palm. Weighs 503 g (1.11 lb).\nhttps://bitcoinweighin.com/?btc=1&commodity=gold"
+    }
+  ]
 }
