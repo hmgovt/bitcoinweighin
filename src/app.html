@@ -25,8 +25,8 @@
 			imagesrcset="%sveltekit.assets%/sprites/references/shiba_inu@1x.webp 1x, %sveltekit.assets%/sprites/references/shiba_inu@2x.webp 2x"
 			fetchpriority="high"
 		/>
-		<!-- Privacy-friendly analytics by Plausible, first-party proxied (see functions/js/s.ts, functions/api/e.ts) -->
-		<script async src="/js/s"></script>
+		<!-- Privacy-friendly analytics by Plausible -->
+		<script async src="https://plausible.io/js/pa-vdAGMCTZCfgkdxvEf8I4J.js"></script>
 		<script>
 			window.plausible =
 				window.plausible ||
@@ -38,7 +38,7 @@
 				function (i) {
 					plausible.o = i || {};
 				};
-			plausible.init({ endpoint: '/api/e' });
+			plausible.init();
 		</script>
 		%sveltekit.head%
 	</head>
