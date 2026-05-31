@@ -101,7 +101,7 @@ interface Content {
 	commodity: CommodityId;
 }
 
-function buildAbsolute(slot: Slot, cfg: Config, objs: any, day: DayPrices, link: string): Content {
+function buildAbsolute(slot: Slot, cfg: Config, objs: any, day: DayPrices): Content {
 	const phys = cfg.physical[slot.commodity];
 	const grams = gramsPerBtc(slot.commodity, day, objs) * slot.btc;
 	const weight = fmtWeight(grams);
@@ -111,23 +111,22 @@ function buildAbsolute(slot: Slot, cfg: Config, objs: any, day: DayPrices, link:
 		const { mm } = cubeEdge(grams, phys.densityGPerCm3);
 		const edge = mm < 100 ? `${mm.toFixed(0)} mm` : `${(mm / 10).toFixed(1)} cm`;
 		if (phys.novelty) {
-			caption = `1 BTC today = a ${edge} cube of ${phys.noun} — the glowing isotope that powers deep-space probes. Weighs ${weight}.\n${link}`;
+			caption = `1 BTC today = a ${edge} cube of ${phys.noun} — the glowing isotope that powers deep-space probes. Weighs ${weight}.`;
 		} else {
 			const palm = mm < 80 ? ' Fits in your palm.' : '';
-			caption = `1 BTC today = a ${edge} ${phys.noun} cube.${palm} Weighs ${weight}.\n${link}`;
+			caption = `1 BTC today = a ${edge} ${phys.noun} cube.${palm} Weighs ${weight}.`;
 		}
 	} else {
 		// mass-only (cocaine): no cube
-		caption = `1 BTC today = ${weight} of ${phys.noun}, at wholesale.\n${link}`;
+		caption = `1 BTC today = ${weight} of ${phys.noun}, at wholesale.`;
 	}
 	return { caption, btc: slot.btc, commodity: slot.commodity };
 }
 
-function buildDelta(slot: Slot, cfg: Config, objs: any, prices: PriceData, dates: string[], link: string): Content {
+function buildDelta(slot: Slot, cfg: Config, objs: any, prices: PriceData, dates: string[]): Content {
 	const [pd, cd] = [dates[dates.length - 2], dates[dates.length - 1]];
 	const r = computeDelta(objs, slot.commodity, { date: pd, day: prices[pd] }, { date: cd, day: prices[cd] });
-	// computeDelta already ends with a "(±N)"; append the link.
-	return { caption: `${r.caption}\n${link}`, btc: slot.btc, commodity: slot.commodity };
+	return { caption: r.caption, btc: slot.btc, commodity: slot.commodity };
 }
 
 /**
@@ -203,11 +202,10 @@ async function main() {
 	// ── Content ─────────────────────────────────────────────────────
 	const dates = Object.keys(prices).sort();
 	const latest = prices[dates[dates.length - 1]];
-	const link = `${cfg.siteBase}/?btc=${slot.btc}&commodity=${slot.commodity}`;
 	const content =
 		slot.format === 'delta'
-			? buildDelta(slot, cfg, objs, prices, dates, link)
-			: buildAbsolute(slot, cfg, objs, latest, link);
+			? buildDelta(slot, cfg, objs, prices, dates)
+			: buildAbsolute(slot, cfg, objs, latest);
 
 	console.log('─'.repeat(60));
 	console.log(content.caption);
