@@ -123,6 +123,7 @@ function computeScene(
 	maxWidthPx: number,
 	maxHeightPx: number,
 	gapPx: number,
+	minCubePx = 2,
 ): SceneLayout {
 	const {
 		SHIBA_HEIGHT_M,
@@ -151,9 +152,7 @@ function computeScene(
 
 	const pxPerMetre = Math.min(pxPerM_h, pxPerM_w);
 
-	// Floor the cube at 2 px so sub-mm amounts leave a visible speck —
-	// same rule the page uses.
-	const cubeVisibleHpx = Math.max(2, cubeEdgeM * pxPerMetre);
+	const cubeVisibleHpx = Math.max(minCubePx, cubeEdgeM * pxPerMetre);
 	const cubeVisibleWpx = cubeVisibleHpx * cubeWoH;
 	const cubeSlotPx = cubeVisibleHpx / CUBE_VISIBLE_HEIGHT_FRACTION;
 
@@ -353,7 +352,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 			const SCENE_MAX_WIDTH = 460;
 			const SCENE_MAX_HEIGHT = 420;
 			const SCENE_GAP = 24;
-			const scene = computeScene(cubeEdgeM, SCENE_MAX_WIDTH, SCENE_MAX_HEIGHT, SCENE_GAP);
+			const scene = computeScene(cubeEdgeM, SCENE_MAX_WIDTH, SCENE_MAX_HEIGHT, SCENE_GAP, 80);
 			html = renderSceneHtml(readout, scene, cubeDataUrl, shibaDataUrl);
 		} else {
 			html = renderTextOnlyHtml(readout);
