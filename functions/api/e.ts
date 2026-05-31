@@ -2,35 +2,21 @@
 /**
  * Plausible event proxy — Cloudflare Pages Function (POST /api/e).
  *
- * Privacy/ad blockers block the `plausible.io` hostname, which kills both
+ * Privacy/ad blockers block the `plausible.io` hostname, which drops both
  * the tracker script and its event beacon. Routing events through our own
- * origin makes them first-party, so they're no longer dropped.
+ * origin makes them first-party so they survive.
  *
- * Plausible derives geolocation and the daily rotating visitor hash from
- * the client IP + User-Agent, so we MUST forward the real values — without
- * X-Forwarded-For every hit would look like one Cloudflare datacenter,
- * collapsing unique counts and country stats.
+ * We forward the ORIGINAL request (only stripping cookies) and return
+ * Plausible's response unchanged — per Plausible's official Cloudflare
+ * guide. This lets Cloudflare carry the real visitor IP through to
+ * Plausible (a hand-built X-Forwarded-For is ignored on the CF→CF hop, so
+ * Plausible would see a datacenter IP and bot-filter the event), and it
+ * preserves Plausible's `x-plausible-dropped` diagnostic header.
  *
  * Pairs with the script proxy at /js/s and `plausible.init({ endpoint })`.
  */
-const UPSTREAM = 'https://plausible.io/api/event';
-
 export const onRequestPost: PagesFunction = async ({ request }) => {
-	const body = await request.text();
-	const upstream = await fetch(UPSTREAM, {
-		method: 'POST',
-		headers: {
-			'Content-Type': request.headers.get('Content-Type') ?? 'text/plain',
-			'User-Agent': request.headers.get('User-Agent') ?? '',
-			'X-Forwarded-For':
-				request.headers.get('CF-Connecting-IP') ??
-				request.headers.get('X-Forwarded-For') ??
-				'',
-		},
-		body,
-	});
-	return new Response(upstream.body, {
-		status: upstream.status,
-		statusText: upstream.statusText,
-	});
+	const proxied = new Request('https://plausible.io/api/event', request);
+	proxied.headers.delete('cookie');
+	return fetch(proxied);
 };
