@@ -74,7 +74,7 @@
 <section class="nw-panel" bind:this={panelEl} aria-label="Bitcoin network physical weight">
 
 	<div class="nw-header">
-		<h2 class="nw-title">The Weight of the Network</h2>
+		<h2 class="nw-title">Hashweight: The Total Mass of the Bitcoin Network</h2>
 		<p class="nw-subtitle">
 			Every bitcoin transaction is secured by warehouses full of specialised hardware.
 			This is what that hardware weighs.
