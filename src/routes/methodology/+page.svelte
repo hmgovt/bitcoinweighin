@@ -5,6 +5,7 @@
 		{ id: 'forward-fill', title: 'Forward-fill logic' },
 		{ id: 'btc-supply', title: 'BTC supply derivation' },
 		{ id: 'illustrative', title: 'Illustrative pricing' },
+		{ id: 'hashweight', title: 'Hashweight: network physical mass' },
 		{ id: 'cross-validation', title: 'Cross-validation' },
 		{ id: 'versioning', title: 'Versioning and updates' },
 		{ id: 'corrections', title: 'Corrections' },
@@ -193,6 +194,82 @@
 				is the primary tier for BTC equivalence because it is the most directly comparable to
 				how other commodities are priced (standardised purity, kilogram-scale transactions).
 				As-of date: 2024-12-31.
+			</p>
+		</section>
+
+		<section id="hashweight" class="prose-section">
+			<h2>Hashweight: network physical mass</h2>
+			<p>
+				The Hashweight panel estimates the total physical mass of the hardware that secures
+				the Bitcoin network. It is an order-of-magnitude estimate — treat all figures as
+				having roughly ±30% uncertainty — derived from three independently sourced inputs:
+				live network hashrate, published ASIC specifications, and publicly disclosed node counts.
+			</p>
+			<h3>Live hashrate</h3>
+			<p>
+				Current network hashrate is fetched at page load from the
+				<a href="https://mempool.space/api/v1/mining/hashrate/1w" class="underline hover:no-underline">mempool.space
+				mining API</a> (<code>/api/v1/mining/hashrate/1w</code>), which returns a 7-day
+				rolling average in H/s. The historical sparkline uses
+				<code>/api/v1/mining/hashrate/all</code>, which provides weekly averages back to
+				Bitcoin's origin. If the API is unreachable, the panel falls back to a recent
+				known-good value (800 EH/s).
+			</p>
+			<h3>ASIC fleet model</h3>
+			<p>
+				The installed ASIC fleet is modelled with two blended constants:
+			</p>
+			<ul class="my-3 list-disc pl-6 text-sm">
+				<li>
+					<strong>150 TH/s per machine</strong> — a blend of S19-era hardware
+					(Antminer S19 Pro: 110 TH/s, S19 XP: 140 TH/s) and S21-era hardware
+					(Antminer S21: 200 TH/s, S21 Pro: 234 TH/s). Older S9-class machines
+					(~100 TH/s) and early retirements pull the average down; cutting-edge
+					deployments push it up.
+				</li>
+				<li>
+					<strong>13.5 kg per machine</strong> — S19-class units average ~13.2–14.3 kg;
+					S21-class units average ~14.2–14.9 kg; older hardware is lighter (~4.3 kg for
+					S9). The blended fleet average lies between those bounds.
+				</li>
+			</ul>
+			<p>
+				ASIC count = hashrate (TH/s) ÷ 150. ASIC mass = ASIC count × 13.5 kg.
+				At ~950 EH/s this yields ~6.3 million machines weighing ~85,000 metric tonnes.
+				The model over-counts recently retired machines still in transit and under-counts
+				very new hardware not yet fully deployed; ±30% is a reasonable uncertainty band.
+			</p>
+			<h3>Node mass</h3>
+			<p>
+				Full nodes contribute negligibly to the total: approximately 20,000 reachable nodes
+				(source: <a href="https://bitnodes.io" class="underline hover:no-underline">bitnodes.io</a>)
+				at a blended average of 0.5 kg each (Raspberry Pi at 45 g through NUC/small server
+				at ~1.2 kg) ≈ 10 metric tonnes — under 0.02% of total network mass.
+				The true node count including behind-NAT nodes is likely 50,000–100,000+, but
+				even at that scale the contribution remains under 50 tonnes.
+			</p>
+			<h3>Titanic comparison</h3>
+			<p>
+				The comparison reference is the RMS Titanic's <em>loaded displacement</em>:
+				52,310 long tons = <strong>53,150 metric tonnes</strong>. This is the actual
+				physical mass of the ship, passengers, cargo, and fuel when she sailed.
+				Note: the commonly cited figure of 46,328 is the ship's gross <em>register</em>
+				tonnage — a volumetric measure (100 cubic feet = 1 gross ton), not a mass.
+				Comparing a mass to a volume figure would be dimensionally incorrect, so the
+				displacement figure is used here.
+			</p>
+			<h3>Solo miner estimate</h3>
+			<p>
+				Solo miners — predominantly
+				<a href="https://github.com/skot/bitaxe" class="underline hover:no-underline">Bitaxe</a>
+				open-source boards, home Antminers, and Nerdminers — are estimated at
+				~40 PH/s total hashrate and ~60,000 devices. CKPool Solo routinely reports
+				10–20 PH/s; allowing for other solo pools and direct-connected miners,
+				30–50 PH/s is a plausible range. At ~667 GH/s average per device
+				(Bitaxe Ultra/Gamma range: 400–1,200 GH/s), 40 PH/s implies ~60,000 units.
+				Average device weight of 0.18 kg blends bare Bitaxe boards (~0.12 kg) with
+				heavier home ASICs. Total solo mass ≈ 11 metric tonnes, representing roughly
+				0.012% of total network mass.
 			</p>
 		</section>
 

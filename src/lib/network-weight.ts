@@ -27,8 +27,14 @@ export const NODE_COUNT = 20_000;
 /** Average node weight — blend of Raspberry Pi (0.045 kg) to NUC/server. */
 export const NODE_AVG_KG = 0.5;
 
-/** RMS Titanic gross tonnage in tonnes (used as comparison). */
-export const TITANIC_TONNES = 46_328;
+/**
+ * RMS Titanic loaded displacement in metric tonnes (used as mass comparison).
+ * Displacement = 52,310 long tons × 1,016.05 kg/long ton ÷ 1,000 ≈ 53,150 t.
+ * Note: the commonly-cited figure of 46,328 is *gross register tonnage* — a
+ * volumetric measure (100 cu ft = 1 GRT), not a mass. Displacement is correct
+ * for a like-for-like comparison with the ASIC mass estimate.
+ */
+export const TITANIC_TONNES = 53_150;
 
 /** Eiffel Tower steel mass in tonnes. */
 export const EIFFEL_TOWER_TONNES = 7_300;

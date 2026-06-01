@@ -123,7 +123,8 @@ export const MINING_CLUSTERS: MiningCluster[] = [
  * CKPool Solo regularly reports 10–20 PH/s; accounting for unlisted pools
  * and direct miners the total is likely 30–50 PH/s.
  *
- * At 500 GH/s average per device: 30 PH/s ÷ 0.5 TH/s ≈ 60,000 devices.
+ * Newer Bitaxe Ultra/Gamma boards (BM1368/BM1370) hash at 600–1,200 GH/s.
+ * At ~667 GH/s average per device: 40 PH/s ÷ 0.000667 TH/s ≈ 60,000 devices.
  */
 export const SOLO_HASHRATE_PH_S = 40; // conservative midpoint estimate
 export const SOLO_DEVICE_COUNT = 60_000; // Bitaxe + home ASICs
