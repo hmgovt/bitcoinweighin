@@ -17,7 +17,7 @@
 	let hoverSvgY = $state(0);
 
 	// SVG viewBox
-	const VW = 260, VH = 150;
+	const VW = 260, VH = 240;
 	const PL = 26, PR = 4, PT = 8, PB = 22;
 	const IW = VW - PL - PR;
 	const IH = VH - PT - PB;
