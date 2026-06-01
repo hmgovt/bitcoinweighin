@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import MiningGlobe from './MiningGlobe.svelte';
 	import AsicSound from './AsicSound.svelte';
+	import HashweightSparkline from './HashweightSparkline.svelte';
 	import {
 		fetchHashrateEH,
 		computeNetworkWeight,
@@ -191,6 +192,12 @@
 			</div>
 
 		</div>
+
+		<!-- Sparkline: third column on lg+, full-width row on md -->
+		<div class="nw-chart-col">
+			<HashweightSparkline />
+		</div>
+
 	</div>
 
 </section>
@@ -230,15 +237,38 @@
 	@media (min-width: 768px) {
 		.nw-layout {
 			flex-direction: row;
+			flex-wrap: wrap;
 			align-items: flex-start;
 			gap: 32px;
 		}
 		.nw-globe-col {
 			flex: 1 1 0;
 			min-width: 0;
-			max-width: 50%;
+			max-width: 48%;
 		}
 		.nw-stats-col {
+			flex: 1 1 0;
+			min-width: 0;
+			max-width: 48%;
+		}
+		.nw-chart-col {
+			flex: 1 1 100%;
+			min-width: 0;
+		}
+	}
+	@media (min-width: 1100px) {
+		.nw-layout {
+			flex-wrap: nowrap;
+		}
+		.nw-globe-col {
+			flex: 0 0 32%;
+			max-width: 32%;
+		}
+		.nw-stats-col {
+			flex: 0 0 28%;
+			max-width: 28%;
+		}
+		.nw-chart-col {
 			flex: 1 1 0;
 			min-width: 0;
 		}
