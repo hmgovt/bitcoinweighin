@@ -186,19 +186,16 @@
 		.nw-layout {
 			flex-direction: row;
 			align-items: flex-start;
-			gap: 40px;
+			gap: 32px;
 		}
 		.nw-globe-col {
-			flex: 0 0 auto;
-			width: 320px;
+			flex: 1 1 0;
+			min-width: 0;
+			max-width: 50%;
 		}
 		.nw-stats-col {
 			flex: 1 1 0;
-		}
-	}
-	@media (min-width: 1024px) {
-		.nw-globe-col {
-			width: 420px;
+			min-width: 0;
 		}
 	}
 

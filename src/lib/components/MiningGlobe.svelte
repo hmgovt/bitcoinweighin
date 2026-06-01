@@ -36,7 +36,7 @@
 	let topoLoaded = $state(false);
 
 	// Animation state.
-	let rotation = $state(-30); // start facing Atlantic
+	let rotation = $state(65); // start facing Americas (~65°W)
 	let animFrame = 0;
 	let isHovered = false;
 	let hoveredCluster: string | null = null;
@@ -207,18 +207,17 @@
 		}
 	}
 
-	// ── Point visibility (dot product test for orthographic hemisphere) ─────
+	// ── Point visibility (spherical law of cosines for orthographic hemisphere) ─
+	// d3-geo rotate([λr, φr]) means the visible centre is at geographic coords
+	// (-λr, -φr) — so we must negate both rotation values to get the camera centre.
 	function isPointVisible(lat: number, lng: number, proj: GeoProjection): boolean {
 		const rotate = proj.rotate();
-		const λ0 = rotate[0] * Math.PI / 180;
-		const φ0 = (rotate[1] ?? 0) * Math.PI / 180;
+		const λc = -rotate[0] * Math.PI / 180;
+		const φc = -(rotate[1] ?? 0) * Math.PI / 180;
 		const λ = lng * Math.PI / 180;
 		const φ = lat * Math.PI / 180;
-		// Dot product of point with camera direction
-		return (
-			Math.cos(φ) * Math.cos(φ0) * Math.cos(λ - λ0) +
-			Math.sin(φ) * Math.sin(φ0)
-		) > 0.05;
+		const cosD = Math.sin(φc) * Math.sin(φ) + Math.cos(φc) * Math.cos(φ) * Math.cos(λ - λc);
+		return cosD > 0.05;
 	}
 
 	// ── Hex colour → rgba string ─────────────────────────────────────────────
