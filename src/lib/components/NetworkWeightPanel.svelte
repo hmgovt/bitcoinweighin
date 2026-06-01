@@ -14,6 +14,9 @@
 		SOLO_AVG_WEIGHT_KG,
 		SOLO_HASHRATE_PH_S,
 	} from '$lib/mining-clusters.js';
+	import { system, toggleSystem, type UnitSystem } from '$lib/stores/system.js';
+
+	const TONNES_TO_SHORT_TONS = 1.10231;
 
 	let panelEl: HTMLElement | undefined = $state();
 	let showSoloMiners = $state(false);
@@ -27,7 +30,13 @@
 		loading = false;
 	});
 
-	function formatTonnes(t: number): string {
+	function formatTonnes(t: number, sys: UnitSystem): string {
+		if (sys === 'imperial') {
+			const st = t * TONNES_TO_SHORT_TONS;
+			if (st >= 1_000_000) return (st / 1_000_000).toFixed(2) + 'M short tons';
+			if (st >= 1_000) return Math.round(st / 1000).toLocaleString('en-US') + 'k short tons';
+			return st.toFixed(1) + ' short tons';
+		}
 		if (t >= 1_000_000) return (t / 1_000_000).toFixed(2) + 'M tonnes';
 		if (t >= 1_000) return Math.round(t / 1000).toLocaleString('en-US') + 'k tonnes';
 		return Math.round(t).toLocaleString('en-US') + ' tonnes';
@@ -39,11 +48,26 @@
 		return n.toLocaleString('en-US');
 	}
 
+	function onSwapUnits(e: Event) {
+		e.stopPropagation();
+		toggleSystem();
+	}
+
+	function onSwapKey(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSystem(); }
+	}
+
 	const soloMassKg = $derived(SOLO_DEVICE_COUNT * SOLO_AVG_WEIGHT_KG);
 	const soloMassTonnes = $derived(soloMassKg / 1000);
 
 	const soloFractionPct = $derived(
 		estimate ? ((soloMassTonnes / estimate.totalMassTonnes) * 100) : null
+	);
+
+	const titanicRef = $derived(
+		$system === 'metric'
+			? `${TITANIC_TONNES.toLocaleString()} tonnes`
+			: `${Math.round(TITANIC_TONNES * TONNES_TO_SHORT_TONS).toLocaleString()} short tons`
 	);
 </script>
 
@@ -84,14 +108,25 @@
 
 				<div class="stat-block stat-block--hero">
 					<div class="stat-label">Total ASIC mass</div>
-					<div class="stat-value stat-value--large">{formatTonnes(estimate.asicMassTonnes)}</div>
+					<div
+						class="stat-value stat-value--large mass-swap"
+						role="button"
+						tabindex="0"
+						title="Click to switch units"
+						aria-label="Switch to {$system === 'metric' ? 'imperial' : 'metric'} units"
+						onclick={onSwapUnits}
+						onkeydown={onSwapKey}
+					>
+						{formatTonnes(estimate.asicMassTonnes, $system)}
+						<span class="swap-hint" aria-hidden="true">⇄</span>
+					</div>
 					<div class="stat-comparison">
 						{#if estimate.titanicMultiple >= 1}
 							≈ {estimate.titanicMultiple.toFixed(1)}× the Titanic
 						{:else}
 							≈ {(estimate.titanicMultiple * 100).toFixed(0)}% of the Titanic
 						{/if}
-						<span class="stat-titanic-note">({TITANIC_TONNES.toLocaleString()} tonnes)</span>
+						<span class="stat-titanic-note">({titanicRef})</span>
 					</div>
 				</div>
 
@@ -124,7 +159,17 @@
 							</div>
 							<div class="stat-block">
 								<div class="stat-label">Solo mass</div>
-								<div class="stat-value">{soloMassTonnes.toFixed(1)} tonnes</div>
+								<div
+									class="stat-value mass-swap"
+									role="button"
+									tabindex="0"
+									title="Click to switch units"
+									onclick={onSwapUnits}
+									onkeydown={onSwapKey}
+								>
+									{formatTonnes(soloMassTonnes, $system)}
+									<span class="swap-hint" aria-hidden="true">⇄</span>
+								</div>
 								{#if soloFractionPct !== null}
 									<div class="stat-sub solo-fraction">
 										{soloFractionPct.toFixed(4)}% of total network mass
@@ -234,6 +279,23 @@
 		font-size: 26px;
 		color: #fbbf24; /* amber */
 	}
+	.mass-swap {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 6px;
+		cursor: pointer;
+		user-select: none;
+	}
+	.mass-swap:hover .swap-hint {
+		opacity: 1;
+	}
+	.swap-hint {
+		font-size: 0.65em;
+		color: #52525b;
+		opacity: 0;
+		transition: opacity 150ms;
+	}
+
 	.stat-sub {
 		font-family: 'JetBrains Mono', ui-monospace, monospace;
 		font-size: 11px;
