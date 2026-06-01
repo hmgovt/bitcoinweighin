@@ -16,6 +16,7 @@
 	import { formatBtc } from '$lib/format.js';
 	import LazyCommoditySection from '$lib/components/LazyCommoditySection.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
+	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
 
 	let { data } = $props();
 
@@ -467,6 +468,7 @@
 			ResizeObserver picks up the new width automatically.
 		-->
 		<div class="mx-auto mt-12 max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
+			<NetworkWeightPanel />
 			{#each commodityAmounts as { commodity, amount }, i (commodity.id)}
 				<LazyCommoditySection
 					{commodity}
