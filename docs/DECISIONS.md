@@ -87,6 +87,17 @@
 - **2026-04-20:** Entity category presets (Strategy, BlackRock IBIT, El Salvador, US Govt, Satoshi's stash) deferred to new Phase 3.5 because hardcoded values go stale fast. Strategy had 636k BTC at spec-writing, 800k+ by build time. Automate from CoinGecko + bitcointreasuries before launch, not after.
 - **2026-04-20:** Empty preset categories should not render as headings. If MVP has no History or Entity presets, those section labels must not appear.
 
+## Hashweight panel
+
+- **2026-06-02:** Hashweight panel added as a standalone section: "Hashweight: The Total Mass of the Bitcoin Network". Displays live network hashrate (mempool.space `/api/v1/mining/hashrate/1w`), estimated ASIC count, total ASIC mass, and a Titanic multiple for orientation.
+- **2026-06-02:** Fleet model: 150 TH/s blended average efficiency (S19-era ~110 TH/s, S19 XP ~140 TH/s, S21-era ~200 TH/s), 13.5 kg blended average weight. Treated as ±30% order-of-magnitude estimate, not a precise figure. Both constants live in `src/lib/network-weight.ts`.
+- **2026-06-02:** Titanic reference is loaded displacement (53,150 metric tonnes), NOT gross register tonnage (46,328 GRT). GRT is a volumetric unit (100 cu ft = 1 GRT) and a dimensional error if compared to mass. Confirmed in methodology page with explanation of the distinction.
+- **2026-06-02:** Solo miner sub-section added behind a toggle button. Shows ~40 PH/s / ~60k devices / 0.18 kg avg; 60k derived from 40 PH/s ÷ 0.000667 TH/s (BM1368/BM1370 Bitaxe Ultra/Gamma average). Toggling on overlays solo-miner dots on the globe.
+- **2026-06-02:** Hashweight sparkline added — SVG log-scale chart of network hashrate (→ mass) from 2014 to present, fetched from mempool.space `/api/v1/mining/hashrate/all`. Hover crosshair shows date, EH/s, and estimated mass. Placed to the right of the stat readouts; third column on ≥1100 px, full-width row on md.
+- **2026-06-02:** Metric/imperial toggle applied to all tonnage readouts in the hashweight panel (total ASIC mass, solo mass, Titanic reference line). Click-to-swap gesture uses the existing global `system` store (`src/lib/stores/system.ts`). Defaults to imperial (existing site default).
+- **2026-06-02:** Mining globe initial rotation set to 65°W / 20°N (Americas/Atlantic) so the dense US cluster is front and centre on load. Prior value of −30° centred on East Africa. d3-geo `rotate([λ, φ])` convention: visible centre is at (−λ, −φ), so `isPointVisible` must negate both rotation components when computing the hemisphere centre.
+- **2026-06-02:** Full Hashweight methodology section added to `/methodology` page: live hashrate source, ASIC fleet model derivation, node mass (~10 tonnes, negligible), Titanic GRT-vs-displacement explanation, and solo miner estimation.
+
 ## Brand and positioning
 
 - **2026-04-19:** Project name is Bitcoin Weigh-In. Domain is bitcoinweighin.com. Converged independently by both human and AI, which was a good sign.

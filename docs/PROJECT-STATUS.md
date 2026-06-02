@@ -1,6 +1,6 @@
 # Bitcoin Weigh-In — Project Status
 
-*Last updated: 9 May 2026*
+*Last updated: 2 June 2026*
 
 ## What this is
 
@@ -108,9 +108,22 @@ The following commodities have schema entries in `src/lib/commodities.ts` flagge
 | Newsletter platform | Not yet registered (Phase 4) |
 | Analytics | Not yet wired (Phase 4) |
 
+## Hashweight panel (shipped, 2 June 2026)
+
+A standalone "Hashweight: The Total Mass of the Bitcoin Network" panel now lives on the main page. Components:
+
+- **`src/lib/components/NetworkWeightPanel.svelte`** — orchestrates globe, stats, and sparkline in a three-column layout (32% globe / 28% stats / remaining sparkline at ≥1100 px; stacked below).
+- **`src/lib/components/MiningGlobe.svelte`** — d3-geo orthographic globe with mining cluster dots and optional solo-miner overlay. Bug fixes: `isPointVisible` sign error (negated both rotation components), initial rotation corrected from −30° (Africa) to 65° (Americas).
+- **`src/lib/components/HashweightSparkline.svelte`** — log-scale SVG chart of network hashrate → mass from 2014 to present. Hover crosshair shows date, EH/s, and estimated mass in the active unit system.
+- **`src/lib/network-weight.ts`** — constants (`FLEET_AVG_TH_PER_S = 150`, `FLEET_AVG_KG = 13.5`, `TITANIC_TONNES = 53_150`) and `computeNetworkWeight()`. Titanic figure corrected from 46,328 (GRT, a volume unit) to 53,150 (loaded displacement, a mass).
+- **`src/lib/mining-clusters.ts`** — `SOLO_HASHRATE_PH_S = 40`, `SOLO_DEVICE_COUNT = 60_000`, `SOLO_AVG_WEIGHT_KG = 0.18`.
+- **`src/routes/methodology/+page.svelte`** — Hashweight section added covering all derivations, Titanic caveat, solo miner estimation.
+- Metric/imperial click-to-swap wired to all tonnage readouts using the existing global `system` store.
+
 ## Recent session highlights
 
 - **2026-05-04 (marathon spec sync):** Four-commodity launch pivot committed across SPEC, DECISIONS, and status. Universal-Shiba and US-primacy decisions locked. Stage 1 of `docs/handoff/` complete.
 - **2026-05-04–07 (mixed-mode wiring):** Stages 2–6 substantially landed — schema additions, cocaine still + readout, glow overlay, Pu-238 fact card, quantity anchor cards. Cocaine forensic-lab still asset added to disk; integration test confirms still-mode dispatch.
 - **2026-05-07–08 (viewport polish):** Multiple iterations on the cube + Shiba scene layout — half-divide bottom-corner anchoring, per-sprite baseline correction, scene budget enlargement, removal of YAxis component and reference label. The dominant-element viewport rule landed 2026-05-08 after staging revealed the prior rule was leaving 1 BTC views with two specks in a near-empty viewport.
+- **2026-06-02 (Hashweight panel):** Globe bug fixes (visibility formula, initial rotation), metric/imperial toggle wired to all tonnage readouts, log-scale hashweight sparkline with hover tooltip, Titanic tonnage corrected from GRT to displacement (46,328 → 53,150 t), full methodology section. Pushed to main.
 - **2026-05-09 (viewport refinements, mostly mobile):** Edge-pinning and centred-pair drafts both lost the relative-scale read; landed on fixed midline anchors at ± `gapPx` with per-sprite L/R margin compensation so visible corners (not transparent canvas) sit on the anchor line. Switched `pxPerMetre` to visible-pixels-per-metre and scaled slots up by `1/visibleHeightFraction` so the visible content fills the row. Made the gap responsive (50 px → 14 px below 768 px) and derived row height from the dominant element's visible height × margin so the row never carries empty space above the visualisation. Width clamp now checks both cube and Shiba (regression: at 1789 BTC the cube was overflowing off the panel because the clamp only checked the slightly-taller Shiba). Daily cron continues to commit clean updates (2026-05-07, 2026-05-08, 2026-05-09).
