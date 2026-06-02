@@ -23,8 +23,8 @@
     {
       "slug": "el-salvador",
       "label": "El Salvador",
-      "btc": 7667,
-      "asOf": "2026-05-31",
+      "btc": 7670,
+      "asOf": "2026-06-02",
       "type": "nation-state",
       "source": "https://bitcointreasuries.net/governments/el-salvador",
       "sourceName": "Bitcoin Treasuries (mirrors El Salvador National Bitcoin Office)",
@@ -73,11 +73,11 @@
     {
       "slug": "strategy",
       "label": "Strategy",
-      "btc": 843738,
-      "asOf": "2026-05-18",
+      "btc": 843706,
+      "asOf": "2026-06-02",
       "type": "corporate",
-      "source": "https://www.strategy.com/btc",
-      "sourceName": "Strategy investor page + SEC 8-K filings",
+      "source": "https://bitcointreasuries.net/public-companies/strategy",
+      "sourceName": "Bitcoin Treasuries (mirrors Strategy 8-K filings)",
       "note": "Formerly MicroStrategy. Largest corporate Bitcoin holder. Average cost basis ~$75,500/BTC. Continues weekly purchases."
     },
     {
