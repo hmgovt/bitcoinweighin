@@ -1,10 +1,10 @@
 {
   "monthKey": "2026-06",
-  "postsThisMonth": 6,
-  "creditsSpentCents": 18,
+  "postsThisMonth": 7,
+  "creditsSpentCents": 20,
   "lastSlotDate": {
     "gold-am": "2026-06-02",
-    "silver-mid": "2026-06-01",
+    "silver-mid": "2026-06-02",
     "cocaine-eve": "2026-06-01",
     "pu238-night": "2026-06-02"
   },
@@ -71,6 +71,13 @@
       "commodity": "gold",
       "tweetId": "2061860517438713946",
       "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 492 g (1.09 lb)."
+    },
+    {
+      "at": "2026-06-02T18:42:41.132Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2061881250210578657",
+      "caption": "In silver, 1 BTC lost a basketball since yesterday's close (−749 g)."
     }
   ]
 }
