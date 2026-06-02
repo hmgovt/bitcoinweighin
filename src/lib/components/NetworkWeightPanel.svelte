@@ -315,6 +315,7 @@
 		gap: 6px;
 		cursor: pointer;
 		user-select: none;
+		touch-action: manipulation;
 	}
 	.mass-swap:hover .swap-hint {
 		opacity: 1;
