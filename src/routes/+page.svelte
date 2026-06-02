@@ -470,10 +470,11 @@
 		-->
 		<div class="mx-auto mt-12 max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
 			<NetworkWeightPanel />
-			<BitCubePanel
+			<!-- BitCubePanel hidden pending redesign — component in src/lib/components/BitCubePanel.svelte -->
+			<!-- <BitCubePanel
 				btcAmount={$btcAmount}
 				circulatingSupply={dayPrices?.btc_supply ?? 19_923_600}
-			/>
+			/> -->
 			{#each commodityAmounts as { commodity, amount }, i (commodity.id)}
 				<LazyCommoditySection
 					{commodity}
