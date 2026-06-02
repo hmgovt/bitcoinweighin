@@ -17,6 +17,7 @@
 	import LazyCommoditySection from '$lib/components/LazyCommoditySection.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
 	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
+	import BitCubePanel from '$lib/components/BitCubePanel.svelte';
 
 	let { data } = $props();
 
@@ -469,6 +470,10 @@
 		-->
 		<div class="mx-auto mt-12 max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
 			<NetworkWeightPanel />
+			<BitCubePanel
+				btcAmount={$btcAmount}
+				circulatingSupply={dayPrices?.btc_supply ?? 19_923_600}
+			/>
 			{#each commodityAmounts as { commodity, amount }, i (commodity.id)}
 				<LazyCommoditySection
 					{commodity}
