@@ -16,9 +16,10 @@ import 'dotenv/config';
 import { promises as fs } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { renderCard } from './make-card.ts';
+import { renderCard, renderHashweightCard } from './make-card.ts';
 import { postTweet } from './post.ts';
 import { computeDelta } from './deltas.ts';
+import { fetchHashrateEH, computeNetworkWeight } from '../../src/lib/network-weight.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, '..', '..');
@@ -32,8 +33,8 @@ type CommodityId = 'gold' | 'silver' | 'cocaine' | 'pu238';
 interface Slot {
 	id: string;
 	utcHour: number;
-	commodity: CommodityId;
-	format: 'absolute' | 'delta';
+	commodity: CommodityId | 'hashweight';
+	format: 'absolute' | 'delta' | 'hashweight';
 	btc: number;
 }
 interface Config {
@@ -56,6 +57,7 @@ type PriceData = Record<string, DayPrices>;
 
 const TROY_OZ_G = 31.1035;
 const LB_PER_KG = 2.20462;
+const HASHRATE_FALLBACK_EH = 800; // mirrors NetworkWeightPanel's offline fallback
 
 function arg(name: string): string | undefined {
 	return process.argv.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
@@ -98,12 +100,12 @@ function cubeEdge(grams: number, density: number): { mm: number; cm: number } {
 interface Content {
 	caption: string;
 	btc: number;
-	commodity: CommodityId;
+	commodity: CommodityId | 'hashweight';
 }
 
 function buildAbsolute(slot: Slot, cfg: Config, objs: any, day: DayPrices): Content {
-	const phys = cfg.physical[slot.commodity];
-	const grams = gramsPerBtc(slot.commodity, day, objs) * slot.btc;
+	const phys = cfg.physical[slot.commodity as CommodityId];
+	const grams = gramsPerBtc(slot.commodity as CommodityId, day, objs) * slot.btc;
 	const weight = fmtWeight(grams);
 
 	let caption: string;
@@ -125,8 +127,18 @@ function buildAbsolute(slot: Slot, cfg: Config, objs: any, day: DayPrices): Cont
 
 function buildDelta(slot: Slot, cfg: Config, objs: any, prices: PriceData, dates: string[]): Content {
 	const [pd, cd] = [dates[dates.length - 2], dates[dates.length - 1]];
-	const r = computeDelta(objs, slot.commodity, { date: pd, day: prices[pd] }, { date: cd, day: prices[cd] });
+	const r = computeDelta(objs, slot.commodity as CommodityId, { date: pd, day: prices[pd] }, { date: cd, day: prices[cd] });
 	return { caption: r.caption, btc: slot.btc, commodity: slot.commodity };
+}
+
+function buildHashweight(eh: number): Content {
+	const est = computeNetworkWeight(eh);
+	const tonnes = Math.round(est.totalMassTonnes / 1000) * 1000;
+	const tonnesStr = tonnes.toLocaleString('en-US');
+	const titanic = est.titanicMultiple.toFixed(1);
+	const hashrate = est.hashrateEH.toFixed(0);
+	const caption = `The Bitcoin network's mining hardware weighs ~${tonnesStr} tonnes — about ${titanic}× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: ${hashrate} EH/s.`;
+	return { caption, btc: 0, commodity: 'hashweight' };
 }
 
 /**
@@ -202,10 +214,22 @@ async function main() {
 	// ── Content ─────────────────────────────────────────────────────
 	const dates = Object.keys(prices).sort();
 	const latest = prices[dates[dates.length - 1]];
-	const content =
-		slot.format === 'delta'
-			? buildDelta(slot, cfg, objs, prices, dates)
-			: buildAbsolute(slot, cfg, objs, latest);
+	const out = join(CARD_OUT, `${slot.id}-${today}.png`);
+
+	let content: Content;
+	let renderImage: () => Promise<string>;
+	if (slot.format === 'hashweight') {
+		const eh = (await fetchHashrateEH()) ?? HASHRATE_FALLBACK_EH;
+		content = buildHashweight(eh);
+		renderImage = () => renderHashweightCard({ out });
+	} else {
+		content =
+			slot.format === 'delta'
+				? buildDelta(slot, cfg, objs, prices, dates)
+				: buildAbsolute(slot, cfg, objs, latest);
+		renderImage = () =>
+			renderCard({ btc: content.btc, commodity: content.commodity as string, date: dates[dates.length - 1], out });
+	}
 
 	console.log('─'.repeat(60));
 	console.log(content.caption);
@@ -213,14 +237,8 @@ async function main() {
 	console.log(`caption length: ${content.caption.length}/280`);
 
 	// ── Render card ─────────────────────────────────────────────────
-	const out = join(CARD_OUT, `${slot.id}-${today}.png`);
 	console.log(`Rendering card → ${out}`);
-	const imagePath = await renderCard({
-		btc: content.btc,
-		commodity: content.commodity,
-		date: dates[dates.length - 1],
-		out,
-	});
+	const imagePath = await renderImage();
 	console.log(`  ✓ ${imagePath}`);
 
 	if (dryRun) {
@@ -236,7 +254,7 @@ async function main() {
 	state.lastSlotDate[slot.id] = today;
 	state.postsThisMonth += 1;
 	state.creditsSpentCents += cfg.budget.centsPerPost;
-	state.posts.push({ at: now.toISOString(), slot: slot.id, commodity: slot.commodity, tweetId, caption: content.caption });
+	state.posts.push({ at: now.toISOString(), slot: slot.id, commodity: content.commodity, tweetId, caption: content.caption });
 	if (state.posts.length > 200) state.posts = state.posts.slice(-200);
 	await fs.writeFile(STATE_PATH, JSON.stringify(state, null, 2) + '\n');
 	console.log(`State updated: ${state.postsThisMonth}/${cfg.budget.monthlyCap} this month, ${cfg.budget.balanceCents - state.creditsSpentCents}c left.`);

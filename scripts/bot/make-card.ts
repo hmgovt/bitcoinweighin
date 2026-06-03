@@ -173,6 +173,46 @@ export async function renderCard(opts: RenderOpts): Promise<string> {
 	}
 }
 
+/**
+ * Render the live Hashweight panel (network mining-hardware mass) to `out`.
+ * Navigates to the homepage, waits for the panel's hero stat to compute
+ * (it resolves after the live hashrate fetch), scrolls it into view, and
+ * captures one 1200×675 frame. No deep link / commodity needed.
+ */
+export async function renderHashweightCard(opts: { out: string }): Promise<string> {
+	const outPath = isAbsolute(opts.out) ? opts.out : join(OUT_DIR, opts.out);
+	await fs.mkdir(dirname(outPath), { recursive: true });
+
+	const browser = await chromium.launch({ headless: true });
+	try {
+		const context = await browser.newContext({
+			viewport: { width: CARD_WIDTH, height: CARD_HEIGHT },
+			deviceScaleFactor: 2,
+		});
+		// Force metric so the card's mass matches the caption (which is in tonnes).
+		await context.addInitScript(() => {
+			try {
+				localStorage.setItem('bw:system', 'metric');
+			} catch {
+				/* localStorage unavailable — panel falls back to its default unit */
+			}
+		});
+		const page = await context.newPage();
+		await page.goto(SITE_BASE_URL, { waitUntil: 'networkidle', timeout: 30_000 });
+		// The total-mass stat only renders once the estimate resolves.
+		const panel = page.locator('#hashweight');
+		await panel.waitFor({ state: 'visible', timeout: 25_000 });
+		await page.waitForSelector('#hashweight .stat-value--large', { state: 'visible', timeout: 25_000 });
+		await page.waitForTimeout(400); // let the globe settle
+		// Clip to the panel's bounding box so the card is just the panel —
+		// no site slider bar above or the next section peeking below.
+		await panel.screenshot({ path: outPath, type: 'png' });
+		return outPath;
+	} finally {
+		await browser.close();
+	}
+}
+
 // ── CLI ─────────────────────────────────────────────────────────────
 
 async function main() {

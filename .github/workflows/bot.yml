@@ -1,15 +1,16 @@
 name: X bot
 
-# Four posts/day, one per commodity, varied format (see scripts/bot/config.json).
+# Five posts/day: 4 commodities + a Hashweight (network mining-hardware mass)
+# post, varied format (see scripts/bot/config.json).
 # run.ts uses catch-up selection: each run posts the earliest slot due today
 # (UTC) that hasn't posted yet and is within slotCatchupHours. GitHub often
 # delays scheduled runs 1–4h, so each slot has a primary cron at its time plus
 # a +2h catch-up cron; whichever fires first within the window posts the slot.
-# Cron times are UTC (~9a / 1p / 5p / 9p ET, EDT).
+# Cron times are UTC (~9a / 11a / 1p / 5p / 9p ET, EDT).
 on:
   schedule:
-    - cron: '0 13 * * *' # gold-am     primary  (~9a ET)
-    - cron: '0 15 * * *' # gold-am     catch-up
+    - cron: '0 13 * * *' # gold-am        primary  (~9a ET)
+    - cron: '0 15 * * *' # gold-am catch-up / hashweight-mid primary (~11a ET)
     - cron: '0 17 * * *' # silver-mid  primary  (~1p ET)
     - cron: '0 19 * * *' # silver-mid  catch-up
     - cron: '0 21 * * *' # cocaine-eve primary  (~5p ET)
