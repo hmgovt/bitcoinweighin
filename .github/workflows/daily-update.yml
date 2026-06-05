@@ -22,6 +22,7 @@ jobs:
       - run: npm ci
 
       - name: Fetch daily prices
+        id: fetch
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           STOOQ_API_KEY: ${{ secrets.STOOQ_API_KEY }}
@@ -29,6 +30,7 @@ jobs:
           MASSIVE_QUOTE_URL: ${{ secrets.MASSIVE_QUOTE_URL }}
           MASSIVE_QUOTE_FIELD: ${{ secrets.MASSIVE_QUOTE_FIELD }}
         run: npm run fetch-daily
+        continue-on-error: true # allow commit to run even when weekday guard fires
 
       - name: Build prices.json
         run: npm run build-prices
@@ -53,3 +55,9 @@ jobs:
           git add src/lib/entity-holdings.json
           git diff --cached --quiet || git commit -m "chore(holdings): daily sync $DATE"
           git push
+
+      - name: Fail if fetch had upstream issues
+        if: steps.fetch.outcome == 'failure'
+        run: |
+          echo "::error::fetch-daily exited non-zero — all sources returned 0 rows on a weekday. Data was forward-filled and committed; check health.json for details."
+          exit 1

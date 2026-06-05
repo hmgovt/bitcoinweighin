@@ -1,5 +1,8 @@
 /**
- * Daily fetch: appends yesterday's close for all commodities + BTC to prices.ndjson.
+ * Daily fetch: appends close prices for all commodities + BTC to prices.ndjson.
+ * Catches up on any dates missed since the last successful run, so a transient
+ * upstream outage never creates a permanent gap in the dataset.
+ *
  * Designed to be run by GitHub Actions cron at 02:00 UTC.
  *
  * Usage: FRED_API_KEY=xxx npx tsx scripts/fetch-daily.ts
@@ -14,6 +17,8 @@ import {
 	yesterday,
 	formatDateISO,
 	btcCirculatingSupply,
+	dateRange,
+	parseDate,
 } from './sources.js';
 import { fetchStooq, fetchFRED, type FetchResult } from './fetchers.js';
 import {
@@ -27,27 +32,23 @@ const ROOT = join(__dirname, '..');
 const NDJSON_PATH = join(ROOT, 'data', 'prices.ndjson');
 const HEALTH_PATH = join(ROOT, 'static', 'health.json');
 
-async function main() {
-	const targetDate = yesterday();
-	const dateStr = formatDateISO(targetDate);
+type HealthMap = Record<
+	string,
+	{ status: string; httpStatus?: number; rowCount?: number; url?: string; error?: string }
+>;
 
-	console.log(`=== Daily fetch for ${dateStr} ===\n`);
-
-	// Check if date already exists
-	if (existsSync(NDJSON_PATH)) {
-		const existing = readFileSync(NDJSON_PATH, 'utf-8');
-		const lastLine = existing.trim().split('\n').pop();
-		if (lastLine) {
-			const lastRow = JSON.parse(lastLine);
-			if (lastRow.date === dateStr) {
-				console.log(`Date ${dateStr} already exists in NDJSON. Skipping.`);
-				return;
-			}
-		}
-	}
-
-	const row: Record<string, any> = { date: dateStr, btc_supply: btcCirculatingSupply(dateStr) };
-	const health: Record<string, { status: string; httpStatus?: number; rowCount?: number; url?: string; error?: string }> = {};
+/**
+ * Fetch all sources for a single date and return the assembled row, health map,
+ * and whether every source returned zero rows (indicator of an upstream issue).
+ * Forward-fills from the current last line of prices.ndjson when a source has
+ * no data for the requested date.
+ */
+async function fetchSourcesForDate(
+	dateStr: string
+): Promise<{ row: Record<string, unknown>; health: HealthMap; allZeroRows: boolean }> {
+	const targetDate = parseDate(dateStr);
+	const row: Record<string, unknown> = { date: dateStr, btc_supply: btcCirculatingSupply(dateStr) };
+	const health: HealthMap = {};
 
 	for (const source of SOURCES) {
 		console.log(`Fetching ${source.id}...`);
@@ -62,25 +63,37 @@ async function main() {
 			const val = result.data.get(dateStr);
 			if (val !== undefined) {
 				row[source.field] = val;
-				health[source.id] = { status: 'ok', httpStatus: result.httpStatus, rowCount: result.rowCount, url: result.url };
+				health[source.id] = {
+					status: 'ok',
+					httpStatus: result.httpStatus,
+					rowCount: result.rowCount,
+					url: result.url,
+				};
 			} else {
-				// Weekend/holiday — forward-fill from last known
-				const lines = readFileSync(NDJSON_PATH, 'utf-8').trim().split('\n');
-				const lastRow = JSON.parse(lines[lines.length - 1]);
-				if (lastRow[source.field] !== undefined) {
-					row[source.field] = lastRow[source.field];
-					health[source.id] = { status: 'forward-filled', httpStatus: result.httpStatus, rowCount: result.rowCount, url: result.url };
+				// Weekend/holiday/lag — forward-fill from last known row
+				if (existsSync(NDJSON_PATH)) {
+					const lines = readFileSync(NDJSON_PATH, 'utf-8').trim().split('\n');
+					const lastRow = JSON.parse(lines[lines.length - 1]);
+					if (lastRow[source.field] !== undefined) {
+						row[source.field] = lastRow[source.field];
+						health[source.id] = {
+							status: 'forward-filled',
+							httpStatus: result.httpStatus,
+							rowCount: result.rowCount,
+							url: result.url,
+						};
+					}
 				}
 			}
-		} catch (err: any) {
-			console.error(`  ${source.id} failed: ${err.message}`);
-			// Forward-fill from last known
+		} catch (err: unknown) {
+			const message = err instanceof Error ? err.message : String(err);
+			console.error(`  ${source.id} failed: ${message}`);
 			if (existsSync(NDJSON_PATH)) {
 				const lines = readFileSync(NDJSON_PATH, 'utf-8').trim().split('\n');
 				const lastRow = JSON.parse(lines[lines.length - 1]);
 				if (lastRow[source.field] !== undefined) {
 					row[source.field] = lastRow[source.field];
-					health[source.id] = { status: 'fallback', error: err.message };
+					health[source.id] = { status: 'fallback', error: message };
 				}
 			}
 		}
@@ -88,21 +101,100 @@ async function main() {
 		await new Promise((r) => setTimeout(r, 1500));
 	}
 
-	// Abort if no BTC price
-	if (row.btc === undefined) {
-		console.error('No BTC price available. Aborting.');
-		process.exit(1);
+	const allZeroRows = Object.values(health).every(
+		(h) => h.rowCount === 0 || h.rowCount === undefined
+	);
+
+	return { row, health, allZeroRows };
+}
+
+async function main() {
+	const primaryDate = yesterday();
+	const primaryDateStr = formatDateISO(primaryDate);
+
+	console.log(`=== Daily fetch (target: ${primaryDateStr}) ===\n`);
+
+	// Determine the last date already in prices.ndjson
+	let lastDateStr: string | null = null;
+	if (existsSync(NDJSON_PATH)) {
+		const lines = readFileSync(NDJSON_PATH, 'utf-8').trim().split('\n');
+		if (lines.length > 0 && lines[lines.length - 1].trim()) {
+			const lastRow = JSON.parse(lines[lines.length - 1]);
+			lastDateStr = lastRow.date as string;
+			if (lastDateStr === primaryDateStr) {
+				console.log(`Already up to date (${primaryDateStr}). Skipping.`);
+				return;
+			}
+		}
 	}
 
-	// Append to NDJSON
-	appendFileSync(NDJSON_PATH, JSON.stringify(row) + '\n');
-	console.log(`\nAppended row for ${dateStr}`);
+	// Build the full list of dates to process: every day from the day after the
+	// last committed row up to and including yesterday. This catches up any dates
+	// that were missed due to transient upstream outages.
+	let datesToProcess: string[];
+	if (lastDateStr) {
+		const nextDay = parseDate(lastDateStr);
+		nextDay.setDate(nextDay.getDate() + 1);
+		datesToProcess = dateRange(formatDateISO(nextDay), primaryDateStr);
+	} else {
+		datesToProcess = [primaryDateStr];
+	}
 
-	// === Massive secondary-source cross-validation ===
-	// Quality signal only — fails soft, never blocks the build. If
-	// MASSIVE_API_KEY is not set, the fetcher returns null and we log
-	// "skipped" rather than emitting a flag.
+	const catchUpCount = datesToProcess.length - 1;
+	if (catchUpCount > 0) {
+		console.log(
+			`Catching up ${catchUpCount} missing date(s): ${datesToProcess.slice(0, -1).join(', ')}\n`
+		);
+	}
+
+	let primaryHealth: HealthMap = {};
+	let primaryAllZeroRows = false;
+
+	for (const dateStr of datesToProcess) {
+		const isCatchUp = dateStr !== primaryDateStr;
+		console.log(`\n--- ${dateStr}${isCatchUp ? ' (catch-up)' : ''} ---`);
+
+		const { row, health, allZeroRows } = await fetchSourcesForDate(dateStr);
+
+		if (isCatchUp) {
+			// For historical catch-up dates we forward-fill and continue — we cannot
+			// improve on whatever Stooq published (or didn't publish) that day.
+			const d = parseDate(dateStr);
+			const isWeekday = d.getDay() >= 1 && d.getDay() <= 5;
+			if (isWeekday && allZeroRows) {
+				console.warn(
+					`⚠ Catch-up ${dateStr}: all sources returned 0 rows — forward-filling ` +
+						`(likely a transient upstream outage on that date)`
+				);
+			}
+
+			if (row.btc === undefined) {
+				console.warn(`⚠ No BTC price for catch-up date ${dateStr} — skipping row`);
+				continue;
+			}
+		} else {
+			// Primary date
+			primaryHealth = health;
+			primaryAllZeroRows = allZeroRows;
+
+			if (row.btc === undefined) {
+				console.error('No BTC price available for primary date. Aborting.');
+				process.exit(1);
+			}
+		}
+
+		appendFileSync(NDJSON_PATH, JSON.stringify(row) + '\n');
+		console.log(`Appended row for ${dateStr}`);
+	}
+
+	// === Massive secondary-source cross-validation (primary date only) ===
+	// Quality signal only — fails soft, never blocks the build.
 	console.log('\nCross-validating against Massive...');
+
+	// Re-read the primary row from NDJSON (it was appended above)
+	const primaryRowLines = readFileSync(NDJSON_PATH, 'utf-8').trim().split('\n');
+	const primaryRow = JSON.parse(primaryRowLines[primaryRowLines.length - 1]);
+
 	const crossValidation: {
 		status: 'ok' | 'skipped' | 'partial';
 		threshold_pct: number;
@@ -125,12 +217,12 @@ async function main() {
 
 	let anyAttempted = false;
 	for (const { symbol, datasetField } of MASSIVE_CROSS_VALIDATED) {
-		const stooqValue = row[datasetField];
+		const stooqValue = primaryRow[datasetField];
 		if (typeof stooqValue !== 'number') {
 			crossValidation.skipped.push({ field: datasetField, reason: 'no stooq value to compare' });
 			continue;
 		}
-		const result = await fetchMassiveQuote(symbol, dateStr);
+		const result = await fetchMassiveQuote(symbol, primaryDateStr);
 		if (result.value === null) {
 			crossValidation.skipped.push({
 				field: datasetField,
@@ -146,7 +238,7 @@ async function main() {
 		);
 		if (pct > CROSS_VALIDATION_THRESHOLD_PCT) {
 			crossValidation.flags.push({
-				date: dateStr,
+				date: primaryDateStr,
 				field: datasetField,
 				stooq_value: stooqValue,
 				massive_value: result.value,
@@ -161,8 +253,7 @@ async function main() {
 		crossValidation.status = 'partial';
 	}
 
-	// Update health.json — preserve any cross_validation_flags accumulated
-	// across prior runs so historical disagreements remain auditable.
+	// Update health.json — preserve cross_validation_flags accumulated across prior runs.
 	let priorFlags: typeof crossValidation.flags = [];
 	if (existsSync(HEALTH_PATH)) {
 		try {
@@ -182,8 +273,9 @@ async function main() {
 			{
 				lastRun: new Date().toISOString(),
 				type: 'daily',
-				date: dateStr,
-				sources: health,
+				date: primaryDateStr,
+				catchUpDates: catchUpCount > 0 ? datesToProcess.slice(0, -1) : undefined,
+				sources: primaryHealth,
 				cross_validation: crossValidation,
 				cross_validation_flags,
 			},
@@ -193,17 +285,16 @@ async function main() {
 	);
 	console.log('Updated health.json');
 
-	// Weekday guard: if every source returned 0 rows on a weekday, exit non-zero
-	// so GitHub Actions shows a red ✗ and sends a notification.
-	const dayOfWeek = targetDate.getUTCDay(); // 0=Sun, 6=Sat
+	// Weekday guard: if every source returned 0 rows on the primary weekday date,
+	// flag it as an upstream issue. Data has already been appended (forward-filled)
+	// so the commit step will still preserve it — this exit code is purely to
+	// surface the alert in GitHub Actions.
+	const dayOfWeek = primaryDate.getDay();
 	const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-	const allZeroRows = Object.values(health).every(
-		(h) => h.rowCount === 0 || h.rowCount === undefined
-	);
-	if (isWeekday && allZeroRows) {
+	if (isWeekday && primaryAllZeroRows) {
 		console.error(
-			`\nERROR: All sources returned 0 rows on a weekday (${dateStr}). ` +
-			`This likely indicates an auth or upstream issue. Check health.json for details.`
+			`\nERROR: All sources returned 0 rows on a weekday (${primaryDateStr}). ` +
+				`This likely indicates an auth or upstream issue. Check health.json for details.`
 		);
 		process.exit(1);
 	}
