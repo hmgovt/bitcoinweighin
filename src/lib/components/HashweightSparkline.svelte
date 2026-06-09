@@ -38,6 +38,14 @@
 		}
 	});
 
+	// Y-axis upper bound = actual peak across all data + 15% headroom.
+	// Using the *last* point clipped intermediate peaks (e.g. mid-2025) and
+	// pushed the latest reading right up against the top edge with no
+	// visual breathing room. Hashrate isn't monotonic — the recent ATH may
+	// not be today's value.
+	const ehPeak = $derived(pts.length ? Math.max(...pts.map((p) => p.eh)) : 1);
+	const ehCeiling = $derived(ehPeak * 1.15);
+
 	// Log-scale y, linear x (time)
 	function xOf(ts: number): number {
 		const t0 = pts[0].ts, t1 = pts[pts.length - 1].ts;
@@ -45,14 +53,14 @@
 	}
 	function yOf(eh: number): number {
 		const logMin = Math.log10(Math.max(pts[0].eh, 1e-18));
-		const logMax = Math.log10(pts[pts.length - 1].eh);
+		const logMax = Math.log10(ehCeiling);
 		const t = (Math.log10(Math.max(eh, 1e-18)) - logMin) / (logMax - logMin);
 		return VH - PB - Math.max(0, Math.min(1, t)) * IH;
 	}
 	// Inverse y → EH/s (for y-axis labels)
 	function ehAtY(y: number): number {
 		const logMin = Math.log10(Math.max(pts[0].eh, 1e-18));
-		const logMax = Math.log10(pts[pts.length - 1].eh);
+		const logMax = Math.log10(ehCeiling);
 		const t = (VH - PB - y) / IH;
 		return Math.pow(10, logMin + t * (logMax - logMin));
 	}
@@ -84,11 +92,13 @@
 		return ticks;
 	});
 
-	// Y-axis labels at round EH/s values
+	// Y-axis labels at round EH/s values. Stops include 1000 so it's
+	// available once peak crosses ~870 EH/s; 0.98 ceiling lets a label
+	// just below the headroom band still render.
 	const yAxisLabels = $derived.by(() => {
 		if (pts.length < 2) return [] as { label: string; y: number }[];
-		const stops = [1, 10, 100, 500];
-		const logMax = Math.log10(pts[pts.length - 1].eh);
+		const stops = [1, 10, 100, 500, 1000];
+		const logMax = Math.log10(ehCeiling);
 		return stops
 			.filter(eh => {
 				const logMin = Math.log10(Math.max(pts[0].eh, 1e-18));
