@@ -4,6 +4,7 @@
 		faqJsonLd,
 		webPageJsonLd,
 	} from '$lib/seo/jsonld.js';
+	import CommodityPoster from '$lib/components/CommodityPoster.svelte';
 
 	let { data } = $props();
 
@@ -12,6 +13,11 @@
 	const deeplinkHref = `/?commodity=${data.commodityId}`;
 	const btcUsdFormatted =
 		'$' + Math.round(data.btcUsd).toLocaleString('en-US') + ' USD';
+	// Posters render for cube-mode commodities only (gold, silver, pu238).
+	// Still-with-readout commodities (cocaine) keep the amber callout
+	// because their homepage panel is a different visual idiom that
+	// doesn't translate to a single sprite.
+	const showPoster = data.renderStyle === 'cube' && data.amount !== null;
 </script>
 
 <svelte:head>
@@ -71,16 +77,33 @@
 			<p class="prose-p">{@html paragraph}</p>
 		{/each}
 
-		<div class="my-8 rounded border border-amber-200 bg-amber-50 p-4">
-			<p class="text-sm">
-				<strong>See it at scale.</strong>
-				<a href={deeplinkHref} class="underline hover:no-underline"
-					>Open the live visualisation</a
-				> — the cube renders {data.displayName.toLowerCase()} at true relative volume
-				next to a constant 9-kg Shiba Inu, and the slider scrubs through BTC amounts
-				from 1 sat to 21 M BTC.
-			</p>
-		</div>
+		{#if showPoster}
+			<div class="poster-wrap my-8">
+				<CommodityPoster
+					commodity={data.commodity}
+					amount={data.amount ?? 0}
+					btcUsdPrice={data.btcUsd}
+				/>
+				<p class="poster-cta">
+					<a href={deeplinkHref} class="poster-cta__link"
+						>Open the interactive viewer →</a
+					>
+					— scrub the slider from 1 sat to 21 M BTC, or drag the date back to
+					2013 to see how the cube grows and shrinks across history.
+				</p>
+			</div>
+		{:else}
+			<div class="my-8 rounded border border-amber-200 bg-amber-50 p-4">
+				<p class="text-sm">
+					<strong>See it at scale.</strong>
+					<a href={deeplinkHref} class="underline hover:no-underline"
+						>Open the live visualisation</a
+					> — the panel renders {data.displayName.toLowerCase()} at true relative
+					scale next to a constant 9-kg Shiba Inu, with a slider scrubbing
+					through BTC amounts from 1 sat to 21 M BTC.
+				</p>
+			</div>
+		{/if}
 
 		<h2 class="prose-h2">About {data.displayName.toLowerCase()} and bitcoin</h2>
 		{#each data.context as paragraph (paragraph)}
@@ -124,6 +147,25 @@
 <style>
 	.commodity-page :global(body) {
 		background: #fafafa;
+	}
+	.poster-wrap {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+	}
+	.poster-cta {
+		margin: 0;
+		font-size: 0.85rem;
+		line-height: 1.5;
+		color: #52525b;
+	}
+	.poster-cta__link {
+		color: #a16207;
+		text-decoration: underline;
+		font-weight: 600;
+	}
+	.poster-cta__link:hover {
+		color: #78350f;
 	}
 	.prose-h2 {
 		font-size: 1.125rem;

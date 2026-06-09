@@ -77,10 +77,35 @@ export const load: PageServerLoad = async ({ params }) => {
 		answer: f.answer.replace(/\{ratio\}/g, ratio),
 	}));
 
+	// Pass the commodity through so the poster component can read
+	// cubeSpritePath, density, unit etc. Restricting fields keeps the
+	// payload small and stops the page bundle from accidentally
+	// inheriting the full ALL_COMMODITIES list.
+	const commodityPayload = {
+		id: commodity.id,
+		displayName: commodity.displayName,
+		renderStyle: commodity.renderStyle,
+		unit: commodity.unit,
+		unitMassGrams: commodity.unitMassGrams,
+		densityGPerCm3: commodity.densityGPerCm3,
+		cubeSpritePath: commodity.cubeSpritePath,
+		cubeShadowPath: commodity.cubeShadowPath,
+		// Fields below are unused by the poster but required by the
+		// Commodity type so we pass them through verbatim.
+		mvpLaunch: commodity.mvpLaunch,
+		sourceId: commodity.sourceId,
+		sourceName: commodity.sourceName,
+		dataQuality: commodity.dataQuality,
+		priceField: commodity.priceField,
+		facts: commodity.facts,
+	};
+
 	return {
 		commodityId: commodity.id,
+		commodity: commodityPayload,
 		displayName: commodity.displayName,
 		dataQuality: commodity.dataQuality,
+		renderStyle: commodity.renderStyle,
 		title: content.title,
 		h1: content.h1,
 		metaDescription: content.metaDescription,
@@ -90,6 +115,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		relatedPages: content.relatedPages ?? [],
 		ratio,
 		btcUsd,
+		amount,
 		date,
 	};
 };
