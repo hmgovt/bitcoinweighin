@@ -3,14 +3,29 @@
 	 * Static cube + Shiba poster for /btc/[commodity] landing pages.
 	 *
 	 * No event handlers, no $effect, no onMount — pure derived layout from
-	 * fixed-dimension viewport math. The component ships as inert
-	 * hydration markup so the landing pages keep their static-prerender
-	 * perf profile (LCP, TTI unchanged) while still showing the cube and
-	 * Shiba at true relative scale.
+	 * fixed-dimension viewport math. Ships as inert hydration markup so
+	 * the landing pages keep their static-prerender perf profile (LCP /
+	 * TTI unchanged) while still showing the cube and Shiba at true
+	 * relative scale.
+	 *
+	 * Layout mirrors CubeRenderer's anchor scheme:
+	 *   - Each slot is positioned absolutely against the scene baseline.
+	 *   - Translate offsets shift each slot by its sprite's transparent
+	 *     margin fractions so the *visible* corner (not the canvas edge)
+	 *     lands on the midline-gap anchor at the row baseline.
+	 *   - Sprite-canvas overflow above the scene is clipped.
+	 *
+	 * Sprite margin constants are duplicated from volume.ts comments
+	 * rather than imported so this stays a leaf component with no extra
+	 * cross-file coupling. Keep these in sync if the sprites are recropped.
+	 *   cube@2x.png    bbox (244, 331, 1296, 1409) on 1600 x 1600
+	 *                  → R margin 19.0%, B margin 11.9%
+	 *   shiba_inu.webp bbox (486, 490, 1008, 1203) on 1600 x 1600
+	 *                  → L margin 30.4%, B margin 24.8%
 	 *
 	 * Use only for cube-mode commodities (gold, silver, pu238). Cocaine
 	 * renders a still-with-readout panel on the homepage; the landing
-	 * page keeps its current amber callout box for that case.
+	 * page keeps its amber callout box for that case.
 	 */
 
 	import type { Commodity } from '$lib/commodities.js';
@@ -22,6 +37,7 @@
 		SHIBA_HEIGHT_M,
 		CUBE_VISIBLE_HEIGHT_FRACTION,
 		SHIBA_VISIBLE_HEIGHT_FRACTION,
+		VIEWPORT_MARGIN,
 	} from '$lib/volume.js';
 	import { formatMassConsumer } from '$lib/format.js';
 
@@ -35,10 +51,6 @@
 		btcUsdPrice: number;
 	} = $props();
 
-	// Fixed poster geometry. Matches a typical desktop panel width so the
-	// layout reads cleanly without the responsive ResizeObserver dance the
-	// interactive CubeRenderer does. On narrower viewports the wrapping
-	// `.poster-scene` scales the whole row down via the max-width rule.
 	const POSTER_WIDTH_PX = 560;
 	const POSTER_HEIGHT_PX = 280;
 	const GAP_FROM_MIDLINE_PX = 30;
@@ -58,7 +70,12 @@
 	const cubeSlotPx = $derived(cubeVisiblePx / CUBE_VISIBLE_HEIGHT_FRACTION);
 	const shibaSlotPx = $derived(shibaVisiblePx / SHIBA_VISIBLE_HEIGHT_FRACTION);
 
-	const usdValue = $derived(btcUsdPrice || 0);
+	// Scene height grows to fit the taller of the two visible sprites.
+	// With margin the row is at most ~280px (the bigger of SHIBA_HEIGHT_M ×
+	// pxPerMetre × 1.1 and cubeVisiblePx × 1.1) — matches the fixed
+	// aspect-ratio of the wrapper so nothing leaks.
+	const dominantVisiblePx = $derived(Math.max(shibaVisiblePx, cubeVisiblePx));
+	const sceneHeightPx = $derived(dominantVisiblePx * VIEWPORT_MARGIN);
 
 	function formatEdge(mm: number): string {
 		if (mm < 1) return `${(mm * 1000).toFixed(0)} µm`;
@@ -80,38 +97,65 @@
 </script>
 
 <figure class="poster">
-	<div class="poster-scene" style="aspect-ratio: {POSTER_WIDTH_PX} / {POSTER_HEIGHT_PX};">
-		<div class="poster-row" style="--cube-slot: {cubeSlotPx}px; --shiba-slot: {shibaSlotPx}px; --max-width: {POSTER_WIDTH_PX}px;">
-			<div class="cube-anchor" style="width: {cubeSlotPx}px; height: {cubeSlotPx}px;">
-				{#if commodity.cubeShadowPath}
-					<img
-						src={commodity.cubeShadowPath}
-						srcset="{commodity.cubeShadowPath.replace('@2x.webp', '@1x.webp')} 1x, {commodity.cubeShadowPath} 2x"
-						alt=""
-						class="cube-shadow"
-						aria-hidden="true"
-						draggable="false"
-					/>
-				{/if}
-				{#if commodity.cubeSpritePath}
-					<img
-						src={commodity.cubeSpritePath}
-						srcset="{commodity.cubeSpritePath.replace('@2x.webp', '@1x.webp')} 1x, {commodity.cubeSpritePath} 2x"
-						alt="{commodity.displayName} cube at {cubeEdgeMm.toFixed(1)} mm edge"
-						class="cube-sprite"
-						draggable="false"
-					/>
-				{/if}
-			</div>
-			<div class="shiba-anchor" style="width: {shibaSlotPx}px; height: {shibaSlotPx}px;">
+	<div
+		class="poster-scene"
+		style="height: {sceneHeightPx}px; max-width: {POSTER_WIDTH_PX}px;"
+	>
+		<!--
+			Cube anchor: visible bottom-right corner sits at midline − gap.
+			translate(19%, 12%) accounts for the sprite's right and bottom
+			transparent margins so the visible content lands on the anchor
+			rather than the canvas edge.
+		-->
+		<div
+			class="cube-anchor"
+			style="
+				width: {cubeSlotPx}px;
+				height: {cubeSlotPx}px;
+				right: calc(50% + {GAP_FROM_MIDLINE_PX}px);
+			"
+		>
+			{#if commodity.cubeShadowPath}
 				<img
-					src="/sprites/references/shiba_inu.webp"
-					srcset="/sprites/references/shiba_inu@1x.webp 1x, /sprites/references/shiba_inu@2x.webp 2x"
-					alt="A Shiba Inu dog, 40 cm at the shoulder, shown for scale"
-					class="shiba-sprite"
+					src={commodity.cubeShadowPath}
+					srcset="{commodity.cubeShadowPath.replace('@2x.webp', '@1x.webp')} 1x, {commodity.cubeShadowPath} 2x"
+					alt=""
+					class="cube-shadow"
+					aria-hidden="true"
 					draggable="false"
 				/>
-			</div>
+			{/if}
+			{#if commodity.cubeSpritePath}
+				<img
+					src={commodity.cubeSpritePath}
+					srcset="{commodity.cubeSpritePath.replace('@2x.webp', '@1x.webp')} 1x, {commodity.cubeSpritePath} 2x"
+					alt="{commodity.displayName} cube at {cubeEdgeMm.toFixed(1)} mm edge"
+					class="cube-sprite"
+					draggable="false"
+				/>
+			{/if}
+		</div>
+		<!--
+			Shiba anchor: visible bottom-left corner at midline + gap.
+			translate(-30.4%, 25%) accounts for the Shiba's left margin
+			(absent visible content from canvas edge in) and the
+			transparent strip below the dog's feet.
+		-->
+		<div
+			class="shiba-anchor"
+			style="
+				width: {shibaSlotPx}px;
+				height: {shibaSlotPx}px;
+				left: calc(50% + {GAP_FROM_MIDLINE_PX}px);
+			"
+		>
+			<img
+				src="/sprites/references/shiba_inu.webp"
+				srcset="/sprites/references/shiba_inu@1x.webp 1x, /sprites/references/shiba_inu@2x.webp 2x"
+				alt="A Shiba Inu dog, 40 cm at the shoulder, shown for scale"
+				class="shiba-sprite"
+				draggable="false"
+			/>
 		</div>
 	</div>
 	<figcaption class="poster-caption">
@@ -123,10 +167,10 @@
 			<span class="cap-label">Mass</span>
 			<span class="cap-value">{massReadout} · {massReadoutMetric}</span>
 		</div>
-		{#if usdValue > 0}
+		{#if btcUsdPrice > 0}
 			<div class="cap-row">
 				<span class="cap-label">USD value</span>
-				<span class="cap-value">{formatUsd(usdValue)}</span>
+				<span class="cap-value">{formatUsd(btcUsdPrice)}</span>
 			</div>
 		{/if}
 	</figcaption>
@@ -142,45 +186,46 @@
 		color: #e4e4e7;
 	}
 	.poster-scene {
+		position: relative;
 		width: 100%;
-		max-width: 560px;
 		margin: 0 auto;
-		position: relative;
-	}
-	.poster-row {
-		position: relative;
-		width: 100%;
-		max-width: var(--max-width);
-		height: 100%;
-		display: flex;
-		justify-content: center;
-		align-items: flex-end;
-		gap: 60px;
-	}
-	@media (max-width: 480px) {
-		.poster-row {
-			gap: 28px;
-		}
+		overflow: hidden;
 	}
 	.cube-anchor,
 	.shiba-anchor {
-		position: relative;
-		flex-shrink: 0;
+		position: absolute;
+		bottom: 0;
 	}
-	.cube-sprite,
+	.cube-anchor {
+		transform: translate(19%, 12%);
+	}
+	.shiba-anchor {
+		transform: translate(-30.4%, 25%);
+	}
 	.cube-shadow {
 		position: absolute;
 		inset: 0;
 		width: 100%;
 		height: 100%;
 		object-fit: contain;
-		object-position: center;
+		opacity: 0.6;
+		mix-blend-mode: multiply;
+		pointer-events: none;
+	}
+	.cube-sprite {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		display: block;
+		user-select: none;
 	}
 	.shiba-sprite {
 		width: 100%;
 		height: 100%;
 		object-fit: contain;
-		object-position: bottom center;
+		display: block;
+		user-select: none;
 	}
 	.poster-caption {
 		margin-top: 1rem;
