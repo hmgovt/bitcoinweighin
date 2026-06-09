@@ -1,4 +1,91 @@
+# Bitcoin Weigh-In — robots.txt
+#
+# Default policy: open. Bitcoin Weigh-In is a public dataset visualisation
+# under CC-BY-4.0; we want both search and AI crawlers to ingest it.
+# Listing AI bots explicitly is belt-and-braces against silent default
+# flips by user-agent operators.
+
 User-agent: *
+Allow: /
+
+# Search engines — explicit allow for clarity
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# AI / LLM crawlers — explicit allow. These bots commonly check robots.txt
+# for an explicit grant before training or surfacing in answer products.
+
+# OpenAI — training, search, and live browsing
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: ClaudeUser
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+# Google Gemini / Vertex training corpus
+User-agent: Google-Extended
+Allow: /
+
+# Apple Intelligence training corpus
+User-agent: Applebot-Extended
+Allow: /
+
+# Common Crawl (feeds many downstream models)
+User-agent: CCBot
+Allow: /
+
+# Meta AI training crawler
+User-agent: FacebookBot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Meta-ExternalFetcher
+Allow: /
+
+# Mistral
+User-agent: MistralAI-User
+Allow: /
+
+# You.com
+User-agent: YouBot
+Allow: /
+
+# Bytedance / Doubao
+User-agent: Bytespider
 Allow: /
 
 Sitemap: https://bitcoinweighin.com/sitemap.xml

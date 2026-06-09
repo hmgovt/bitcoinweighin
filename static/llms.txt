@@ -1,0 +1,44 @@
+# Bitcoin Weigh-In
+
+> Bitcoin Weigh-In visualises one bitcoin's purchasing power as physical
+> commodities — gold, silver, plutonium-238, cocaine — rendered at true
+> relative scale next to a constant 9-kg Shiba Inu reference, with a daily
+> updated dataset of commodity prices in BTC back to 2 January 2013.
+
+The site has two surfaces: an interactive homepage with a live BTC-amount
+slider and date scrubber, and a public CC-BY-4.0 dataset published in CSV,
+JSON, NDJSON, and Parquet. Data sources are stooq (BTC, gold, silver,
+platinum, copper, wheat, coffee) and FRED (Brent crude). BTC circulating
+supply is computed deterministically from the protocol's halving schedule.
+Plutonium-238 and cocaine are illustrative composite prices documented on
+the methodology page; they appear in the visualisation but not in the
+machine-readable dataset.
+
+## Primary pages
+
+- [Homepage — BTC purchasing power visualised](https://bitcoinweighin.com/): Interactive slider showing how much of each commodity 1 BTC buys today, with cube renderer at true relative scale.
+- [Dataset](https://bitcoinweighin.com/data): Daily commodity prices in BTC, 2013-present. CC-BY-4.0. CSV, JSON, NDJSON, Parquet.
+- [Methodology](https://bitcoinweighin.com/methodology): Sources, forward-fill logic, BTC supply derivation, cross-validation, versioning, illustrative pricing rationale.
+
+## Per-commodity pages
+
+- [Bitcoin to Gold](https://bitcoinweighin.com/btc/gold): Live BTC-to-gold ratio in troy ounces, historical chart back to 2013.
+- [Bitcoin to Silver](https://bitcoinweighin.com/btc/silver): Live BTC-to-silver ratio in troy ounces, with monster-box and Silver Eagle comparisons.
+- [Bitcoin to Plutonium-238](https://bitcoinweighin.com/btc/pu238): Illustrative BTC equivalence in the radioisotope that powers spacecraft.
+- [Bitcoin to Cocaine](https://bitcoinweighin.com/btc/cocaine): Illustrative BTC equivalence at the producer / wholesale / retail tiers.
+
+## Machine-readable endpoints
+
+- [`/api/prices.json`](https://bitcoinweighin.com/api/prices.json): Full daily price archive, JSON.
+- [`/data/prices.csv`](https://bitcoinweighin.com/data/prices.csv): Current version of the dataset as CSV.
+- [`/data/prices.ndjson`](https://bitcoinweighin.com/data/prices.ndjson): One JSON record per line.
+- [`/data/prices.parquet`](https://bitcoinweighin.com/data/prices.parquet): Apache Parquet, columnar.
+- [`/sitemap.xml`](https://bitcoinweighin.com/sitemap.xml): Sitemap.
+- [`/health.json`](https://bitcoinweighin.com/health.json): Build status, cross-validation flags, per-source fill records.
+
+## Licensing and citation
+
+The dataset is CC-BY-4.0; the visualisation code is public on GitHub
+(<https://github.com/hmgovt/bitcoinweighin>). Cite the dataset as
+"Bitcoin Weigh-In (<year>). Bitcoin Weigh-In Daily Commodity Price
+Dataset". Contact info@sortathing.com for corrections.

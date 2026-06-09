@@ -1,4 +1,9 @@
 <script lang="ts">
+	import {
+		datasetJsonLd,
+		breadcrumbJsonLd,
+		webPageJsonLd,
+	} from '$lib/seo/jsonld.js';
 	let { data } = $props();
 
 	let previewTab = $state<'first' | 'last'>('first');
@@ -54,12 +59,55 @@ const prices = await res.json();`,
 </script>
 
 <svelte:head>
-	<title>Bitcoin Weigh-In Dataset</title>
+	<title>Bitcoin-Denominated Commodity Price Dataset (CC-BY-4.0) · Bitcoin Weigh-In</title>
 	<meta
 		name="description"
-		content="Daily commodity prices denominated in Bitcoin, 2013-present. CC-BY-4.0. Updated daily at 02:00 UTC."
+		content="Daily commodity prices denominated in Bitcoin, 2013-present. Gold, silver, platinum, copper, oil, wheat, coffee. CSV, JSON, NDJSON, Parquet. CC-BY-4.0, updated daily at 02:00 UTC."
 	/>
 	<link rel="canonical" href="https://bitcoinweighin.com/data" />
+	<!--
+		Dataset JSON-LD: makes this page eligible for Google Dataset Search
+		and gives AI assistants a machine-readable summary of what's on offer.
+		Mirrors the visible header table; sourced from dataset-config.json +
+		static/data/v{X.Y}/meta.json via the +page.server.ts load.
+	-->
+	{@html `<script type="application/ld+json">${datasetJsonLd({
+		name: data.config.title,
+		description: data.config.abstract,
+		version: data.config.version,
+		license: data.config.license,
+		url: 'https://bitcoinweighin.com/data',
+		temporalCoverage: `${data.meta.coverage.first_date}/${data.meta.coverage.last_date}`,
+		dateModified: data.meta.last_updated,
+		identifier: data.config.doi ? `https://doi.org/${data.config.doi}` : undefined,
+		creatorName: 'Bitcoin Weigh-In',
+		keywords: [
+			'bitcoin',
+			'BTC',
+			'commodity prices',
+			'gold',
+			'silver',
+			'platinum',
+			'copper',
+			'Brent crude',
+			'wheat',
+			'coffee',
+			'cryptocurrency',
+		],
+		distributions: data.formats.map((f) => ({
+			encodingFormat:
+				f.format === 'CSV'
+					? 'text/csv'
+					: f.format === 'JSON'
+						? 'application/json'
+						: f.format === 'NDJSON'
+							? 'application/x-ndjson'
+							: 'application/vnd.apache.parquet',
+			contentUrl: `https://bitcoinweighin.com${f.downloadHref}`,
+		})),
+	})}</script>`}
+	{@html `<script type="application/ld+json">${webPageJsonLd({ url: 'https://bitcoinweighin.com/data', name: 'Bitcoin-Denominated Commodity Price Dataset', description: data.config.abstract })}</script>`}
+	{@html `<script type="application/ld+json">${breadcrumbJsonLd([{ name: 'Home', url: 'https://bitcoinweighin.com/' }, { name: 'Dataset', url: 'https://bitcoinweighin.com/data' }])}</script>`}
 </svelte:head>
 
 <div class="dataset-page">

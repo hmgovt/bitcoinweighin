@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { breadcrumbJsonLd, webPageJsonLd } from '$lib/seo/jsonld.js';
 	const sections = [
 		{ id: 'what-this-is', title: 'What this is' },
 		{ id: 'data-sources', title: 'Data sources' },
@@ -13,12 +14,14 @@
 </script>
 
 <svelte:head>
-	<title>Methodology — Bitcoin Weigh-In</title>
+	<title>Methodology: How We Price Bitcoin in Commodities · Bitcoin Weigh-In</title>
 	<meta
 		name="description"
-		content="How Bitcoin Weigh-In sources, validates, versions, and corrects its commodity price dataset."
+		content="Sources, forward-fill rules, BTC supply derivation, illustrative pricing for plutonium-238 and cocaine, cross-validation, versioning, and corrections for the Bitcoin Weigh-In commodity price dataset."
 	/>
 	<link rel="canonical" href="https://bitcoinweighin.com/methodology" />
+	{@html `<script type="application/ld+json">${webPageJsonLd({ url: 'https://bitcoinweighin.com/methodology', name: 'Methodology — Bitcoin Weigh-In', description: 'How Bitcoin Weigh-In sources, validates, versions, and corrects its commodity price dataset.' })}</script>`}
+	{@html `<script type="application/ld+json">${breadcrumbJsonLd([{ name: 'Home', url: 'https://bitcoinweighin.com/' }, { name: 'Methodology', url: 'https://bitcoinweighin.com/methodology' }])}</script>`}
 </svelte:head>
 
 <div class="methodology-page">

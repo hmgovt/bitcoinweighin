@@ -18,6 +18,14 @@
 	import PresetBar from '$lib/components/PresetBar.svelte';
 	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
 	import BitCubePanel from '$lib/components/BitCubePanel.svelte';
+	import {
+		organizationJsonLd,
+		websiteJsonLd,
+		webPageJsonLd,
+		faqJsonLd,
+		breadcrumbJsonLd,
+	} from '$lib/seo/jsonld.js';
+	import { HOMEPAGE_FAQS } from '$lib/seo/faqs.js';
 
 	let { data } = $props();
 
@@ -218,16 +226,25 @@
 
 	const ogCommodityName = $derived(ogCommodity?.displayName.toLowerCase() ?? 'gold');
 
+	// Page-level <title> stays keyword-stable so it doesn't churn with the
+	// daily ratio (which used to bake into the title and tanked queries like
+	// "bitcoin to gold" because the title kept shifting). og:title still
+	// carries the dynamic ratio so share previews remain conversation-worthy.
+	const pageTitle =
+		'Bitcoin Weigh-In — BTC to Gold, Silver, Oil & Commodities Visualised';
+	const pageDescription =
+		"Bitcoin's purchasing power, visualised in physical commodities. See how much gold, silver, oil, or plutonium one BTC buys, with a daily-updated dataset back to 2013.";
+
 	const ogTitle = $derived(
 		ogReadoutText
 			? `${formatBtc($btcAmount)} = ${ogReadoutText} of ${ogCommodityName} · Bitcoin Weigh-In`
-			: 'Bitcoin Weigh-In — What does a bitcoin weigh?'
+			: pageTitle
 	);
 
 	const ogDescription = $derived(
 		ogReadoutText
 			? `What does ${formatBtc($btcAmount)} buy? ${ogReadoutText} of ${ogCommodityName} today. Explore BTC purchasing power across gold, silver, plutonium-238 and more.`
-			: 'BTC purchasing power visualised across commodities, at true relative scale.'
+			: pageDescription
 	);
 
 	const ogPageUrl = $derived.by(() => {
@@ -293,8 +310,8 @@
 </script>
 
 <svelte:head>
-	<title>{ogTitle}</title>
-	<meta name="description" content={ogDescription} />
+	<title>{pageTitle}</title>
+	<meta name="description" content={pageDescription} />
 	<link rel="canonical" href="https://bitcoinweighin.com/" />
 	<!--
 		Open Graph + Twitter cards. The og:image hits the /og-image Pages
@@ -316,6 +333,12 @@
 	<meta name="twitter:title" content={ogTitle} />
 	<meta name="twitter:description" content={ogDescription} />
 	<meta name="twitter:image" content={ogImageUrl} />
+	<!-- Structured data: WebSite + Organization + WebPage + FAQPage + BreadcrumbList. Stable across daily rebuilds so Google's structured-data cache stays warm. -->
+	{@html `<script type="application/ld+json">${websiteJsonLd()}</script>`}
+	{@html `<script type="application/ld+json">${organizationJsonLd()}</script>`}
+	{@html `<script type="application/ld+json">${webPageJsonLd({ url: 'https://bitcoinweighin.com/', name: pageTitle, description: pageDescription })}</script>`}
+	{@html `<script type="application/ld+json">${faqJsonLd(HOMEPAGE_FAQS)}</script>`}
+	{@html `<script type="application/ld+json">${breadcrumbJsonLd([{ name: 'Home', url: 'https://bitcoinweighin.com/' }])}</script>`}
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950 text-zinc-100">
@@ -367,7 +390,6 @@
 	<div class="mx-auto max-w-[1280px] px-6 pt-4 sm:pt-6">
 		<header class="site-header">
 			<a href="/" class="brand" aria-label="Bitcoin Weigh-In home">
-				<h1 class="sr-only">Bitcoin Weigh-In</h1>
 				<picture>
 					<source
 						srcset="/header@1x.webp 1x, /header.webp 2x"
@@ -383,8 +405,11 @@
 						class="brand__mark"
 					/>
 				</picture>
+				<h1 class="brand__h1">
+					Bitcoin's purchasing power in physical commodities
+				</h1>
 				<p class="brand__subtitle">
-					The purchasing power of bitcoin, in&nbsp;things you can hold.
+					How much gold, silver, oil or plutonium does 1 BTC buy? Live ratios, daily, since 2013.
 				</p>
 			</a>
 			<div class="header-pills">
@@ -486,6 +511,48 @@
 				/>
 			{/each}
 		</div>
+
+		<!--
+			SEO + AI-bot surface. The visible copy intentionally mirrors the
+			FAQPage JSON-LD verbatim — Google penalises FAQ structured data
+			whose answers aren't visible on the page. Keep this block
+			crawlable (no hidden display, no JS gate) and edit copy via
+			$lib/seo/faqs.ts so the JSON-LD stays in lockstep.
+		-->
+		<section aria-labelledby="about-heading" class="seo-section">
+			<div class="mx-auto max-w-3xl px-4 py-12 sm:py-16">
+				<h2 id="about-heading" class="seo-section__h2">
+					Bitcoin in things you can hold
+				</h2>
+				<p class="seo-section__p">
+					<strong>Bitcoin Weigh-In</strong> answers a question that's harder than it looks: what
+					does <em>one bitcoin</em> actually buy, expressed as something you could pick up off a
+					table? The site renders a single BTC's purchasing power as physical commodities —
+					gold, silver, plutonium-238, cocaine — at <em>true relative scale</em>, next to a
+					constant 9-kg Shiba Inu so the eye has somewhere to land. Move the slider and the cube
+					grows or shrinks; scrub the date and you can watch a bitcoin's weight in gold drift
+					across thirteen years of market history.
+				</p>
+				<p class="seo-section__p">
+					Under the hood is a public, daily-updated dataset of commodity prices in BTC going
+					back to 2 January 2013, sourced from stooq and FRED with deterministic BTC supply
+					computed from the protocol's halving schedule. The
+					<a href="/data" class="seo-link">dataset is CC-BY-4.0</a> and ships as CSV, JSON,
+					NDJSON and Parquet — useful if you're doing your own bitcoin-vs-commodities analysis.
+					The <a href="/methodology" class="seo-link">methodology page</a> documents every
+					source, every forward-fill rule, and the cross-validation pipeline that flags
+					provider disagreements above 0.5%.
+				</p>
+
+				<h2 class="seo-section__h2">Frequently asked questions</h2>
+				<dl class="seo-faq">
+					{#each HOMEPAGE_FAQS as faq (faq.question)}
+						<dt class="seo-faq__q">{faq.question}</dt>
+						<dd class="seo-faq__a">{faq.answer}</dd>
+					{/each}
+				</dl>
+			</div>
+		</section>
 </div>
 
 <style>
@@ -608,6 +675,20 @@
 		width: auto;
 		max-width: 100%;
 	}
+	.brand__h1 {
+		margin: 6px 0 0;
+		font-size: 18px;
+		font-weight: 600;
+		line-height: 1.25;
+		color: #f5f0e6;
+		letter-spacing: -0.005em;
+		text-wrap: balance;
+	}
+	@media (min-width: 768px) {
+		.brand__h1 {
+			font-size: 20px;
+		}
+	}
 	.brand__subtitle {
 		margin: 0;
 		color: #9aa0a6;
@@ -615,6 +696,56 @@
 		font-weight: 400;
 		line-height: 1.35;
 		text-wrap: balance;
+	}
+	.seo-section {
+		border-top: 1px solid #27272a; /* zinc-800 */
+		background: #09090b; /* zinc-950 */
+	}
+	.seo-section__h2 {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: #f5f0e6;
+		margin: 2rem 0 0.75rem;
+		letter-spacing: -0.01em;
+		text-wrap: balance;
+	}
+	.seo-section__h2:first-of-type {
+		margin-top: 0;
+	}
+	.seo-section__p {
+		font-size: 0.9375rem;
+		line-height: 1.65;
+		color: #a1a1aa; /* zinc-400 */
+		margin: 0.6rem 0;
+	}
+	.seo-section__p strong {
+		color: #e4e4e7; /* zinc-200 */
+		font-weight: 600;
+	}
+	.seo-link {
+		color: #f5f0e6;
+		text-decoration: underline;
+		text-decoration-color: #71717a;
+		text-underline-offset: 2px;
+	}
+	.seo-link:hover {
+		text-decoration-color: #f5f0e6;
+	}
+	.seo-faq {
+		margin: 0.5rem 0 0;
+	}
+	.seo-faq__q {
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: #e4e4e7;
+		margin-top: 1.25rem;
+		text-wrap: balance;
+	}
+	.seo-faq__a {
+		margin: 0.35rem 0 0;
+		font-size: 0.9rem;
+		line-height: 1.6;
+		color: #a1a1aa;
 	}
 	.header-pills {
 		width: 100%;
