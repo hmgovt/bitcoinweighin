@@ -129,8 +129,11 @@
 
 	function onMouseLeave() { hoverPt = null; }
 
-	// Tooltip positioning: flip to left when cursor is in right half
-	const tooltipLeft = $derived(hoverPt ? hoverSvgX <= VW / 2 : true);
+	// Tooltip positioning: place it in the quadrant opposite the cursor
+	// so it never covers the curve near the hovered point. The naming is
+	// "where the cursor is" so the consumed class flips to the opposite.
+	const cursorOnLeft = $derived(hoverPt ? hoverSvgX <= VW / 2 : true);
+	const cursorOnTop = $derived(hoverPt ? hoverSvgY <= VH / 2 : false);
 
 	const hoverDate = $derived(
 		hoverPt
@@ -218,8 +221,10 @@
 			{#if hoverPt}
 				<div
 					class="spark-tt"
-					class:spark-tt--right={tooltipLeft}
-					class:spark-tt--left={!tooltipLeft}
+					class:spark-tt--right={cursorOnLeft}
+					class:spark-tt--left={!cursorOnLeft}
+					class:spark-tt--bottom={cursorOnTop}
+					class:spark-tt--top={!cursorOnTop}
 				>
 					<div class="spark-tt-date">{hoverDate}</div>
 					<div class="spark-tt-hash">{hoverPt.eh >= 1 ? hoverPt.eh.toFixed(0) : hoverPt.eh.toFixed(3)} EH/s</div>
@@ -256,7 +261,6 @@
 	}
 	.spark-tt {
 		position: absolute;
-		top: 6px;
 		background: #18181b;
 		border: 1px solid #3f3f46;
 		border-radius: 5px;
@@ -267,6 +271,9 @@
 	}
 	.spark-tt--right { left: 30px; }
 	.spark-tt--left  { right: 4px; }
+	.spark-tt--top    { top: 6px; }
+	/* Bottom offset clears the x-axis year labels (~22px viewBox PB + label) */
+	.spark-tt--bottom { bottom: 30px; }
 	.spark-tt-date {
 		font-family: 'JetBrains Mono', ui-monospace, monospace;
 		font-size: 10px;
