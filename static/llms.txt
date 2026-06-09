@@ -19,6 +19,7 @@ machine-readable dataset.
 - [Homepage — BTC purchasing power visualised](https://bitcoinweighin.com/): Interactive slider showing how much of each commodity 1 BTC buys today, with cube renderer at true relative scale.
 - [Dataset](https://bitcoinweighin.com/data): Daily commodity prices in BTC, 2013-present. CC-BY-4.0. CSV, JSON, NDJSON, Parquet.
 - [Methodology](https://bitcoinweighin.com/methodology): Sources, forward-fill logic, BTC supply derivation, cross-validation, versioning, illustrative pricing rationale.
+- [Year-by-year snapshots](https://bitcoinweighin.com/snapshot): Historical BTC purchasing power per year (2013–present), with month-by-month closes against gold and silver.
 
 ## Per-commodity pages
 

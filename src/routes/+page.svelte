@@ -544,6 +544,55 @@
 					provider disagreements above 0.5%.
 				</p>
 
+				<h2 class="seo-section__h2">Per-commodity deep-dives</h2>
+				<p class="seo-section__p">
+					Each launch commodity has its own page with the live ratio, market context,
+					and FAQ:
+				</p>
+				<ul class="seo-cards">
+					<li>
+						<a href="/btc/gold" class="seo-card">
+							<span class="seo-card__title">BTC → Gold</span>
+							<span class="seo-card__sub">How much gold does 1 BTC buy?</span>
+						</a>
+					</li>
+					<li>
+						<a href="/btc/silver" class="seo-card">
+							<span class="seo-card__title">BTC → Silver</span>
+							<span class="seo-card__sub">Troy ounces of silver per bitcoin.</span>
+						</a>
+					</li>
+					<li>
+						<a href="/btc/pu238" class="seo-card">
+							<span class="seo-card__title">BTC → Plutonium-238</span>
+							<span class="seo-card__sub">The radioisotope that powers spacecraft.</span>
+						</a>
+					</li>
+					<li>
+						<a href="/btc/cocaine" class="seo-card">
+							<span class="seo-card__title">BTC → Cocaine</span>
+							<span class="seo-card__sub">Wholesale, producer, retail tiers.</span>
+						</a>
+					</li>
+				</ul>
+
+				<h2 class="seo-section__h2">Free, citable, machine-readable</h2>
+				<p class="seo-section__p">
+					The full daily archive (BTC, gold, silver, platinum, copper, Brent crude,
+					wheat, coffee — 2013-present) is published under
+					<a
+						href="https://creativecommons.org/licenses/by/4.0/"
+						class="seo-link">Creative Commons CC-BY-4.0</a
+					>
+					at <a href="/data" class="seo-link">/data</a> in CSV, JSON, NDJSON, and
+					Parquet. Cite as <em>Bitcoin Weigh-In Daily Commodity Price Dataset</em>;
+					attribution is the only restriction. The
+					<a href="/methodology" class="seo-link">methodology page</a> documents every
+					source, every forward-fill rule, and the cross-validation pipeline. Browse
+					historical purchasing power year-by-year at
+					<a href="/snapshot" class="seo-link">/snapshot</a>.
+				</p>
+
 				<h2 class="seo-section__h2">Frequently asked questions</h2>
 				<dl class="seo-faq">
 					{#each HOMEPAGE_FAQS as faq (faq.question)}
@@ -730,6 +779,44 @@
 	}
 	.seo-link:hover {
 		text-decoration-color: #f5f0e6;
+	}
+	.seo-cards {
+		list-style: none;
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 0.6rem;
+		margin: 0.5rem 0 0;
+		padding: 0;
+	}
+	@media (min-width: 640px) {
+		.seo-cards {
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+	.seo-card {
+		display: block;
+		padding: 0.85rem 1rem;
+		border: 1px solid #27272a; /* zinc-800 */
+		border-radius: 6px;
+		text-decoration: none;
+		transition: border-color 150ms ease, background 150ms ease;
+		background: #18181b; /* zinc-900 */
+	}
+	.seo-card:hover {
+		border-color: #a16207; /* amber-700 */
+		background: #1c1917;
+	}
+	.seo-card__title {
+		display: block;
+		color: #f5f0e6;
+		font-weight: 600;
+		font-size: 0.9375rem;
+	}
+	.seo-card__sub {
+		display: block;
+		margin-top: 0.15rem;
+		color: #a1a1aa;
+		font-size: 0.85rem;
 	}
 	.seo-faq {
 		margin: 0.5rem 0 0;
