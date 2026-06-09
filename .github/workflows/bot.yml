@@ -40,11 +40,11 @@ jobs:
   post:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'npm'
 
       - run: npm ci
@@ -69,8 +69,28 @@ jobs:
       - name: Commit state
         if: github.event.inputs.dry_run != 'true'
         run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/bot-state.json
           git diff --cached --quiet || git commit -m "chore(bot): state $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push
+          # Push with rebase-and-retry. The bot's concurrency group serialises
+          # bot-vs-bot, but not bot-vs-daily-update or bot-vs-manual pushes —
+          # those races would otherwise silently drop the bot-state commit
+          # and re-post the same slot next cron.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push attempt $attempt rejected — fetching and rebasing"
+            git fetch origin main
+            git rebase origin/main || {
+              echo "::error::Rebase conflict on attempt $attempt — aborting"
+              git rebase --abort || true
+              exit 1
+            }
+            sleep $((attempt * 3))
+          done
+          echo "::error::Push failed after 5 attempts"
+          exit 1
