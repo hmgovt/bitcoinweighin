@@ -47,6 +47,7 @@ jobs:
 
       - name: Commit and push
         run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           DATE=$(date -u +%Y-%m-%d)
@@ -54,7 +55,28 @@ jobs:
           git diff --cached --quiet || git commit -m "chore: daily price update $DATE"
           git add src/lib/entity-holdings.json
           git diff --cached --quiet || git commit -m "chore(holdings): daily sync $DATE"
-          git push
+          # Push with rebase-and-retry. Concurrent pushes (manual SEO commits,
+          # the bot workflow) can race this job; without retry the runner's
+          # work is discarded and the day is silently dropped. The bot only
+          # touches data/* and static/data* paths, so rebasing onto a moved
+          # main is conflict-free in practice — but `|| true` lets the retry
+          # loop be the source of truth for success rather than the rebase.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push attempt $attempt rejected — fetching and rebasing"
+            git fetch origin main
+            git rebase origin/main || {
+              echo "::error::Rebase conflict on attempt $attempt — aborting"
+              git rebase --abort || true
+              exit 1
+            }
+            sleep $((attempt * 3))
+          done
+          echo "::error::Push failed after 5 attempts"
+          exit 1
 
       - name: Fail if fetch had upstream issues
         if: steps.fetch.outcome == 'failure'
