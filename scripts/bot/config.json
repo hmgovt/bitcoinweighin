@@ -12,7 +12,7 @@
 		"gold": { "display": "Gold", "noun": "gold", "shape": "cube", "densityGPerCm3": 19.3 },
 		"silver": { "display": "Silver", "noun": "silver", "shape": "cube", "densityGPerCm3": 10.49 },
 		"cocaine": { "display": "Cocaine", "noun": "cocaine", "shape": "mass" },
-		"pu238": { "display": "Plutonium-238", "noun": "plutonium-238", "shape": "cube", "densityGPerCm3": 19.8, "novelty": true }
+		"pu238": { "display": "Plutonium-238", "noun": "plutonium-238", "shape": "cube", "densityGPerCm3": 11.46, "novelty": true }
 	},
 	"slots": [
 		{ "id": "gold-am", "utcHour": 13, "commodity": "gold", "format": "absolute", "btc": 1 },

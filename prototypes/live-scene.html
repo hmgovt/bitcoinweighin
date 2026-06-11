@@ -1,0 +1,586 @@
+<!doctype html>
+<!--
+  Live scene prototype — bitcoinweighin.com overhaul direction
+  ============================================================
+  One real-time 3D world: gold cube at true scale (locked PBR values from
+  assets/materials-reference.md), the actual Shiba model as scale actor,
+  and a camera that dollies continuously as the slider moves. Perspective
+  is correct by construction at every scale — no sprites, no compositing.
+
+  RUN (from repo root — the scene loads the Shiba from /static):
+      python3 -m http.server 8080
+      → http://localhost:8080/prototypes/live-scene.html
+  Needs network for the three.js CDN.
+
+  Prototype shortcuts (production notes):
+  - ILLUSTRATIVE pricing ($100k/BTC, $110/g Au), labelled on screen.
+  - Dog scaled so total model height ≈ 0.52 m as a stand-in for the
+    40 cm shoulder convention; production calibrates the shoulder line.
+  - Lighting is a custom warm-softbox environment (makeGoldEnv);
+    production can swap in the repo's HDRIs (downsized) if preferred.
+  - Dog behaviour here is placement + idle animation only; the pose
+    states (sniff / look-up / trot-back) are the next layer.
+  - Shiba gltf is the uncompressed 16 MB source; production compresses
+    to ~2-3 MB (draco/meshopt) and lazy-loads after first interaction.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bitcoin Weigh-In — live scene prototype</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #18181b; overflow: hidden;
+    font-family: ui-sans-serif, system-ui, sans-serif; }
+  #stage { position: fixed; inset: 0; }
+  .hud { position: fixed; left: 0; right: 0; color: #e4e4e7; pointer-events: none; }
+  .hud * { pointer-events: auto; }
+  #top { top: 0; padding: 14px 20px; display: flex; justify-content: space-between;
+    align-items: baseline; }
+  #top h1 { margin: 0; font-size: 0.95rem; font-weight: 600; color: #fbbf24; }
+  #top .note { font-size: 0.7rem; color: #71717a; }
+  #bottom { bottom: 0; padding: 12px 20px 18px;
+    background: linear-gradient(transparent, rgba(10,10,12,0.9) 40%); }
+  #figures { font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;
+    font-size: 0.85rem; color: #a1a1aa; margin-bottom: 10px; text-align: center; }
+  #figures b { color: #fbbf24; font-weight: 600; }
+  #controls { display: flex; gap: 14px; align-items: center; max-width: 860px; margin: 0 auto; }
+  #btc { flex: 1; accent-color: #fbbf24; }
+  #amount { font-family: ui-monospace, monospace; font-size: 0.85rem; color: #e4e4e7;
+    min-width: 130px; text-align: right; }
+  button { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46;
+    border-radius: 6px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer; }
+  button:hover { border-color: #fbbf24; }
+  #commods { display: flex; gap: 4px; }
+  #commods button { padding: 6px 10px; }
+  #commods button.on { border-color: #fbbf24; color: #fbbf24; }
+  #err { position: fixed; inset: 0; display: none; place-items: center;
+    color: #f87171; font-size: 0.9rem; text-align: center; padding: 40px; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="err"></div>
+
+<div class="hud" id="top">
+  <h1>Bitcoin Weigh-In — live scene prototype</h1>
+  <span class="note">illustrative: $100k/BTC · $110/g Au · hover or tap the dog</span>
+</div>
+
+<div class="hud" id="bottom">
+  <div id="figures">loading scene…</div>
+  <div id="controls">
+    <span id="commods">
+      <button data-c="gold" class="on">Au</button><button data-c="silver">Ag</button><button data-c="pu238">Pu</button>
+    </span>
+    <span id="amount">1 BTC</span>
+    <input id="btc" type="range" min="0" max="10000" step="1" />
+    <button id="tour">Tour: 1 sat → 21M</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+// ── Domain maths (mirrors src/lib) ─────────────────────────────
+const USD_PER_BTC = 100_000; // ILLUSTRATIVE — labelled on screen
+const COMMODITIES = {
+  gold:   { label: 'gold',   usdPerG: 110,  density: 19.3  }, // mirrors commodities.ts
+  silver: { label: 'silver', usdPerG: 1.1,  density: 10.49 },
+  // PuO₂ pivot (2026-06-11): the FUEL is the story — RTGs burn the
+  // oxide, and the oxide is what glows. Theoretical density 11.46 g/cm³
+  // (verified; sintered pellets run 80–90% of theoretical). Recorded in
+  // DECISIONS.md + commodities.ts.
+  pu238:  { label: 'Pu-238 oxide fuel', usdPerG: 5000, density: 11.46 },
+};
+let commodity = COMMODITIES.gold;
+const BTC_MIN = 1e-8, BTC_MAX = 21_000_000;
+const LOG_MIN = Math.log10(BTC_MIN), LOG_MAX = Math.log10(BTC_MAX), STEPS = 10000;
+
+const sliderToBtc = (p) => 10 ** (LOG_MIN + (p / STEPS) * (LOG_MAX - LOG_MIN));
+const btcToSlider = (b) =>
+  Math.round(((Math.log10(b) - LOG_MIN) / (LOG_MAX - LOG_MIN)) * STEPS);
+const cubeEdgeM = (btc) =>
+  Math.cbrt((btc * USD_PER_BTC) / commodity.usdPerG / commodity.density) / 100;
+
+function fmtEdge(m) {
+  const mm = m * 1000;
+  if (mm < 1) return `${(mm * 1000).toFixed(0)} µm`;
+  if (mm < 10) return `${mm.toFixed(2)} mm`;
+  if (mm < 1000) return `${(mm / 10).toFixed(1)} cm`;
+  return `${m.toFixed(2)} m (${(m * 3.281).toFixed(1)} ft)`;
+}
+function fmtMass(btc) {
+  const g = (btc * USD_PER_BTC) / commodity.usdPerG;
+  if (g < 1000) return `${g.toFixed(g < 10 ? 2 : 0)} g`;
+  if (g < 1e6) return `${(g / 1000).toFixed(1)} kg`;
+  return `${(g / 1e6).toLocaleString(undefined, { maximumFractionDigits: 0 })} t`;
+}
+function fmtBtc(b) {
+  if (b >= 1) return `${b.toLocaleString(undefined, { maximumFractionDigits: 2 })} BTC`;
+  if (b >= 1e-4) return `${b.toFixed(4)} BTC`;
+  return `${Math.round(b * 1e8).toLocaleString()} sat`;
+}
+
+// ── Scene ──────────────────────────────────────────────────────
+const BG = 0x18181b;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('stage').appendChild(renderer.domElement);
+
+// Post chain — bloom is what makes emissive read as RADIATING rather
+// than painted orange. Threshold sits above normal scene brightness, so
+// only the Pu glow and the hottest gold highlights halo.
+let composer, bloomPass;
+function setupComposer(sceneRef, cameraRef) {
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(sceneRef, cameraRef));
+  bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(innerWidth, innerHeight), 0.35, 0.5, 0.85);
+  composer.addPass(bloomPass);
+  composer.addPass(new OutputPass());
+}
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(BG);
+
+// Custom environment — the bullion-photo look is warm, high-contrast
+// studio light: one big warm softbox, a hot rim strip, a dim cool fill,
+// and a warm floor bounce, in an otherwise dark room. RoomEnvironment's
+// neutral grey wash is why earlier builds read muddy.
+function makeGoldEnv() {
+  const env = new THREE.Scene();
+  const panel = (w, h, rgb, intensity, pos) => {
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(...rgb).multiplyScalar(intensity),
+        side: THREE.DoubleSide,
+      })
+    );
+    m.position.set(...pos);
+    m.lookAt(0, 0, 0);
+    env.add(m);
+  };
+  // Surrounded by warmth — faces reflecting empty black were what made
+  // earlier builds read dark. Most reflection directions now hit a panel.
+  panel(8, 5, [1.0, 0.84, 0.58], 9, [-4, 5, 4]);    // warm key softbox
+  panel(10, 6, [1.0, 0.88, 0.62], 4, [0, 8, 2]);    // overhead wash
+  panel(6, 3, [0.95, 0.74, 0.46], 2.5, [0, 1.5, 8]); // front fill (lights the front face)
+  panel(0.9, 6, [1.0, 0.92, 0.72], 14, [5, 3, -5]); // hot rim strip
+  panel(5, 4, [0.55, 0.58, 0.66], 1.6, [6, 2, 2]);  // cool dim fill
+  panel(8, 8, [0.62, 0.42, 0.18], 1.4, [0, -3, 0]); // warm floor bounce
+  return env;
+}
+scene.environment = new THREE.PMREMGenerator(renderer)
+  .fromScene(makeGoldEnv(), 0.02).texture;
+scene.environmentIntensity = 1.3;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1e-4, 5000);
+const vcam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.01, 1000);
+
+// Key light (sized per-frame to the dominant element so shadows stay crisp)
+const key = new THREE.DirectionalLight(0xfff2dd, 2.4);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+scene.add(key);
+scene.add(new THREE.AmbientLight(0x404048, 0.25));
+
+// Ground
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(4000, 64).rotateX(-Math.PI / 2),
+  new THREE.MeshStandardMaterial({ color: 0x202024, roughness: 0.95, metalness: 0 })
+);
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Gold cube. Three things make metal read as metal:
+//  1. high-contrast warm environment to reflect (makeGoldEnv above)
+//  2. roughness VARIATION — a flat value reads as paint; the canvas
+//     noise map below echoes materials-reference's procedural 0.08–0.22
+//  3. bevelled edges (RoundedBox) that catch highlight lines
+const roughCanvas = document.createElement('canvas');
+roughCanvas.width = roughCanvas.height = 256;
+{
+  const ctx = roughCanvas.getContext('2d');
+  ctx.fillStyle = '#8a8a8a';
+  ctx.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 48; i++) {
+    const x = Math.random() * 256, y = Math.random() * 256, r = 18 + Math.random() * 60;
+    const v = Math.floor(95 + Math.random() * 125);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${v},${v},${v},0.9)`);
+    g.addColorStop(1, 'rgba(138,138,138,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  }
+}
+const roughMap = new THREE.CanvasTexture(roughCanvas);
+roughMap.wrapS = roughMap.wrapT = THREE.RepeatWrapping;
+
+const goldMat = new THREE.MeshPhysicalMaterial({
+  color: new THREE.Color(0.95, 0.60, 0.12), // materials-reference base, lifted
+  metalness: 1.0,
+  roughness: 0.26,        // multiplied by the map → ~0.10–0.23 effective
+  roughnessMap: roughMap,
+  envMapIntensity: 1.6,
+});
+const silverMat = new THREE.MeshPhysicalMaterial({
+  color: new THREE.Color(0.78, 0.78, 0.76), // materials-reference silver
+  metalness: 1.0,
+  roughness: 0.26,
+  roughnessMap: roughMap,
+  envMapIntensity: 1.5,
+});
+// PuO₂ fuel: a dark ceramic, not a metal — near-black charcoal surface,
+// matte, barely reflective. The thermal glow does the talking: emissive
+// colour + intensity scale with cube size in update(), the point light
+// spills warm light onto the ground and dog, and the bloom pass gives
+// the radiative halo. Environment dims when selected — fuel pellets are
+// photographed in dark labs for a reason.
+const puMat = new THREE.MeshPhysicalMaterial({
+  color: new THREE.Color(0.07, 0.07, 0.08),
+  metalness: 0.05,
+  roughness: 0.70,
+  roughnessMap: roughMap,
+  envMapIntensity: 0.4,
+  emissive: new THREE.Color(0.8, 0.18, 0.02),
+  emissiveIntensity: 0,
+});
+COMMODITIES.gold.mat = goldMat;
+COMMODITIES.silver.mat = silverMat;
+COMMODITIES.pu238.mat = puMat;
+
+const cube = new THREE.Mesh(new RoundedBoxGeometry(1, 1, 1, 4, 0.018), goldMat);
+
+// Warm light the hot Pu cube casts on the ground and the dog.
+const puLight = new THREE.PointLight(0xff5a1e, 0, 0, 2);
+scene.add(puLight);
+cube.castShadow = true;
+scene.add(cube);
+
+// Shiba — the real model. The page may be served from the repo root or
+// from prototypes/, so probe candidate paths and load the first that
+// answers 200. On failure, report exactly what happened — the scene
+// continues without the dog either way.
+let dog = null, dogTotalH = 0.52, mixer = null;
+let idleAction = null, trickClips = [], trickPlaying = false;
+const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DOG_PATHS = [
+  '../static/models/references/shiba_inu/scene.gltf', // server at repo root
+  '/static/models/references/shiba_inu/scene.gltf',   // absolute fallback
+  'static/models/references/shiba_inu/scene.gltf',    // served beside file
+];
+
+function onDogLoaded(gltf) {
+  dog = gltf.scene;
+  const box = new THREE.Box3().setFromObject(dog);
+  const size = box.getSize(new THREE.Vector3());
+  const s = dogTotalH / size.y; // prototype: total height ≈ 0.52 m stand-in
+  dog.scale.setScalar(s);
+  const box2 = new THREE.Box3().setFromObject(dog);
+  dog.position.y -= box2.min.y; // feet on ground
+  dog.traverse((o) => { if (o.isMesh) { o.castShadow = true; } });
+  scene.add(dog);
+  if (gltf.animations?.length) {
+    mixer = new THREE.AnimationMixer(dog);
+    // Clips in this model: play_dead, rollover, shake, sitting, standing.
+    // sitting is the resting idle; the first three are easter-egg tricks
+    // (hover/tap the dog, or ?easter=doge).
+    const idleClip = gltf.animations.find((a) => a.name.includes('sitting'))
+      ?? gltf.animations[gltf.animations.length - 1];
+    idleAction = mixer.clipAction(idleClip);
+    trickClips = gltf.animations.filter((a) =>
+      /play_dead|rollover|shake/.test(a.name));
+    if (!prefersReduced) idleAction.play();
+    mixer.addEventListener('finished', () => {
+      trickPlaying = false;
+      idleAction.reset().fadeIn(0.3).play();
+    });
+    if (new URLSearchParams(location.search).get('easter') === 'doge') {
+      setTimeout(playTrick, 800);
+    }
+  }
+  update(true);
+}
+
+// Easter egg — reinstated from the sprite renderer's model-viewer days,
+// now native to the scene: hover (200 ms dwell) or tap the dog and it
+// performs a random trick, then settles back to its idle. Disabled under
+// prefers-reduced-motion, like the original.
+function playTrick() {
+  if (prefersReduced || !mixer || trickPlaying || !trickClips.length) return;
+  trickPlaying = true;
+  const clip = trickClips[Math.floor(Math.random() * trickClips.length)];
+  const action = mixer.clipAction(clip);
+  action.reset();
+  action.setLoop(THREE.LoopOnce, 1);
+  idleAction?.fadeOut(0.25);
+  action.fadeIn(0.25).play();
+}
+
+const raycaster = new THREE.Raycaster();
+const pointerNdc = new THREE.Vector2();
+let hoverTimer = null;
+function pointerOnDog(e) {
+  if (!dog) return false;
+  pointerNdc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  raycaster.setFromCamera(pointerNdc, camera);
+  return raycaster.intersectObject(dog, true).length > 0;
+}
+renderer.domElement.addEventListener('pointermove', (e) => {
+  const hit = pointerOnDog(e);
+  renderer.domElement.style.cursor = hit ? 'pointer' : '';
+  if (hit && !hoverTimer && !trickPlaying) {
+    hoverTimer = setTimeout(() => { hoverTimer = null; playTrick(); }, 200);
+  } else if (!hit && hoverTimer) {
+    clearTimeout(hoverTimer); hoverTimer = null;
+  }
+});
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  if (pointerOnDog(e)) playTrick();
+});
+
+function showDogError(detail) {
+  const e = document.getElementById('err');
+  e.style.display = 'grid';
+  e.style.pointerEvents = 'none';
+  e.innerHTML =
+    `<div>Shiba model failed to load — scene continues without the dog.<br>` +
+    `<span style="color:#a1a1aa;font-size:0.75rem">${detail}</span><br>` +
+    `<span style="color:#71717a;font-size:0.75rem">Expected: python3 -m http.server 8080 run from the REPO ROOT, ` +
+    `then open /prototypes/live-scene.html</span></div>`;
+  document.getElementById('figures').textContent = 'dog unavailable — see notice';
+  update(true);
+}
+
+(async () => {
+  const report = [];
+  for (const path of DOG_PATHS) {
+    let status;
+    try {
+      status = (await fetch(path, { method: 'HEAD' })).status;
+    } catch (err) { status = `network error (${err.message})`; }
+    report.push(`${path} → ${status}`);
+    if (status === 200) {
+      new GLTFLoader().load(path, onDogLoaded, undefined, (err) =>
+        showDogError(`GLTF parse/texture error: ${err?.message ?? err} (file was reachable at ${path})`));
+      return;
+    }
+  }
+  showDogError(`All paths failed: ${report.join(' · ')}`);
+})();
+
+// ── State + camera choreography ────────────────────────────────
+let btc = 1;
+const slider = document.getElementById('btc');
+slider.value = btcToSlider(btc);
+
+const camPos = new THREE.Vector3(2, 1, 3);   // smoothed
+const camAim = new THREE.Vector3(0, 0.3, 0);
+const wantPos = new THREE.Vector3(), wantAim = new THREE.Vector3();
+
+function update(snap = false) {
+  const edge = cubeEdgeM(btc);
+  cube.scale.setScalar(Math.max(edge, 1e-5));
+  cube.position.y = Math.max(edge, 1e-5) / 2;
+
+  // Pu-238 thermal glow: bigger cube → worse surface-to-volume ratio →
+  // hotter. Colour climbs from deep red toward orange-yellow with size;
+  // the point light spills warm light onto the ground and the dog.
+  if (commodity === COMMODITIES.pu238) {
+    const gT = THREE.MathUtils.clamp(
+      (Math.log10(edge) - Math.log10(0.004)) / (Math.log10(3.4) - Math.log10(0.004)), 0, 1);
+    puMat.emissive.setRGB(
+      THREE.MathUtils.lerp(0.75, 1.0, gT),
+      THREE.MathUtils.lerp(0.12, 0.45, gT),
+      THREE.MathUtils.lerp(0.01, 0.08, gT));
+    puMat.emissiveIntensity = 0.9 + 3.2 * gT;       // pushed past bloom threshold
+    puLight.color.copy(puMat.emissive);
+    puLight.intensity = 6 * edge * edge * (0.4 + 2.6 * gT);
+    puLight.position.set(0, Math.max(edge, 1e-5) / 2, 0);
+    scene.environmentIntensity = 0.45;              // dark lab; the glow carries
+    if (bloomPass) { bloomPass.strength = 0.55 + 0.9 * gT; bloomPass.threshold = 0.85; }
+  } else {
+    puLight.intensity = 0;
+    scene.environmentIntensity = 1.3;
+    // threshold above white-fur brightness — the dog was haloing in the
+    // metal scenes (bloom is for radiation and the hottest highlights only)
+    if (bloomPass) { bloomPass.strength = 0.25; bloomPass.threshold = 1.15; }
+  }
+
+  // Staging geometry. The dog stands at the cube's FRONT-right corner —
+  // pulled toward the camera (+z) so the cube can never occlude it from
+  // the -32° camera angle (it did, at metre scales, when it sat at +x).
+  const gap = Math.max(0.14, edge * 0.18);
+  const besideX = edge / 2 + gap + 0.16;
+  const besideZ = edge * 0.45;
+
+  // Camera framing, continuous across three regimes:
+  //   macro  (cube ≪ dog): dolly in on the cube — edge×3 framing keeps the
+  //          cube ~170 px on screen however small it gets (floor 5 cm).
+  //   pair   (cube ≲ dog): frame the dog, cube alongside — today's two-shot.
+  //   wide   (cube > dog):  frame the cube; the dog moves to the foreground.
+  // dominant = max(min(edge×3, max(edge, dogH)), floor) is continuous at
+  // the macro→pair crossover (edge = dogH/3) by construction.
+  // Margin 2.2 (was 1.7): the cube shows two faces at this azimuth and its
+  // near corner sits closer than the aim plane — 1.7 let it swallow the frame.
+  const dominant = Math.max(Math.min(edge * 3, Math.max(edge, dogTotalH)), 0.05);
+  const dist = (dominant * 2.2) / (2 * Math.tan(THREE.MathUtils.degToRad(35) / 2));
+  const t = THREE.MathUtils.clamp(
+    (Math.log10(edge) - Math.log10(1e-4)) / (Math.log10(60) - Math.log10(1e-4)), 0, 1);
+  const elev = THREE.MathUtils.degToRad(THREE.MathUtils.lerp(16, 5, t));
+  const azim = THREE.MathUtils.degToRad(-32);
+
+  // Aim: macro looks at the cube; pair looks between cube and dog; wide
+  // converges back on the cube (the dog relocates instead of the camera).
+  const pairMid = (edge / 2 + besideX) / 2;
+  const w = THREE.MathUtils.smoothstep(edge, dogTotalH / 6, dogTotalH / 3);
+  const wFg = THREE.MathUtils.smoothstep(edge, 1.2, 3.5);
+  const aimX = w * pairMid * (1 - wFg);
+
+  // Camera height CAPPED at 1 m — it's the dog's world, and monoliths
+  // are looked UP at. The uncapped rule lifted the camera with the cube
+  // (4 m+ at monolith scale), from where nearby ground is invisible and
+  // no foreground dog placement can work — that was the off-piste bug.
+  wantPos.set(
+    aimX + dist * Math.cos(elev) * Math.sin(azim),
+    THREE.MathUtils.clamp(dominant * 0.42, 0.05, 1.0),
+    dist * Math.cos(elev) * Math.cos(azim)
+  );
+  wantAim.set(aimX, dominant * 0.32, 0);
+
+  // Dog staging: beside the cube until it towers; then to a foreground
+  // mark pinned to a fixed SCREEN position (lower centre-right) and
+  // unprojected onto the ground — a world-space mark drifted out of
+  // frame as scales changed; a screen-space mark cannot. Honest by
+  // construction: real perspective, the dog simply stands nearer.
+  if (dog && wFg > 0) {
+    vcam.aspect = innerWidth / innerHeight;
+    vcam.position.copy(wantPos);
+    vcam.lookAt(wantAim);
+    vcam.updateProjectionMatrix();
+    vcam.updateMatrixWorld();
+    const p = new THREE.Vector3(0.42, -0.72, 0.5).unproject(vcam);
+    const dir = p.sub(vcam.position).normalize();
+    let fg = null;
+    if (dir.y < -1e-4) {
+      const s = -vcam.position.y / dir.y;
+      fg = vcam.position.clone().addScaledVector(dir, s);
+      // safety clamp only — with the 1 m camera cap the hit lands
+      // 4–8 m out by construction, so this should rarely bind (the
+      // old hard clamp sliding the dog down the ray WAS the bug)
+      const gx = fg.x - vcam.position.x, gz = fg.z - vcam.position.z;
+      const L = Math.hypot(gx, gz);
+      const Lc = THREE.MathUtils.clamp(L, 3.5, 8.5);
+      fg.x = vcam.position.x + (gx / L) * Lc;
+      fg.z = vcam.position.z + (gz / L) * Lc;
+    }
+    dog.position.x = fg ? THREE.MathUtils.lerp(besideX, fg.x, wFg) : besideX;
+    dog.position.z = fg ? THREE.MathUtils.lerp(besideZ, fg.z, wFg) : besideZ;
+  } else if (dog) {
+    dog.position.x = besideX;
+    dog.position.z = besideZ;
+  }
+  if (dog) {
+    dog.rotation.y = Math.atan2(-dog.position.x, -dog.position.z) + 0.14; // face the cube
+  }
+
+  // Key light + fog track the scale so shadows and depth cues stay tuned.
+  key.position.set(aimX - dominant * 1.6, dominant * 2.4, dominant * 1.2);
+  const sc = key.shadow.camera;
+  sc.left = sc.bottom = -dominant * 2.2; sc.right = sc.top = dominant * 2.2;
+  sc.near = dominant * 0.1; sc.far = dominant * 8; sc.updateProjectionMatrix();
+  scene.fog = new THREE.Fog(BG, dist * 2.2, dist * 9);
+
+  if (snap) { camPos.copy(wantPos); camAim.copy(wantAim); }
+
+  document.getElementById('figures').innerHTML =
+    `<b>${fmtMass(btc)}</b> of ${commodity.label} · cube edge <b>${fmtEdge(edge)}</b> · Shiba 40 cm at the shoulder` +
+    (dog && wFg > 0.5 ? ' · Shiba standing nearer the camera' : '') +
+    (commodity === COMMODITIES.pu238 ? ' · non-fissile, not weapons material' : '');
+  document.getElementById('amount').textContent = fmtBtc(btc);
+}
+
+slider.addEventListener('input', () => {
+  btc = sliderToBtc(Number(slider.value));
+  tourActive = false;
+  update();
+});
+
+document.querySelectorAll('#commods button').forEach((b) =>
+  b.addEventListener('click', () => {
+    commodity = COMMODITIES[b.dataset.c];
+    cube.material = commodity.mat;
+    document.querySelectorAll('#commods button').forEach((x) =>
+      x.classList.toggle('on', x === b));
+    update();
+  })
+);
+
+// Tour: sweep the full range so the camera choreography sells itself.
+let tourActive = false, tourT = 0;
+document.getElementById('tour').addEventListener('click', () => {
+  tourActive = true; tourT = 0;
+});
+
+const clock = new THREE.Clock();
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  if (tourActive) {
+    tourT += dt / 24; // 24-second sweep
+    if (tourT >= 1) { tourT = 1; tourActive = false; }
+    const eased = tourT < 0.5 ? 2 * tourT * tourT : 1 - (-2 * tourT + 2) ** 2 / 2;
+    btc = 10 ** (LOG_MIN + eased * (LOG_MAX - LOG_MIN));
+    slider.value = btcToSlider(btc);
+    update();
+  }
+
+  // damped dolly — this easing IS the scale cue
+  const k = 1 - Math.exp(-dt * 3.2);
+  camPos.lerp(wantPos, k);
+  camAim.lerp(wantAim, k);
+  camera.position.copy(camPos);
+  camera.near = Math.max(camPos.length() / 100, 1e-4);
+  camera.far = camPos.length() * 60;
+  camera.updateProjectionMatrix();
+  camera.lookAt(camAim);
+
+  mixer?.update(dt);
+  composer.render();
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+
+setupComposer(scene, camera);
+update(true);
+loop();
+</script>
+</body>
+</html>

@@ -16,12 +16,13 @@
 	}
 </script>
 
-<div class="preset-bar">
+<div class="preset-bar" role="group" aria-label="BTC amount presets">
 	{#each ENTITIES as entity (entity.slug)}
 		<button
 			type="button"
 			class={pillClass(entity)}
 			title={entity.note}
+			aria-pressed={activePresetId === entity.slug}
 			onclick={() => onSelect(entity.slug)}
 		>
 			<span class="preset-pill__label">{entity.label}</span>
@@ -35,14 +36,35 @@
 </div>
 
 <style>
+	/* Single scrollable row instead of a ragged multi-row wrap (pre-launch
+	   review §1). Scrollbar hidden; edge fades signal overflow; pills
+	   snap so a flick lands cleanly. */
 	.preset-bar {
 		display: flex;
-		flex-wrap: wrap;
-		justify-content: flex-end;
+		flex-wrap: nowrap;
+		justify-content: flex-start;
 		gap: 8px;
+		overflow-x: auto;
+		scroll-snap-type: x proximity;
+		scrollbar-width: none;
+		-webkit-overflow-scrolling: touch;
+		mask-image: linear-gradient(
+			to right,
+			transparent 0,
+			#000 12px,
+			#000 calc(100% - 12px),
+			transparent 100%
+		);
+		padding: 2px 12px;
+	}
+	.preset-bar::-webkit-scrollbar {
+		display: none;
 	}
 
 	.preset-pill {
+		scroll-snap-align: start;
+		flex-shrink: 0;
+		white-space: nowrap;
 		display: inline-flex;
 		flex-direction: column;
 		align-items: center;
@@ -79,9 +101,4 @@
 		letter-spacing: 0;
 	}
 
-	@media (max-width: 767px) {
-		.preset-bar {
-			justify-content: flex-start;
-		}
-	}
 </style>

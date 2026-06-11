@@ -27,7 +27,7 @@ const pu238Entry: Commodity = {
 		'Plutonium-238 — the radioisotope that powers spacecraft. Non-fissile, not weapons material.',
 	unit: 'gram',
 	unitMassGrams: 1,
-	densityGPerCm3: 19.8,
+	densityGPerCm3: 11.46, // PuO₂ fuel — see DECISIONS 2026-06-11
 	cubeSpritePath: '/sprites/pu238/cube@2x.png',
 	cubeShadowPath: '/sprites/pu238/cube-shadow@2x.png',
 	sourceId: 'pu238',
@@ -52,7 +52,7 @@ describe('CommoditySection: Pu-238 panel wiring', () => {
 		expect(out.body).toContain('Non-fissile, not weapons material');
 	});
 
-	it('layers the CubeGlowOverlay onto the cube anchor', () => {
+	it('layers the CSS glow system onto the cube anchor', () => {
 		const out = render(CommoditySection, {
 			props: {
 				commodity: pu238Entry,
@@ -62,8 +62,13 @@ describe('CommoditySection: Pu-238 panel wiring', () => {
 				unitSys: 'imperial',
 			},
 		});
-		// CubeGlowOverlay renders this class.
-		expect(out.body).toContain('cube-glow-overlay');
+		// The fba7af9 glow rewrite replaced the CubeGlowOverlay component
+		// with inline glow layers in CubeRenderer; the old assertion
+		// ('cube-glow-overlay') had been failing silently ever since (no
+		// CI). These are the classes the shipped glow system renders.
+		expect(out.body).toContain('cube-outer-glow');
+		expect(out.body).toContain('cube-inner-glow');
+		expect(out.body).toContain('cube-ground-glow');
 	});
 
 	it('shows the activity readout (Ci + dps) at non-zero amounts', () => {

@@ -223,10 +223,14 @@ const pu238: Commodity = {
 	geigerCrackle: true,
 	specificActivityCiPerGram: 17,
 	brandVoiceClarification:
-		'The radioisotope that powers spacecraft. Non-fissile, not weapons material.',
+		'The radioisotope fuel that powers spacecraft. Non-fissile, not weapons material.',
 	unit: 'gram',
 	unitMassGrams: 1,
-	densityGPerCm3: 19.8,
+	// PuO₂ pivot (2026-06-11): the cube depicts the oxide FUEL — what RTGs
+	// actually burn and what glows — not the pure metal (19.8). Theoretical
+	// density of PuO₂; real sintered pellets run 80–90% of this (note on
+	// the methodology page).
+	densityGPerCm3: 11.46,
 	cubeSpritePath: '/sprites/pu238/cube@2x.webp',
 	cubeShadowPath: '/sprites/pu238/cube-shadow@2x.webp',
 	sourceId: 'pu238',

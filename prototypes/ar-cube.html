@@ -1,0 +1,192 @@
+<!doctype html>
+<!--
+  AR cube prototype — bitcoinweighin.com
+  ======================================
+  Proof of concept: a parametric metal cube at *exact* real-world size,
+  viewable in AR via <model-viewer>. "Put 1 BTC of gold on your kitchen
+  table" — actual presence, not a simulated scene.
+
+  How it works
+  - Builds a cube GLB client-side with three.js GLTFExporter at the exact
+    edge length derived from mass / density (glTF units are metres, so
+    the AR placement is true scale).
+  - Feeds the blob URL to <model-viewer ar ar-scale="fixed"> — fixed scale
+    so the user can't pinch-resize the cube; honesty preserved.
+
+  Run: any static server from repo root, e.g.
+    npx serve .   →  http://localhost:3000/prototypes/ar-cube.html
+  (Needs network for the three.js / model-viewer CDNs.)
+
+  Caveats (production notes)
+  - iOS AR Quick Look requires USDZ, which model-viewer does not generate
+    from a runtime GLB. Production path: pre-generate a log-spaced USDZ
+    size ladder (e.g. 24 sizes/decade) via Blender or usdzconvert and set
+    ios-src to the nearest rung, with the exact edge stated in the caption.
+    Android (Scene Viewer) and WebXR work from the parametric GLB directly.
+  - Material here is a quick PBR gold/silver approximation. Production
+    should bake the locked values from assets/materials-reference.md.
+  - Densities mirror src/lib/commodities.ts — do not let them drift
+    (see audit finding Q2); production wires this to the real schema.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AR cube prototype — Bitcoin Weigh-In</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer@4.2.0/dist/model-viewer.min.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; background: #18181b; color: #e4e4e7;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 16px; box-sizing: border-box;
+  }
+  h1 { font-size: 1rem; font-weight: 600; margin: 4px 0 12px; color: #fbbf24; }
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    justify-content: center; margin-bottom: 12px;
+  }
+  select, input, button {
+    background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46;
+    border-radius: 6px; padding: 6px 10px; font-size: 0.875rem;
+  }
+  input { width: 110px; }
+  button { cursor: pointer; }
+  button:hover { border-color: #fbbf24; }
+  model-viewer {
+    width: min(92vw, 560px); height: min(60vh, 460px);
+    background: #1f1f23; border-radius: 10px;
+  }
+  .readout {
+    margin-top: 10px; font-family: ui-monospace, monospace;
+    font-variant-numeric: tabular-nums; font-size: 0.8rem; color: #a1a1aa;
+    text-align: center; line-height: 1.6;
+  }
+  .readout b { color: #fbbf24; font-weight: 600; }
+  .note { max-width: 560px; margin-top: 14px; font-size: 0.72rem; color: #71717a; text-align: center; }
+</style>
+</head>
+<body>
+<h1>Bitcoin Weigh-In — AR cube prototype</h1>
+
+<div class="controls">
+  <select id="commodity">
+    <option value="gold" selected>Gold</option>
+    <option value="silver">Silver</option>
+    <option value="pu238">Pu-238</option>
+  </select>
+  <label>Mass (g) <input id="grams" type="number" min="0.001" step="any" value="1000" /></label>
+  <button data-g="31.1035">1 ozt</button>
+  <button data-g="1000">1 kg</button>
+  <button data-g="12441">Good Delivery bar</button>
+</div>
+
+<model-viewer
+  id="mv"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  ar-scale="fixed"
+  camera-controls
+  touch-action="pan-y"
+  shadow-intensity="1"
+  exposure="1.1"
+  alt="Metal cube at true size">
+</model-viewer>
+
+<div class="readout" id="readout"></div>
+<div class="note">
+  AR is true scale (<code>ar-scale="fixed"</code> — no pinch-resize). Android: Scene
+  Viewer / WebXR from the parametric GLB. iOS Quick Look needs a pre-generated
+  USDZ ladder — not wired in this prototype; see header comment.
+  Query params: <code>?commodity=gold&amp;grams=1000</code>
+</div>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+  // Densities (g/cm³) — mirror src/lib/commodities.ts. Do not edit here alone.
+  const COMMODITIES = {
+    gold:   { density: 19.3,  color: 0xd4a017, metalness: 1.0, roughness: 0.08, label: 'Gold' },
+    silver: { density: 10.49, color: 0xc8c8c8, metalness: 1.0, roughness: 0.08, label: 'Silver' },
+    pu238:  { density: 19.8,  color: 0x8a8d90, metalness: 0.7, roughness: 0.35, label: 'Pu-238' },
+  };
+
+  const mv = document.getElementById('mv');
+  const readout = document.getElementById('readout');
+  const commoditySel = document.getElementById('commodity');
+  const gramsInput = document.getElementById('grams');
+
+  // Seed from query params if present.
+  const qp = new URLSearchParams(location.search);
+  if (qp.get('commodity') in COMMODITIES) commoditySel.value = qp.get('commodity');
+  if (qp.get('grams') && Number(qp.get('grams')) > 0) gramsInput.value = qp.get('grams');
+
+  function cubeEdgeMetres(grams, density) {
+    const volumeCm3 = grams / density;          // same maths as src/lib/volume.ts
+    return Math.cbrt(volumeCm3) / 100;          // cm → m
+  }
+
+  function formatEdge(m) {
+    const mm = m * 1000;
+    if (mm < 1) return `${(mm * 1000).toFixed(0)} µm`;
+    if (mm < 10) return `${mm.toFixed(2)} mm`;
+    if (mm < 1000) return `${(mm / 10).toFixed(1)} cm`;
+    return `${m.toFixed(2)} m`;
+  }
+
+  let currentUrl = null;
+
+  function rebuild() {
+    const c = COMMODITIES[commoditySel.value];
+    const grams = Math.max(0.001, Number(gramsInput.value) || 0.001);
+    const edge = cubeEdgeMetres(grams, c.density);
+
+    const scene = new THREE.Scene();
+    const geo = new THREE.BoxGeometry(edge, edge, edge);
+    const mat = new THREE.MeshStandardMaterial({
+      color: c.color, metalness: c.metalness, roughness: c.roughness,
+    });
+    const cube = new THREE.Mesh(geo, mat);
+    cube.position.y = edge / 2;                 // base on the ground plane
+    scene.add(cube);
+
+    new GLTFExporter().parse(
+      scene,
+      (glb) => {
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        currentUrl = URL.createObjectURL(
+          new Blob([glb], { type: 'model/gltf-binary' })
+        );
+        mv.src = currentUrl;
+        readout.innerHTML =
+          `${c.label}: <b>${grams.toLocaleString()} g</b> · ` +
+          `cube edge <b>${formatEdge(edge)}</b> · ` +
+          `density ${c.density} g/cm³`;
+      },
+      (err) => { readout.textContent = `Export failed: ${err}`; },
+      { binary: true }
+    );
+  }
+
+  let t;
+  const debounced = () => { clearTimeout(t); t = setTimeout(rebuild, 150); };
+  commoditySel.addEventListener('change', rebuild);
+  gramsInput.addEventListener('input', debounced);
+  document.querySelectorAll('button[data-g]').forEach((b) =>
+    b.addEventListener('click', () => { gramsInput.value = b.dataset.g; rebuild(); })
+  );
+
+  rebuild();
+</script>
+</body>
+</html>

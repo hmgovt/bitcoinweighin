@@ -53,7 +53,7 @@ export const OG_COMMODITIES: Record<string, OgCommodity> = {
 		unit: 'gram',
 		unitLabel: 'g',
 		unitMassGrams: 1,
-		densityGPerCm3: 19.8,
+		densityGPerCm3: 11.46, // PuO₂ fuel — see DECISIONS 2026-06-11
 		priceField: 'pu238',
 		dataQuality: 'illustrative',
 		illustrativePricePerUnit: 5000,
