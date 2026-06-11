@@ -1,13 +1,13 @@
 {
   "monthKey": "2026-06",
-  "postsThisMonth": 48,
-  "creditsSpentCents": 102,
+  "postsThisMonth": 49,
+  "creditsSpentCents": 104,
   "lastSlotDate": {
     "gold-am": "2026-06-11",
     "silver-mid": "2026-06-10",
     "cocaine-eve": "2026-06-10",
     "pu238-night": "2026-06-11",
-    "hashweight-mid": "2026-06-10"
+    "hashweight-mid": "2026-06-11"
   },
   "posts": [
     {
@@ -366,6 +366,13 @@
       "commodity": "gold",
       "tweetId": "2065115009567617333",
       "caption": "1 BTC today = a 28 mm gold cube. Fits in your palm. Weighs 440 g (0.97 lb)."
+    },
+    {
+      "at": "2026-06-11T18:18:29.027Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2065136638225998188",
+      "caption": "The Bitcoin network's mining hardware weighs ~81,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 898 EH/s."
     }
   ]
 }
