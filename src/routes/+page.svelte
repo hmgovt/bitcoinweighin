@@ -247,7 +247,21 @@
 			: pageDescription
 	);
 
+	// Default state (1 BTC, latest date, no preset/commodity) emits the
+	// bare canonical and an undated og-image. The SSR pass seeds
+	// selectedDate to the build day, which baked a dated og:url into the
+	// prerendered HTML — fragmenting the share graph by day and dating
+	// the share card for anyone sharing the bare homepage later (SEO
+	// audit C2). Dynamic values still apply after user interaction.
+	const isDefaultState = $derived(
+		$btcAmount === 1 &&
+			!$activePreset &&
+			!$scrollToCommodity &&
+			(!$selectedDate || $selectedDate === lastDate)
+	);
+
 	const ogPageUrl = $derived.by(() => {
+		if (isDefaultState) return 'https://bitcoinweighin.com/';
 		const params = new URLSearchParams();
 		if ($btcAmount !== 1) params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
@@ -258,6 +272,7 @@
 	});
 
 	const ogImageUrl = $derived.by(() => {
+		if (isDefaultState) return 'https://bitcoinweighin.com/og-image?btc=1';
 		const params = new URLSearchParams();
 		params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);

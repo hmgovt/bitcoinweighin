@@ -37,6 +37,8 @@
 	<meta property="og:title" content={title} />
 	<meta property="og:description" content={description} />
 	<meta property="og:url" content={url} />
+	<meta property="og:image" content="https://bitcoinweighin.com/og-image?btc=1" />
+	<meta name="twitter:card" content="summary_large_image" />
 
 	{@html `<script type="application/ld+json">${webPageJsonLd({ url, name: title, description })}</script>`}
 	{@html `<script type="application/ld+json">${breadcrumbJsonLd([

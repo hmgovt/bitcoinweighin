@@ -56,3 +56,11 @@
   Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
 /methodology
   Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+# The dedicated SEO landing pages were the only HTML left on the slow
+# origin path (SEO audit P2) — same daily-rebuild reasoning as above.
+/btc/*
+  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+/snapshot/*
+  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+/snapshot
+  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800

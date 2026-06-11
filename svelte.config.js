@@ -8,7 +8,10 @@ const config = {
 		adapter: adapter({
 			pages: 'build',
 			assets: 'build',
-			fallback: undefined,
+			// 404.html: Cloudflare Pages serves this with a real 404 status for
+			// unmatched paths AND disables its SPA fallback — without it every
+			// typo URL returned the homepage as a 200 soft-404 (SEO audit I3).
+			fallback: '404.html',
 			precompress: false,
 			strict: true
 		}),

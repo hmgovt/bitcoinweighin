@@ -20,6 +20,15 @@
 		content="Sources, forward-fill rules, BTC supply derivation, illustrative pricing for plutonium-238 and cocaine, cross-validation, versioning, and corrections for the Bitcoin Weigh-In commodity price dataset."
 	/>
 	<link rel="canonical" href="https://bitcoinweighin.com/methodology" />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://bitcoinweighin.com/methodology" />
+	<meta property="og:title" content="Methodology: How We Price Bitcoin in Commodities" />
+	<meta
+		property="og:description"
+		content="Sources, forward-fill rules, BTC supply derivation, illustrative pricing, cross-validation, versioning and corrections."
+	/>
+	<meta property="og:image" content="https://bitcoinweighin.com/og-image" />
+	<meta name="twitter:card" content="summary_large_image" />
 	{@html `<script type="application/ld+json">${webPageJsonLd({ url: 'https://bitcoinweighin.com/methodology', name: 'Methodology — Bitcoin Weigh-In', description: 'How Bitcoin Weigh-In sources, validates, versions, and corrects its commodity price dataset.' })}</script>`}
 	{@html `<script type="application/ld+json">${breadcrumbJsonLd([{ name: 'Home', url: 'https://bitcoinweighin.com/' }, { name: 'Methodology', url: 'https://bitcoinweighin.com/methodology' }])}</script>`}
 </svelte:head>

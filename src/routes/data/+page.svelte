@@ -65,6 +65,17 @@ const prices = await res.json();`,
 		content="Daily commodity prices denominated in Bitcoin, 2013-present. Gold, silver, platinum, copper, oil, wheat, coffee. CSV, JSON, NDJSON, Parquet. CC-BY-4.0, updated daily at 02:00 UTC."
 	/>
 	<link rel="canonical" href="https://bitcoinweighin.com/data" />
+	<!-- OG/Twitter: the most linkable page on the site; without these it
+	     shared as a bare text card (SEO audit M2). -->
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://bitcoinweighin.com/data" />
+	<meta property="og:title" content="Bitcoin-Denominated Commodity Price Dataset (CC-BY-4.0)" />
+	<meta
+		property="og:description"
+		content="Daily commodity prices denominated in Bitcoin, 2013–present. CSV, JSON, NDJSON, Parquet. CC-BY-4.0, updated daily."
+	/>
+	<meta property="og:image" content="https://bitcoinweighin.com/og-image" />
+	<meta name="twitter:card" content="summary_large_image" />
 	<!--
 		Dataset JSON-LD: makes this page eligible for Google Dataset Search
 		and gives AI assistants a machine-readable summary of what's on offer.

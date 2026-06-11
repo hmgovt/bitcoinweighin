@@ -52,6 +52,15 @@
 	<meta property="og:title" content={title} />
 	<meta property="og:description" content={description} />
 	<meta property="og:url" content={url} />
+	<!-- Period-correct share card: completed years pass their year-end
+	     date to the OG endpoint; the in-progress year uses the default. -->
+	<meta
+		property="og:image"
+		content={data.nextYear !== null
+			? `https://bitcoinweighin.com/og-image?btc=1&date=${s.year}-12-31`
+			: 'https://bitcoinweighin.com/og-image?btc=1'}
+	/>
+	<meta name="twitter:card" content="summary_large_image" />
 
 	{@html `<script type="application/ld+json">${webPageJsonLd({ url, name: title, description })}</script>`}
 	{@html `<script type="application/ld+json">${breadcrumbJsonLd([

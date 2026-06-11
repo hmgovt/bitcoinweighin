@@ -1,0 +1,4 @@
+# Host canonicalisation — www serves a full 200 duplicate of every page
+# without this (SEO audit I2). Cloudflare Pages supports absolute-URL
+# host redirects in _redirects.
+https://www.bitcoinweighin.com/* https://bitcoinweighin.com/:splat 301
