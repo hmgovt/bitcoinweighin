@@ -13,8 +13,8 @@
  */
 
 export type RenderStyle =
-	| 'cube' // gold, silver, Pu-238
-	| 'still_with_readout' // cocaine
+	| 'cube' // gold, silver, Pu-238 — live WebGL cube + Shiba
+	| 'still_with_readout' // cocaine — inline-SVG brick stack + pricing readout
 	| 'progression' // legacy, unused at MVP
 	| 'vessel' // legacy, unused at MVP
 	| 'bulk'; // legacy, unused at MVP
@@ -74,7 +74,7 @@ export interface Commodity {
 	/**
 	 * Rendering vocabulary.
 	 * - "cube": single cube sprite at intrinsic volume against the universal Shiba (gold, silver, Pu-238).
-	 * - "still_with_readout": forensic still + dynamic readout (cocaine).
+	 * - "still_with_readout": inline-SVG brick-stack infographic + dynamic pricing readout (cocaine).
 	 * - "progression" / "vessel" / "bulk": legacy, unused at MVP — preserved for post-launch revival.
 	 */
 	renderStyle: RenderStyle;

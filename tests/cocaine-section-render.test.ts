@@ -1,17 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { render } from 'svelte/server';
-import CommoditySection from '../src/lib/components/CommoditySection.svelte';
+import HeroStage from '../src/lib/components/HeroStage.svelte';
 import type { Commodity } from '../src/lib/commodities.js';
 
 /**
- * Integration test: mount CommoditySection with the cocaine commodity entry
- * and assert the still-with-readout panel landed in the rendered tree
- * (not PhysicalRep's "Unknown renderStyle" fallback).
- *
- * The Stage 5 wiring failed silently in the browser because Stage 3's unit
- * tests only exercised StillPanel / CocaineDenominationRow / TieredPricingTable
- * in isolation — they never went through CommoditySection's renderer-selection
- * branch. This test closes that gap.
+ * Integration test: mount HeroStage with the cocaine tab active and assert the
+ * relocated cocaine readout landed — the brick-stack SVG in the stage frame,
+ * the "You could buy" mass readout, the three-tier pricing grid, and the
+ * source provenance. (The standalone CommoditySection still-panel was retired
+ * when cocaine became the 4th hero tab; its readout moved to CocaineReadout,
+ * rendered here under the stage.)
  */
 
 const cocaineEntry: Commodity = {
@@ -29,35 +27,42 @@ const cocaineEntry: Commodity = {
 	facts: [],
 };
 
-describe('CommoditySection: cocaine renderer dispatch', () => {
-	it('renders the StillPanel for renderStyle="still_with_readout"', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: cocaineEntry,
-				amount: 1,
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
-		// StillPanel emits these structural classes; CocaineDenominationRow
-		// and TieredPricingTable are the readout-slot children.
-		expect(out.body).toContain('still-panel');
-		expect(out.body).toContain('still-image-wrapper');
-		expect(out.body).toContain('cocaine-readout');
-		expect(out.body).toContain('tiered-pricing');
+function renderCocaine(amount: number, btcAmount: number) {
+	return render(HeroStage, {
+		props: {
+			commodities: [cocaineEntry],
+			selectedId: 'cocaine',
+			amounts: { cocaine: amount },
+			btcAmount,
+			btcUsdPrice: 80_000,
+			prices: null,
+		},
+	});
+}
+
+describe('HeroStage: cocaine tab dispatch', () => {
+	it('renders the brick-stack SVG in the stage frame, not the WebGL stage', () => {
+		const out = renderCocaine(1000, 1); // 1 kg → bricks tier
+		expect(out.body).toContain('brick-stack');
+		// The live WebGL stage is unmounted on the cocaine tab.
+		expect(out.body).not.toContain('live-stage');
 	});
 
-	it('does not fall through to PhysicalRep\'s "Unknown renderStyle" path', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: cocaineEntry,
-				amount: 1,
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
+	it('relocates the cocaine readout (mass + tiered pricing + sources)', () => {
+		const out = renderCocaine(1000, 1);
+		expect(out.body).toContain('cocaine-readout');
+		expect(out.body).toContain('You could buy');
+		expect(out.body).toContain('tiered-pricing');
+		expect(out.body).toContain('UNODC 2024');
+	});
+
+	it('shows the Illustrative price badge for cocaine', () => {
+		const out = renderCocaine(1000, 1);
+		expect(out.body).toContain('Illustrative price');
+	});
+
+	it('does not fall through to a PhysicalRep "Unknown renderStyle" path', () => {
+		const out = renderCocaine(1000, 1);
 		expect(out.body).not.toContain('Unknown renderStyle');
 		expect(out.body).not.toContain('not-implemented');
 	});

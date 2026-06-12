@@ -10,8 +10,8 @@
 	 *   "bulk"        → not yet implemented (next handoff)
 	 *
 	 * "still_with_readout" commodities (cocaine) bypass PhysicalRep entirely —
-	 * CommoditySection branches before reaching here and renders StillPanel
-	 * directly with the readout slot composed inline.
+	 * the cocaine hero tab renders CocaineBrickStack + CocaineReadout in
+	 * HeroStage directly.
 	 */
 
 	import type { Commodity } from '$lib/commodities.js';

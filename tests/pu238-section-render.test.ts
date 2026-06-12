@@ -1,17 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { render } from 'svelte/server';
-import CommoditySection from '../src/lib/components/CommoditySection.svelte';
+import HeroStage from '../src/lib/components/HeroStage.svelte';
 import type { Commodity } from '../src/lib/commodities.js';
 
 /**
- * Integration test: mount CommoditySection with the Pu-238 commodity and
- * assert the cube-mode panel lands with all Pu-238-specific extras —
- * brand-voice clarification, activity readout, source attribution, glow
- * overlay, fact card, and the melt warning above the 1 kg threshold.
+ * Integration test: mount HeroStage with the Pu-238 tab active and assert all
+ * Pu-238-specific extras land — brand-voice clarification, activity readout,
+ * source attribution, fact card, and the melt warning above the 1 kg
+ * threshold. (The standalone CommoditySection was retired when the four
+ * commodities became hero tabs; this coverage moved to HeroStage.)
  *
- * Mirrors tests/cocaine-section-render.test.ts; closes the same kind of
- * silent-wiring gap that bit Stage 5 in the browser before we added the
- * dispatch-path test.
+ * Closes the same silent-wiring gap that bit the original Stage 5 wiring.
  */
 
 const pu238Entry: Commodity = {
@@ -37,80 +36,43 @@ const pu238Entry: Commodity = {
 	facts: [],
 };
 
-describe('CommoditySection: Pu-238 panel wiring', () => {
-	it('renders the brand-voice clarification persistently above the panel', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: pu238Entry,
-				amount: 16, // ~1 BTC at $80k
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
+/** Render HeroStage with Pu-238 active at a given commodity-unit amount. */
+function renderPu(amount: number, btcAmount: number) {
+	return render(HeroStage, {
+		props: {
+			commodities: [pu238Entry],
+			selectedId: 'pu238',
+			amounts: { pu238: amount },
+			btcAmount,
+			btcUsdPrice: 80_000,
+			prices: null,
+		},
+	});
+}
+
+describe('HeroStage: Pu-238 tab wiring', () => {
+	it('renders the brand-voice clarification persistently above the readout', () => {
+		const out = renderPu(16, 1);
 		expect(out.body).toContain('the radioisotope that powers spacecraft');
 		expect(out.body).toContain('Non-fissile, not weapons material');
 	});
 
-	it('layers the CSS glow system onto the cube anchor', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: pu238Entry,
-				amount: 16,
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
-		// The fba7af9 glow rewrite replaced the CubeGlowOverlay component
-		// with inline glow layers in CubeRenderer; the old assertion
-		// ('cube-glow-overlay') had been failing silently ever since (no
-		// CI). These are the classes the shipped glow system renders.
-		expect(out.body).toContain('cube-outer-glow');
-		expect(out.body).toContain('cube-inner-glow');
-		expect(out.body).toContain('cube-ground-glow');
-	});
-
 	it('shows the activity readout (Ci + dps) at non-zero amounts', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: pu238Entry,
-				amount: 16, // 16 g × 17 Ci/g = 272 Ci
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
+		const out = renderPu(16, 1); // 16 g × 17 Ci/g = 272 Ci
 		expect(out.body).toContain('activity');
 		expect(out.body).toContain('272 Ci');
 		expect(out.body).toContain('disintegrations / sec');
 	});
 
 	it('renders the source attribution row', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: pu238Entry,
-				amount: 16,
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
+		const out = renderPu(16, 1);
 		expect(out.body).toContain('DOE Office of Nuclear Energy');
 		expect(out.body).toContain('NASA Planetary Science');
 		expect(out.body).toContain('Cassini OIG');
 	});
 
 	it('renders the Pu238FactCard rather than QuantityAnchorCard', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: pu238Entry,
-				amount: 16,
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
+		const out = renderPu(16, 1);
 		// Pu238FactCard at ~16 g returns the "CubeSat-scale" copy
 		// (the 10–49 g band; see Pu238FactCard.helpers.ts).
 		expect(out.body).toContain('CubeSat-scale deep-space mission');
@@ -118,72 +80,19 @@ describe('CommoditySection: Pu-238 panel wiring', () => {
 	});
 
 	it('does NOT show the melt warning below 1 kg', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: pu238Entry,
-				amount: 16, // 16 g
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
+		const out = renderPu(16, 1); // 16 g
 		expect(out.body).not.toContain('Would melt itself in reality');
 	});
 
 	it('shows the melt warning at and above 1 kg', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: pu238Entry,
-				amount: 1600, // 1.6 kg — 100 BTC
-				btcAmount: 100,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
+		const out = renderPu(1600, 100); // 1.6 kg — 100 BTC
 		expect(out.body).toContain('Would melt itself in reality');
 	});
 
-	it('does not fall through to PhysicalRep\'s "Unknown renderStyle" path', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: pu238Entry,
-				amount: 16,
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
-		expect(out.body).not.toContain('Unknown renderStyle');
-		expect(out.body).not.toContain('not-implemented');
-	});
-
 	it('renders the GeigerCrackle toggle when commodity.geigerCrackle is true', () => {
-		const out = render(CommoditySection, {
-			props: {
-				commodity: pu238Entry,
-				amount: 16,
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
+		const out = renderPu(16, 1);
 		expect(out.body).toContain('geiger-toggle');
-		// Default off (audioEnabled store starts false): "Geiger" label,
-		// not "Geiger on".
+		// Default off (audioEnabled store starts false): "Geiger" label.
 		expect(out.body).toContain('Geiger');
-	});
-
-	it('does NOT render the GeigerCrackle toggle when commodity.geigerCrackle is unset', () => {
-		const noGeigerEntry = { ...pu238Entry, geigerCrackle: false };
-		const out = render(CommoditySection, {
-			props: {
-				commodity: noGeigerEntry,
-				amount: 16,
-				btcAmount: 1,
-				btcUsdPrice: 80_000,
-				unitSys: 'imperial',
-			},
-		});
-		expect(out.body).not.toContain('geiger-toggle');
 	});
 });

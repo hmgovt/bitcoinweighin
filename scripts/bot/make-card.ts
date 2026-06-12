@@ -33,11 +33,11 @@ const SITE_BASE_URL = process.env.SITE_BASE_URL ?? 'http://localhost:5173';
 const CARD_WIDTH = 1200;
 const CARD_HEIGHT = 675;
 
-// Launch commodities the bot can render.
+// Launch commodities the bot can render. All four now live in the hero stage
+// tabs (one-stage layout); ?commodity= deep-links select the tab, and the
+// stage advertises data-commodity once the active tab has rendered.
 const KNOWN_COMMODITIES = new Set(['gold', 'silver', 'pu238', 'cocaine']);
-// Metals live in the hero stage tabs (one-stage layout, PR #8); ?commodity=
-// deep-links select the tab. Cocaine keeps its own #cocaine section below.
-const HERO_COMMODITIES = new Set(['gold', 'silver', 'pu238']);
+const HERO_COMMODITIES = new Set(['gold', 'silver', 'pu238', 'cocaine']);
 
 interface Args {
 	btc: number;
@@ -79,23 +79,29 @@ async function latestDatasetDate(): Promise<string> {
 // ── Copied capture helpers (subset of make-gold-video.ts) ─────────
 
 async function waitForReady(page: Page, expectedDate: string, commodity: string): Promise<void> {
-	if (HERO_COMMODITIES.has(commodity)) {
-		// One-stage layout: wait for the deep-linked tab to be active (the
-		// ?commodity= param applies after the price archive loads), then for
-		// the stage to show either the live WebGL canvas or the poster
-		// fallback — both are valid card frames.
-		await page.waitForSelector(`.hero-stage[data-commodity="${commodity}"]`, {
+	// One-stage layout: wait for the deep-linked tab to be active (the
+	// ?commodity= param applies after the price archive loads). The hero stage
+	// only advertises data-commodity once the active tab has actually rendered —
+	// so this selector guarantees a non-blank frame for every commodity.
+	await page.waitForSelector(`.hero-stage[data-commodity="${commodity}"]`, {
+		state: 'visible',
+		timeout: 20_000,
+	});
+	if (commodity === 'cocaine') {
+		// Cocaine swaps the WebGL stage for the inline-SVG brick stack.
+		await page.waitForSelector('.hero-stage .brick-stack svg', {
 			state: 'visible',
 			timeout: 20_000,
 		});
+		await page.waitForTimeout(300); // let the brick layout settle
+	} else {
+		// Metals: the stage shows either the live WebGL canvas or the poster
+		// fallback — both are valid card frames.
 		await page.waitForSelector(
 			'.hero-stage .stage-canvas, .hero-stage .poster:not(.poster--hidden)',
 			{ state: 'visible', timeout: 20_000 },
 		);
 		await page.waitForTimeout(600); // let the camera tween settle
-	} else {
-		// Cocaine keeps its own lazy-mounted section anchor.
-		await page.waitForSelector(`#${commodity}`, { state: 'visible', timeout: 20_000 });
 	}
 	// The date control died with the one-stage layout (slider now), so the
 	// expectedDate check is gone; the ?date= deep-link still drives state.

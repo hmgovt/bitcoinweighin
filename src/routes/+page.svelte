@@ -15,7 +15,6 @@
 	} from '$lib/stores/url.js';
 	import { formatBtc } from '$lib/format.js';
 	import { getEntity } from '$lib/holdings.js';
-	import LazyCommoditySection from '$lib/components/LazyCommoditySection.svelte';
 	import HeroStage from '$lib/components/HeroStage.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
 	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
@@ -233,29 +232,26 @@
 		});
 	}
 
-	// One-stage layout: the three cube metals (gold, silver, pu238) are tabs on
-	// the single live hero stage; cocaine keeps its own still panel below. Locked
-	// order survives from CORE_COMMODITIES (pageOrder).
-	const METALS = CORE_COMMODITIES.filter((c) => c.renderStyle === 'cube');
-	const cocaineCommodity = CORE_COMMODITIES.find((c) => c.id === 'cocaine');
+	// One-stage layout: all four launch commodities are tabs on the single hero
+	// stage — the three cube metals (gold, silver, pu238) share the live WebGL
+	// stage; cocaine swaps it for the inline-SVG brick stack. Locked tab order
+	// survives from CORE_COMMODITIES (pageOrder): gold, silver, pu238, cocaine.
+	const HERO_COMMODITIES = CORE_COMMODITIES;
 
 	// Active hero tab. Seeded from a ?commodity= deep-link (scrollToCommodity),
 	// default gold; tab clicks update it locally (no URL write — contract intact).
 	let selectedCommodity = $state('gold');
 	$effect(() => {
 		const c = $scrollToCommodity;
-		if (c && METALS.some((m) => m.id === c)) selectedCommodity = c;
+		if (c && HERO_COMMODITIES.some((m) => m.id === c)) selectedCommodity = c;
 	});
 
-	// Amounts feed the hero (metals) + cocaine panel from the tweened sceneBtc so
-	// a preset move animates everything together.
-	const metalAmounts = $derived(
+	// Amounts feed every hero tab from the tweened sceneBtc so a preset move
+	// animates everything together.
+	const heroAmounts = $derived(
 		Object.fromEntries(
-			METALS.map((c) => [c.id, computeCommodityAmount(sceneBtc, c, dayPrices)])
+			HERO_COMMODITIES.map((c) => [c.id, computeCommodityAmount(sceneBtc, c, dayPrices)])
 		) as Record<string, number | null>
-	);
-	const cocaineAmount = $derived(
-		cocaineCommodity ? computeCommodityAmount(sceneBtc, cocaineCommodity, dayPrices) : null
 	);
 
 	// ── Open Graph metadata (reactive) ──────────────────────────
@@ -508,9 +504,9 @@
 	<!-- Hero: one live WebGL stage + Au/Ag/Pu tabs + slider + readout (one-stage layout, pre-launch review §2) -->
 	<div class="mx-auto mt-8 max-w-2xl md:max-w-[1100px] px-4 pb-6 sm:pb-10">
 		<HeroStage
-			metals={METALS}
+			commodities={HERO_COMMODITIES}
 			bind:selectedId={selectedCommodity}
-			amounts={metalAmounts}
+			amounts={heroAmounts}
 			btcAmount={sceneBtc}
 			btcUsdPrice={dayPrices?.btc ?? 0}
 			{prices}
@@ -586,24 +582,6 @@
 			<div bind:this={sentinelEl} aria-hidden="true" class="h-px"></div>
 			{/snippet}
 		</HeroStage>
-
-		<!--
-			Cocaine still panel — never had a viewport (still_with_readout); kept
-			below the hero stage, unchanged. Lazy-mounts so its hydration cost
-			stays out of the first-paint window.
-		-->
-		{#if cocaineCommodity}
-			<div class="mt-12">
-				<LazyCommoditySection
-					commodity={cocaineCommodity}
-					amount={cocaineAmount}
-					btcAmount={sceneBtc}
-					btcUsdPrice={dayPrices?.btc ?? 0}
-					{prices}
-					priority={false}
-				/>
-			</div>
-		{/if}
 
 		<!-- Hashweight panel — unchanged. -->
 		<div class="mt-12">
