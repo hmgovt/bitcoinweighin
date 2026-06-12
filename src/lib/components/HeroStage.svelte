@@ -113,7 +113,8 @@
 	}
 </script>
 
-<section class="hero-stage" bind:this={stageEl} aria-label="Live commodity visualiser">
+<!-- data-commodity is a stable hook for the X-bot card renderer (scripts/bot/make-card.ts) — it waits on it to confirm the deep-linked tab is active before screenshotting. -->
+<section class="hero-stage" data-commodity={selectedId} bind:this={stageEl} aria-label="Live commodity visualiser">
 	<div class="hero-top">
 		<div class="tabs" role="radiogroup" aria-label="Commodity">
 			{#each metals as m, i (m.id)}

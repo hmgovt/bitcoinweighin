@@ -33,8 +33,11 @@ const SITE_BASE_URL = process.env.SITE_BASE_URL ?? 'http://localhost:5173';
 const CARD_WIDTH = 1200;
 const CARD_HEIGHT = 675;
 
-// Launch commodities that have an in-page section anchor (#id).
+// Launch commodities the bot can render.
 const KNOWN_COMMODITIES = new Set(['gold', 'silver', 'pu238', 'cocaine']);
+// Metals live in the hero stage tabs (one-stage layout, PR #8); ?commodity=
+// deep-links select the tab. Cocaine keeps its own #cocaine section below.
+const HERO_COMMODITIES = new Set(['gold', 'silver', 'pu238']);
 
 interface Args {
 	btc: number;
@@ -76,25 +79,33 @@ async function latestDatasetDate(): Promise<string> {
 // ── Copied capture helpers (subset of make-gold-video.ts) ─────────
 
 async function waitForReady(page: Page, expectedDate: string, commodity: string): Promise<void> {
-	await page.waitForSelector(`#${commodity}`, { state: 'visible', timeout: 20_000 });
-	await page
-		.waitForFunction(
-			(target: string) => {
-				const el = document.querySelector('input[type="date"]') as HTMLInputElement | null;
-				return el ? el.value === target : false;
-			},
-			expectedDate,
-			{ timeout: 8_000 },
-		)
-		.catch(() => {
-			// Date hydration clamp may differ; the readout still reflects the page's chosen date.
+	if (HERO_COMMODITIES.has(commodity)) {
+		// One-stage layout: wait for the deep-linked tab to be active (the
+		// ?commodity= param applies after the price archive loads), then for
+		// the stage to show either the live WebGL canvas or the poster
+		// fallback — both are valid card frames.
+		await page.waitForSelector(`.hero-stage[data-commodity="${commodity}"]`, {
+			state: 'visible',
+			timeout: 20_000,
 		});
+		await page.waitForSelector(
+			'.hero-stage .stage-canvas, .hero-stage .poster:not(.poster--hidden)',
+			{ state: 'visible', timeout: 20_000 },
+		);
+		await page.waitForTimeout(600); // let the camera tween settle
+	} else {
+		// Cocaine keeps its own lazy-mounted section anchor.
+		await page.waitForSelector(`#${commodity}`, { state: 'visible', timeout: 20_000 });
+	}
+	// The date control died with the one-stage layout (slider now), so the
+	// expectedDate check is gone; the ?date= deep-link still drives state.
+	void expectedDate;
 	await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => r())));
 }
 
 async function scrollToCommodity(page: Page, commodity: string): Promise<void> {
 	await page.evaluate((id) => {
-		const el = document.getElementById(id);
+		const el = document.getElementById(id) ?? document.querySelector('.hero-stage');
 		if (!el) return;
 		const rect = el.getBoundingClientRect();
 		const offset = window.scrollY + rect.top - 80;
