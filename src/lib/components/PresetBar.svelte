@@ -36,14 +36,16 @@
 </div>
 
 <style>
-	/* Single scrollable row instead of a ragged multi-row wrap (pre-launch
-	   review §1). Scrollbar hidden; edge fades signal overflow; pills
-	   snap so a flick lands cleanly. */
+	/*
+	 * Desktop (≥768px): pills wrap into rows so all 10 are visible.
+	 * Mobile (<768px): single swipeable row with edge-fade affordance.
+	 */
+
+	/* Mobile default — single scrollable row */
 	.preset-bar {
 		display: flex;
 		flex-wrap: nowrap;
-		justify-content: flex-start;
-		gap: 8px;
+		gap: 6px;
 		overflow-x: auto;
 		scroll-snap-type: x proximity;
 		scrollbar-width: none;
@@ -51,42 +53,60 @@
 		mask-image: linear-gradient(
 			to right,
 			transparent 0,
-			#000 12px,
-			#000 calc(100% - 12px),
+			#000 16px,
+			#000 calc(100% - 24px),
 			transparent 100%
 		);
-		padding: 2px 12px;
+		padding: 2px 4px;
 	}
 	.preset-bar::-webkit-scrollbar {
 		display: none;
 	}
 
+	/* Desktop — wrap pills, no overflow */
+	@media (min-width: 768px) {
+		.preset-bar {
+			flex-wrap: wrap;
+			overflow-x: visible;
+			mask-image: none;
+			gap: 6px;
+			padding: 0;
+			align-content: flex-start;
+		}
+	}
+
 	.preset-pill {
+		/* Mobile: don't shrink so pills stay touchable */
 		scroll-snap-align: start;
 		flex-shrink: 0;
 		white-space: nowrap;
 		display: inline-flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 8px 14px;
-		border: 1px solid #3a3a3a;
-		border-radius: 18px;
-		background: transparent;
+		justify-content: center;
+		/* Fixed height so subscript/non-subscript pills stay the same size */
+		min-height: 52px;
+		padding: 0 14px;
+		border: 1px solid #27272a; /* zinc-800 */
+		border-radius: 20px;
+		background: #18181b; /* zinc-900 */
 		color: #f5f0e6;
-		font: 500 14px/1.2 inherit;
+		font: 500 13px/1.2 inherit;
 		cursor: pointer;
 		transition:
 			background-color 120ms ease-out,
 			border-color 120ms ease-out;
 	}
 	.preset-pill:hover {
-		border-color: #5a5a5a;
+		background: #1f1f23;
+		border-color: #3f3f46; /* zinc-700 */
 	}
 	.preset-pill--active {
-		background: rgba(245, 158, 11, 0.15); /* amber-500 @ 15% — brand orange */
-		border-color: #f59e0b;
+		background: rgba(245, 158, 11, 0.12);
+		border-color: #f59e0b; /* amber-500 */
 	}
 	.preset-pill--active:hover {
+		background: rgba(245, 158, 11, 0.18);
 		border-color: #f59e0b;
 	}
 	.preset-pill__label {
@@ -94,11 +114,16 @@
 	}
 	.preset-pill__subscript {
 		display: block;
-		margin-top: 2px;
-		font-size: 11px;
+		margin-top: 3px;
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-size: 10px;
 		font-weight: 400;
-		color: #7a7a7a;
+		color: #52525b; /* zinc-600 */
 		letter-spacing: 0;
+		line-height: 1.2;
 	}
-
+	/* Active pill subscript slightly brighter */
+	.preset-pill--active .preset-pill__subscript {
+		color: #a16207; /* amber-700 */
+	}
 </style>

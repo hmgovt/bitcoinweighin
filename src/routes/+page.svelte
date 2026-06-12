@@ -819,13 +819,13 @@
 	}
 	.brand__mark {
 		display: block;
-		height: 96px;
+		height: 80px;
 		width: auto;
 		max-width: 100%;
 	}
 	.brand__h1 {
-		margin: 6px 0 0;
-		font-size: 18px;
+		margin: 4px 0 0;
+		font-size: 17px;
 		font-weight: 600;
 		line-height: 1.25;
 		color: #f5f0e6;
@@ -834,15 +834,15 @@
 	}
 	@media (min-width: 768px) {
 		.brand__h1 {
-			font-size: 20px;
+			font-size: 18px;
 		}
 	}
 	.brand__subtitle {
 		margin: 0;
-		color: #9aa0a6;
-		font-size: 14px;
+		color: #71717a; /* zinc-500 — slightly more recessive */
+		font-size: 13px;
 		font-weight: 400;
-		line-height: 1.35;
+		line-height: 1.4;
 		text-wrap: balance;
 	}
 	.seo-section {
@@ -941,13 +941,22 @@
 		.site-header {
 			flex-direction: row;
 			align-items: flex-start;
-			gap: 24px;
+			gap: 28px;
 		}
 		.brand {
-			flex: 0 0 38%;
+			/* Tighter brand column so pills have comfortable room to wrap */
+			flex: 0 0 260px;
 		}
 		.header-pills {
-			flex: 1 1 62%;
+			flex: 1 1 0;
+			min-width: 0;
+			/* Align pill rows' top with the logo top */
+			padding-top: 0;
+		}
+	}
+	@media (min-width: 1280px) {
+		.brand {
+			flex: 0 0 300px;
 		}
 	}
 
