@@ -59,7 +59,8 @@ export function makeMaterials(roughMap: THREE.CanvasTexture): CubeMaterials {
 	const gold = new THREE.MeshPhysicalMaterial({
 		color: new THREE.Color(0.95, 0.6, 0.12), // materials-reference base, lifted
 		metalness: 1.0,
-		roughness: 0.26, // × the map → ~0.10–0.23 effective
+		roughness: 0.30, // × the map → ~0.12–0.27 effective; floor raised so flat faces
+		// integrate a wider env lobe and don't read pure-mirror-black
 		roughnessMap: roughMap,
 		envMapIntensity: 1.6,
 	});
@@ -91,6 +92,11 @@ export function makeMaterials(roughMap: THREE.CanvasTexture): CubeMaterials {
  * wash, a front fill, a hot rim strip, a cool dim fill, and a warm floor
  * bounce, in an otherwise dark room. RoomEnvironment's neutral grey wash is
  * why earlier builds read muddy — most reflection directions here hit a panel.
+ *
+ * A large enclosing sphere provides a dim warm ambient dome so that no
+ * reflection direction returns pure black — the faces always read gold even
+ * when the camera angle misses every bright panel. The bright key/rim panels
+ * are kept for highlight character.
  */
 export function makeGoldEnv(): THREE.Scene {
 	const env = new THREE.Scene();
@@ -112,6 +118,26 @@ export function makeGoldEnv(): THREE.Scene {
 		m.lookAt(0, 0, 0);
 		env.add(m);
 	};
+
+	// Ambient dome: large enclosing sphere so every reflection direction returns
+	// a dim value instead of pure black. Colour is near-neutral warm white
+	// (3200 K studio tungsten approximation) so gold's own base colour carries
+	// the warmth, and silver stays neutral rather than going amber.
+	const dome = new THREE.Mesh(
+		new THREE.SphereGeometry(80, 32, 16),
+		new THREE.MeshBasicMaterial({
+			color: new THREE.Color(1.0, 0.88, 0.72).multiplyScalar(0.28),
+			side: THREE.BackSide,
+		})
+	);
+	env.add(dome);
+
+	// Large dim fill panels behind/beside the cube — neutral-warm at low
+	// intensity so dark-facing faces lift without colour-casting silver.
+	panel(40, 30, [1.0, 0.88, 0.76], 0.22, [-30, 0, -20]); // back-left fill
+	panel(40, 30, [1.0, 0.88, 0.76], 0.20, [30, 0, -20]);  // back-right fill
+	panel(30, 30, [1.0, 0.90, 0.78], 0.18, [0, 0, -40]);   // rear fill
+
 	panel(8, 5, [1.0, 0.84, 0.58], 9, [-4, 5, 4]); // warm key softbox
 	panel(10, 6, [1.0, 0.88, 0.62], 4, [0, 8, 2]); // overhead wash
 	panel(6, 3, [0.95, 0.74, 0.46], 2.5, [0, 1.5, 8]); // front fill
