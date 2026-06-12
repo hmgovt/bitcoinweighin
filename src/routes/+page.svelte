@@ -14,10 +14,11 @@
 		hydrateFromUrl,
 	} from '$lib/stores/url.js';
 	import { formatBtc } from '$lib/format.js';
+	import { getEntity } from '$lib/holdings.js';
 	import LazyCommoditySection from '$lib/components/LazyCommoditySection.svelte';
+	import HeroStage from '$lib/components/HeroStage.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
 	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
-	import BitCubePanel from '$lib/components/BitCubePanel.svelte';
 	import {
 		organizationJsonLd,
 		websiteJsonLd,
@@ -95,7 +96,52 @@
 
 	let sliderPos = $state(btcToSlider(1));
 
+	// ── Scene BTC + preset tween ────────────────────────────────
+	// `sceneBtc` is the value the hero stage, hero readout, and slider display
+	// follow. Normally it mirrors the committed store value ($btcAmount). On a
+	// preset click it is TWEENED (≈600 ms, log-eased) from the current value to
+	// the preset's so the camera dollies the move and the slider visibly travels
+	// — pre-launch review §1's "missed trick". The committed $btcAmount / URL /
+	// preset slug are set immediately by activatePreset (URL contract untouched);
+	// the tween is a visual animation on top, never written to the URL.
+	let sceneBtc = $state(1);
+	let tweening = $state(false);
+	let tweenRaf = 0;
+	let reduceMotion = $state(false);
+
+	function cancelTween() {
+		if (tweenRaf) cancelAnimationFrame(tweenRaf);
+		tweenRaf = 0;
+		tweening = false;
+	}
+
+	function tweenSceneBtc(from: number, to: number, ms: number) {
+		cancelTween();
+		tweening = true;
+		const t0 = performance.now();
+		const logFrom = Math.log10(Math.max(from, BTC_MIN));
+		const logTo = Math.log10(Math.max(to, BTC_MIN));
+		const step = (now: number) => {
+			const k = Math.min((now - t0) / ms, 1);
+			const eased = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2; // easeInOutQuad
+			sceneBtc = 10 ** (logFrom + (logTo - logFrom) * eased);
+			sliderPos = btcToSlider(sceneBtc); // slider travels with the tween (log → linear)
+			if (k < 1) {
+				tweenRaf = requestAnimationFrame(step);
+			} else {
+				sceneBtc = to;
+				sliderPos = btcToSlider(to);
+				cancelTween();
+			}
+		};
+		tweenRaf = requestAnimationFrame(step);
+	}
+
 	$effect(() => {
+		// Mirror the committed store to the scene/slider, EXCEPT while a preset
+		// tween owns those values.
+		if (tweening) return;
+		sceneBtc = $btcAmount;
 		if (sliderMode === 'btc') {
 			const newPos = btcToSlider($btcAmount);
 			if (Math.abs(newPos - sliderPos) > 1) sliderPos = newPos;
@@ -106,6 +152,7 @@
 	});
 
 	function handleSliderInput(e: Event) {
+		cancelTween(); // a manual drag interrupts any preset tween
 		const target = e.target as HTMLInputElement;
 		sliderPos = parseInt(target.value);
 		if (sliderMode === 'btc') {
@@ -151,7 +198,11 @@
 
 	function handlePresetSelect(slug: string) {
 		sliderMode = 'btc';
-		activatePreset(slug);
+		const entity = getEntity(slug);
+		const from = sceneBtc;
+		activatePreset(slug); // commits $btcAmount / date / preset slug + URL immediately
+		// Play the size change as a camera move (reduced-motion → instant).
+		if (entity && !reduceMotion) tweenSceneBtc(from, entity.btc, 600);
 	}
 
 	const dayPrices = $derived(getDayPrices($selectedDate));
@@ -182,11 +233,29 @@
 		});
 	}
 
-	const commodityAmounts = $derived(
-		CORE_COMMODITIES.map((c) => ({
-			commodity: c,
-			amount: computeCommodityAmount($btcAmount, c, dayPrices),
-		}))
+	// One-stage layout: the three cube metals (gold, silver, pu238) are tabs on
+	// the single live hero stage; cocaine keeps its own still panel below. Locked
+	// order survives from CORE_COMMODITIES (pageOrder).
+	const METALS = CORE_COMMODITIES.filter((c) => c.renderStyle === 'cube');
+	const cocaineCommodity = CORE_COMMODITIES.find((c) => c.id === 'cocaine');
+
+	// Active hero tab. Seeded from a ?commodity= deep-link (scrollToCommodity),
+	// default gold; tab clicks update it locally (no URL write — contract intact).
+	let selectedCommodity = $state('gold');
+	$effect(() => {
+		const c = $scrollToCommodity;
+		if (c && METALS.some((m) => m.id === c)) selectedCommodity = c;
+	});
+
+	// Amounts feed the hero (metals) + cocaine panel from the tweened sceneBtc so
+	// a preset move animates everything together.
+	const metalAmounts = $derived(
+		Object.fromEntries(
+			METALS.map((c) => [c.id, computeCommodityAmount(sceneBtc, c, dayPrices)])
+		) as Record<string, number | null>
+	);
+	const cocaineAmount = $derived(
+		cocaineCommodity ? computeCommodityAmount(sceneBtc, cocaineCommodity, dayPrices) : null
 	);
 
 	// ── Open Graph metadata (reactive) ──────────────────────────
@@ -287,6 +356,9 @@
 	);
 
 	onMount(async () => {
+		// Preset tween respects reduced-motion (jump instead of dolly).
+		reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 		// Beehiiv loader self-positions (sticky-bottom). Append to body so
 		// the script governs its own placement rather than getting trapped
 		// inside an inline container. Defer to idle — the subscribe form is
@@ -361,7 +433,7 @@
 	<div class="sticky-bar" class:visible={showStickyBar} aria-hidden={!showStickyBar}>
 		<div class="mx-auto flex h-11 max-w-2xl items-center gap-3 px-4">
 			<span class="min-w-[3.25rem] whitespace-nowrap font-mono text-xs text-amber-400">
-				{sliderMode === 'btc' ? formatBtc($btcAmount) : formatBtc(lockedBtcForDateMode)}
+				{sliderMode === 'btc' ? formatBtc(sceneBtc) : formatBtc(lockedBtcForDateMode)}
 			</span>
 			<div
 				class="slider-wrap slider-wrap--below flex-1 min-w-0"
@@ -384,7 +456,7 @@
 			{#if sliderMode === 'btc'}
 				{#if dayPrices}
 					<span class="min-w-[4.5rem] whitespace-nowrap text-right font-mono text-xs text-zinc-200">
-						{formatUsd($btcAmount * dayPrices.btc)}
+						{formatUsd(sceneBtc * dayPrices.btc)}
 					</span>
 				{/if}
 			{:else}
@@ -433,7 +505,17 @@
 		</header>
 	</div>
 
-	<div class="mx-auto mt-8 max-w-2xl px-4">
+	<!-- Hero: one live WebGL stage + Au/Ag/Pu tabs + slider + readout (one-stage layout, pre-launch review §2) -->
+	<div class="mx-auto mt-8 max-w-2xl md:max-w-[1100px] px-4 pb-6 sm:pb-10">
+		<HeroStage
+			metals={METALS}
+			bind:selectedId={selectedCommodity}
+			amounts={metalAmounts}
+			btcAmount={sceneBtc}
+			btcUsdPrice={dayPrices?.btc ?? 0}
+			{prices}
+		>
+			{#snippet controls()}
 			<!-- Controls — two-row compact panel (~120px tall) -->
 			<div class="controls-panel">
 				<div class="controls-slider">
@@ -468,10 +550,10 @@
 				<div class="controls-value-row">
 					<div class="value-block">
 						{#if sliderMode === 'btc'}
-							<div class="value-btc">{formatBtc($btcAmount)}</div>
+							<div class="value-btc">{formatBtc(sceneBtc)}</div>
 							{#if dayPrices}
 								<div class="value-context">
-									{formatUsd($btcAmount * dayPrices.btc)} · {formatDateReadout($selectedDate)}
+									{formatUsd(sceneBtc * dayPrices.btc)} · {formatDateReadout($selectedDate)}
 								</div>
 							{/if}
 						{:else}
@@ -497,35 +579,37 @@
 				boundingClientRect.top < 0 means "above" rather than "below" — so
 				we distinguish "scrolled past" from "not yet reached".
 			-->
+			<!--
+				Sentinel: sits just below the controls card. When it scrolls above
+				the viewport the pinned compact bar slides in.
+			-->
 			<div bind:this={sentinelEl} aria-hidden="true" class="h-px"></div>
-		</div>
+			{/snippet}
+		</HeroStage>
 
 		<!--
-			Commodity panels: visualisation-driven, expand at desktop widths to
-			give the cube and reference more pixels to occupy. Mobile stays at
-			max-w-2xl (672px) so the panel keeps filling the viewport. From md:
-			(768px) up, the panels widen up to 1400px — capped to prevent
-			absurd stretching on ultrawide displays. CubeRenderer's
-			ResizeObserver picks up the new width automatically.
+			Cocaine still panel — never had a viewport (still_with_readout); kept
+			below the hero stage, unchanged. Lazy-mounts so its hydration cost
+			stays out of the first-paint window.
 		-->
-		<div class="mx-auto mt-12 max-w-2xl md:max-w-[1400px] px-4 pb-6 sm:pb-10">
-			<NetworkWeightPanel />
-			<!-- BitCubePanel hidden pending redesign — component in src/lib/components/BitCubePanel.svelte -->
-			<!-- <BitCubePanel
-				btcAmount={$btcAmount}
-				circulatingSupply={dayPrices?.btc_supply ?? 19_923_600}
-			/> -->
-			{#each commodityAmounts as { commodity, amount }, i (commodity.id)}
+		{#if cocaineCommodity}
+			<div class="mt-12">
 				<LazyCommoditySection
-					{commodity}
-					{amount}
-					btcAmount={$btcAmount}
+					commodity={cocaineCommodity}
+					amount={cocaineAmount}
+					btcAmount={sceneBtc}
 					btcUsdPrice={dayPrices?.btc ?? 0}
 					{prices}
-					priority={i === 0}
+					priority={false}
 				/>
-			{/each}
+			</div>
+		{/if}
+
+		<!-- Hashweight panel — unchanged. -->
+		<div class="mt-12">
+			<NetworkWeightPanel />
 		</div>
+	</div>
 
 		<!--
 			SEO + AI-bot surface. The visible copy intentionally mirrors the

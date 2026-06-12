@@ -6,10 +6,12 @@
 		{ id: 'forward-fill', title: 'Forward-fill logic' },
 		{ id: 'btc-supply', title: 'BTC supply derivation' },
 		{ id: 'illustrative', title: 'Illustrative pricing' },
+		{ id: 'visualiser', title: 'The live visualiser: camera and staging' },
 		{ id: 'hashweight', title: 'Hashweight: network physical mass' },
 		{ id: 'cross-validation', title: 'Cross-validation' },
 		{ id: 'versioning', title: 'Versioning and updates' },
 		{ id: 'corrections', title: 'Corrections' },
+		{ id: 'credits', title: 'Credits and licences' },
 	];
 </script>
 
@@ -186,7 +188,19 @@
 				drives the BTC equivalence on the visualisation. Uncertainty bounds: roughly ±60% around
 				the midpoint at the material-cost layer. As-of date: 2024-12-31.
 			</p>
-			<h3>LEU uranium fuel pellet</h3>
+			<p>
+					<strong>Density and the cube.</strong> The visualiser sizes the plutonium cube from the
+					oxide <em>fuel</em> — plutonium-238 dioxide (PuO₂), the ceramic form that radioisotope
+					thermoelectric generators actually burn and that glows — not the pure metal. The cube
+					edge is computed at PuO₂'s <em>theoretical</em> density of 11.46 g/cm³. Real sintered
+					fuel pellets are deliberately pressed to roughly 80–90% of theoretical density (a
+					controlled porosity that accommodates helium from alpha decay without cracking), so an
+					actual pellet of the same mass occupies 10–25% more volume — a slightly larger cube — than
+					the one drawn here. We render the theoretical-density cube because it is the single
+					unambiguous figure; the caveat is that real fuel is a little less dense, and therefore a
+					little bulkier, than the idealised block.
+				</p>
+				<h3>LEU uranium fuel pellet</h3>
 			<p>
 				Composite cost of ~$20 per 7 g pellet from the World Nuclear Association
 				"Economics of Nuclear Power" methodology, cross-checked against the IAEA/OECD-NEA Red
@@ -206,6 +220,44 @@
 				is the primary tier for BTC equivalence because it is the most directly comparable to
 				how other commodities are priced (standardised purity, kilogram-scale transactions).
 				As-of date: 2024-12-31.
+			</p>
+		</section>
+
+		<section id="visualiser" class="prose-section">
+			<h2>The live visualiser: camera and staging</h2>
+			<p>
+				The home page renders each commodity as a real-time 3D cube at true physical scale,
+				beside a rigged Shiba Inu that acts as the constant scale anchor (40 cm at the shoulder).
+				Because the cube spans roughly six orders of magnitude — from a sub-millimetre fleck of
+				gold to a silver monolith tens of metres on a side — a single fixed shot cannot stay
+				convincing across the whole range. The scene solves scale the way a photographer does:
+				with the camera. The honesty rule is that every apparent size on screen derives from one
+				declared camera geometry per frame, never from an artistic fudge.
+			</p>
+			<h3>Camera model</h3>
+			<p>
+				A single perspective camera (35° field of view) frames the scene, and exactly one
+				geometry is in force at any instant. As the cube grows the camera dollies along a banded
+				path — macro framing for the speck (the cube held at a fixed fraction of the frame so it
+				never vanishes, with a 5 cm floor), the familiar two-shot when cube and dog are
+				comparable, and a wide shot when the cube towers. The transitions are continuous at the
+				band crossovers by construction, and the camera's height is capped at one metre so the
+				largest cubes are genuinely <em>looked up at</em> rather than viewed from above. The
+				damped easing between framings is itself the scale cue: the longer the camera travels,
+				the bigger the change in size you are being shown.
+			</p>
+			<h3>Staging honesty</h3>
+			<p>
+				Once the cube grows past about 1.2 m on a side, the Shiba walks to a fixed mark in the
+				near foreground while the cube recedes into the distance — the standard photographer's
+				trick for conveying the size of something enormous. This means the dog and the cube are
+				no longer the same distance from the camera, so their on-screen sizes are governed by
+				real perspective (an object twice as far away appears half as large) rather than by a
+				shared scale factor. That is a true depiction, not a trick of the eye, but because it
+				differs from the simple side-by-side comparison the readout says so explicitly —
+				<em>"Shiba standing nearer the camera"</em> — whenever the dog is staged in the
+				foreground. Nothing on screen is ever resized by feel; the apparent sizes always follow
+				from the one declared camera geometry.
 			</p>
 		</section>
 
@@ -349,6 +401,36 @@
 				inspectable in the commit log.
 			</p>
 		</section>
+
+		<section id="credits" class="prose-section">
+			<h2>Credits and licences</h2>
+			<p>
+				The dataset itself is published under
+				<a
+					href="https://creativecommons.org/licenses/by/4.0/"
+					class="underline hover:no-underline">Creative Commons CC-BY-4.0</a
+				>; see the <a href="/data" class="underline hover:no-underline">dataset page</a> for
+				citation details.
+			</p>
+			<h3>Shiba Inu 3D model</h3>
+			<p>
+				The Shiba Inu used as the live visualiser's scale reference is a third-party model
+				licensed under CC-BY-4.0, which requires visible attribution. Per the licence:
+			</p>
+			<blockquote class="credit">
+				This work is based on "Animated Dog, Shiba Inu"
+				(<a
+					href="https://sketchfab.com/3d-models/animated-dog-shiba-inu-9abfce885a834399b2c3ccaed51cd474"
+					class="underline hover:no-underline"
+					>https://sketchfab.com/3d-models/animated-dog-shiba-inu-9abfce885a834399b2c3ccaed51cd474</a
+				>) by quander (<a href="https://sketchfab.com/quander" class="underline hover:no-underline"
+					>https://sketchfab.com/quander</a
+				>) licensed under CC-BY-4.0 (<a
+					href="http://creativecommons.org/licenses/by/4.0/"
+					class="underline hover:no-underline">http://creativecommons.org/licenses/by/4.0/</a
+				>)
+			</blockquote>
+		</section>
 	</main>
 </div>
 
@@ -378,6 +460,16 @@
 		line-height: 1.6;
 		margin: 0.6rem 0;
 		color: #3f3f46;
+	}
+	.prose-section :global(blockquote.credit) {
+		margin: 0.75rem 0;
+		padding: 0.75rem 1rem;
+		border-left: 3px solid #d4d4d8;
+		background: #f4f4f5;
+		font-size: 0.875rem;
+		line-height: 1.55;
+		color: #3f3f46;
+		word-break: break-word;
 	}
 	.prose-section :global(code) {
 		font-family: ui-monospace, SFMono-Regular, monospace;
