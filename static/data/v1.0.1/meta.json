@@ -1,11 +1,11 @@
 {
   "version": "1.0.1",
-  "last_updated": "2026-06-11T06:41:47.499Z",
+  "last_updated": "2026-06-12T06:24:44.642Z",
   "coverage": {
     "first_date": "2013-01-02",
-    "last_date": "2026-06-10"
+    "last_date": "2026-06-11"
   },
-  "row_count": 4903,
+  "row_count": 4904,
   "title": "Bitcoin Weigh-In Daily Commodity Price Dataset",
   "abstract": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
   "homepage": "https://bitcoinweighin.com/data",
@@ -191,12 +191,12 @@
   },
   "checksums": {
     "CHANGELOG.md": "6c671871d131011a84874899a25a19acf7eb3d6d03f42a71eefdff6556f4985f",
-    "CITATION.cff": "348a9c46f03e1b378ee05f5b358ff12784c01bdf3ada76ba027b3090e1a05f42",
+    "CITATION.cff": "41ecccef93ee4a1daeb8820ae30cf475f6091a7dfe36af5f03a6431f1c543f11",
     "LICENSE.txt": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
-    "prices.csv": "1fe36da7feb232927b128bedd764184e2bfb85242eb7cd1a49066e209fa2f083",
-    "prices.json": "6e4b8425708c0bc37ff76ca9cd88613e015f2b2b1a1de59c2edcb82fed36eb5a",
-    "prices.ndjson": "784fe8122738ab54bd0dc8be078655e09421778c96609136de44b245fd0b76f9",
-    "prices.parquet": "83a64c448477b3a310446eaa26f1c9830888410e97578fe8309c20d8c2df395d",
+    "prices.csv": "cb2ffa648e91de35ac427116889f083ea075961d6f649733e14d6b484ea6658a",
+    "prices.json": "309838536ba7a8f77e611ae436fb0e0d298bb40851440c945476e5ab944cfed8",
+    "prices.ndjson": "3131d38333a29939085267b043fe0fdeb78e15e0e913f5b99ded22fc905c9fd8",
+    "prices.parquet": "f31b510af5ef4ec68e923c8135c6d71189a5aaf2326522b62b7cff26f6ef963c",
     "schema.json": "0ae7badd92d0e984eb6fe8bb2f37512b4cf210aae485d2db6e639f9ca9724ac2"
   }
 }
