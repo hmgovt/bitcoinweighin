@@ -612,8 +612,8 @@
 				</p>
 				<p class="seo-section__p">
 					Under the hood is a public, daily-updated dataset of commodity prices in BTC going
-					back to 2 January 2013, sourced from stooq and FRED with deterministic BTC supply
-					computed from the protocol's halving schedule. The
+					back to 2 January 2013, sourced from CoinGecko, GoldAPI.io and FRED with deterministic
+					BTC supply computed from the protocol's halving schedule. The
 					<a href="/data" class="seo-link">dataset is CC-BY-4.0</a> and ships as CSV, JSON,
 					NDJSON and Parquet — useful if you're doing your own bitcoin-vs-commodities analysis.
 					The <a href="/methodology" class="seo-link">methodology page</a> documents every

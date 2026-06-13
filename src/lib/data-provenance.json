@@ -4,56 +4,56 @@
       "commodity": "Bitcoin",
       "ticker": "BTC-USD",
       "field": "btc_usd",
-      "originalSource": "Stooq",
-      "sourceUrl": "https://stooq.com/q/?s=btcusd",
+      "originalSource": "CoinGecko",
+      "sourceUrl": "https://www.coingecko.com/en/coins/bitcoin",
       "dataQuality": "live",
-      "updateCadence": "Daily (close)",
-      "licenseOfUnderlyingSource": "Stooq terms of service (free for non-commercial use; API key required)",
-      "notes": "Stooq publishes a continuous BTC-USD daily close aggregated across major spot exchanges."
+      "updateCadence": "Daily (last price per UTC day)",
+      "licenseOfUnderlyingSource": "CoinGecko keyless public API (free for non-commercial use; attribution requested)",
+      "notes": "CoinGecko market-chart USD price aggregated across major spot exchanges; the daily cron records the last point of each UTC day. Migrated from Stooq 2026-06-13 after Stooq began blocking automated access."
     },
     {
       "commodity": "Gold",
-      "ticker": "XAU-USD",
+      "ticker": "PAXG-USD",
       "field": "xau_usd",
-      "originalSource": "Stooq",
-      "sourceUrl": "https://stooq.com/q/?s=xauusd",
+      "originalSource": "CoinGecko (PAX Gold)",
+      "sourceUrl": "https://www.coingecko.com/en/coins/pax-gold",
       "dataQuality": "live",
-      "updateCadence": "Daily (London close)",
-      "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Spot gold per troy ounce, USD."
+      "updateCadence": "Daily (last price per UTC day)",
+      "licenseOfUnderlyingSource": "CoinGecko keyless public API (free for non-commercial use; attribution requested)",
+      "notes": "Proxy for spot gold per troy ounce, USD, via Pax Gold (PAXG) — a token redeemable 1:1 for a fine troy ounce of LBMA Good Delivery gold, which trades within a small premium of spot. Migrated from Stooq 2026-06-13."
     },
     {
       "commodity": "Silver",
       "ticker": "XAG-USD",
       "field": "xag_usd",
-      "originalSource": "Stooq",
-      "sourceUrl": "https://stooq.com/q/?s=xagusd",
+      "originalSource": "GoldAPI.io",
+      "sourceUrl": "https://www.goldapi.io/",
       "dataQuality": "live",
-      "updateCadence": "Daily (London close)",
-      "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Spot silver per troy ounce, USD."
+      "updateCadence": "Daily spot (USD/troy oz)",
+      "licenseOfUnderlyingSource": "GoldAPI.io free tier (API key required)",
+      "notes": "Spot silver per troy ounce, USD, from GoldAPI.io. Migrated from Stooq 2026-06-13 after Stooq began blocking automated access."
     },
     {
       "commodity": "Platinum",
       "ticker": "XPT-USD",
       "field": "xpt_usd",
-      "originalSource": "Stooq",
+      "originalSource": "Stooq (historical)",
       "sourceUrl": "https://stooq.com/q/?s=xptusd",
-      "dataQuality": "live",
-      "updateCadence": "Daily (London close)",
+      "dataQuality": "historical",
+      "updateCadence": "Frozen as of 2026-06-13",
       "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Spot platinum per troy ounce, USD."
+      "notes": "Spot platinum per troy ounce, USD. Not rendered in the launch UI; daily updates stopped 2026-06-13 when Stooq was dropped. Historical values retained in the dataset."
     },
     {
       "commodity": "Copper",
       "ticker": "HG (continuous)",
       "field": "copper_usd",
-      "originalSource": "Stooq",
+      "originalSource": "Stooq (historical)",
       "sourceUrl": "https://stooq.com/q/?s=hg.c",
-      "dataQuality": "live",
-      "updateCadence": "Daily (COMEX close)",
+      "dataQuality": "historical",
+      "updateCadence": "Frozen as of 2026-06-13",
       "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Continuous front-month copper futures (COMEX), USD per pound."
+      "notes": "Continuous front-month copper futures (COMEX), USD per pound. Not rendered in the launch UI; daily updates stopped 2026-06-13 when Stooq was dropped. Historical values retained in the dataset."
     },
     {
       "commodity": "Brent crude",
@@ -70,23 +70,23 @@
       "commodity": "Wheat",
       "ticker": "ZW (continuous)",
       "field": "wheat_usd",
-      "originalSource": "Stooq",
+      "originalSource": "Stooq (historical)",
       "sourceUrl": "https://stooq.com/q/?s=zw.c",
-      "dataQuality": "live",
-      "updateCadence": "Daily (CBOT close)",
+      "dataQuality": "historical",
+      "updateCadence": "Frozen as of 2026-06-13",
       "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Continuous front-month CBOT wheat futures, USD per bushel. Fetched but not yet rendered in the launch UI."
+      "notes": "Continuous front-month CBOT wheat futures, USD per bushel. Never rendered in the launch UI; daily updates stopped 2026-06-13 when Stooq was dropped. Historical values retained in the dataset."
     },
     {
       "commodity": "Coffee",
       "ticker": "KC (continuous)",
       "field": "coffee_usd",
-      "originalSource": "Stooq",
+      "originalSource": "Stooq (historical)",
       "sourceUrl": "https://stooq.com/q/?s=kc.c",
-      "dataQuality": "live",
-      "updateCadence": "Daily (ICE close)",
+      "dataQuality": "historical",
+      "updateCadence": "Frozen as of 2026-06-13",
       "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Continuous front-month ICE Arabica coffee futures. Stooq quotes in USD cents per pound; normalised to USD per pound in coffee_usd."
+      "notes": "Continuous front-month ICE Arabica coffee futures, normalised to USD per pound. Never rendered in the launch UI; daily updates stopped 2026-06-13 when Stooq was dropped. Historical values retained in the dataset."
     },
     {
       "commodity": "BTC circulating supply",

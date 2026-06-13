@@ -20,7 +20,7 @@ import {
 	interpolateSmallGaps,
 	btcCirculatingSupply,
 } from './sources.js';
-import { fetchStooq, fetchFRED, type FetchResult } from './fetchers.js';
+import { fetchFRED, fetchCoinGecko, fetchGoldApi, type FetchResult } from './fetchers.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -45,10 +45,18 @@ async function main() {
 		console.log(`Fetching ${source.id} (${source.type}:${source.symbol})...`);
 		try {
 			let result: FetchResult;
-			if (source.type === 'stooq') {
-				result = await fetchStooq(source, startDate, endDate);
-			} else if (source.type === 'fred') {
+			if (source.type === 'fred') {
 				result = await fetchFRED(source, startDate, endDate);
+			} else if (source.type === 'goldapi') {
+				// NOTE: GoldAPI returns spot only — no deep history on the free tier.
+				// A full silver re-bootstrap isn't possible here; rely on the committed
+				// prices.ndjson for historical silver.
+				result = await fetchGoldApi(source, endISO);
+			} else if (source.type === 'coingecko') {
+				// NOTE: keyless CoinGecko serves only recent history (long ranges are
+				// paid), so a full BTC re-bootstrap back to 2013 isn't possible here —
+				// rely on the committed prices.ndjson or a paid key for deep history.
+				result = await fetchCoinGecko(source);
 			} else {
 				throw new Error(`Unknown source type: ${source.type}`);
 			}

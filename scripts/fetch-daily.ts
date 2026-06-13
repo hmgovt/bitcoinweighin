@@ -20,7 +20,7 @@ import {
 	dateRange,
 	parseDate,
 } from './sources.js';
-import { fetchStooq, fetchFRED, type FetchResult } from './fetchers.js';
+import { fetchFRED, fetchCoinGecko, fetchGoldApi, type FetchResult } from './fetchers.js';
 import {
 	fetchMassiveQuote,
 	MASSIVE_CROSS_VALIDATED,
@@ -34,8 +34,34 @@ const HEALTH_PATH = join(ROOT, 'static', 'health.json');
 
 type HealthMap = Record<
 	string,
-	{ status: string; httpStatus?: number; rowCount?: number; url?: string; error?: string }
+	{
+		status: string;
+		httpStatus?: number;
+		rowCount?: number;
+		url?: string;
+		error?: string;
+		matchedDate?: string;
+	}
 >;
+
+/**
+ * Pick the value for an exact date, or — if that date has no bar (weekend,
+ * holiday, publication lag) — the most recent bar on or before it. ISO date
+ * strings sort lexicographically, so string comparison is safe here.
+ */
+function latestOnOrBefore(
+	data: Map<string, number>,
+	dateStr: string
+): { value?: number; matchedDate?: string } {
+	const exact = data.get(dateStr);
+	if (exact !== undefined) return { value: exact, matchedDate: dateStr };
+
+	let best: string | undefined;
+	for (const d of data.keys()) {
+		if (d <= dateStr && (best === undefined || d > best)) best = d;
+	}
+	return best !== undefined ? { value: data.get(best), matchedDate: best } : {};
+}
 
 /**
  * Fetch all sources for a single date and return the assembled row, health map,
@@ -54,23 +80,33 @@ async function fetchSourcesForDate(
 		console.log(`Fetching ${source.id}...`);
 		try {
 			let result: FetchResult;
-			if (source.type === 'stooq') {
-				result = await fetchStooq(source, targetDate, targetDate);
+			if (source.type === 'coingecko') {
+				result = await fetchCoinGecko(source);
+			} else if (source.type === 'goldapi') {
+				result = await fetchGoldApi(source, dateStr);
 			} else {
-				result = await fetchFRED(source, targetDate, targetDate);
+				// Widen the FRED window so publication lag / non-trading days on the
+				// exact target date fall back to the latest prior bar in the series.
+				const fredStart = parseDate(dateStr);
+				fredStart.setDate(fredStart.getDate() - 10);
+				result = await fetchFRED(source, fredStart, targetDate);
 			}
 
-			const val = result.data.get(dateStr);
-			if (val !== undefined) {
-				row[source.field] = val;
+			const { value, matchedDate } = latestOnOrBefore(result.data, dateStr);
+			if (value !== undefined) {
+				row[source.field] = value;
 				health[source.id] = {
-					status: 'ok',
+					// A bar carried back from an earlier trading day is still real
+					// market data, not a stale repeat — distinguish it from 'ok'.
+					status: matchedDate === dateStr ? 'ok' : 'carry-back',
 					httpStatus: result.httpStatus,
 					rowCount: result.rowCount,
 					url: result.url,
+					...(matchedDate !== dateStr ? { matchedDate } : {}),
 				};
 			} else {
-				// Weekend/holiday/lag — forward-fill from last known row
+				// Source returned data but nothing on or before this date — fall back
+				// to the last committed row.
 				if (existsSync(NDJSON_PATH)) {
 					const lines = readFileSync(NDJSON_PATH, 'utf-8').trim().split('\n');
 					const lastRow = JSON.parse(lines[lines.length - 1]);

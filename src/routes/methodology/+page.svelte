@@ -77,19 +77,23 @@
 		<section id="data-sources" class="prose-section">
 			<h2>Data sources</h2>
 			<p>
-				Two providers between them cover every series in the live dataset. Each commodity is
+				Three providers between them cover every live series. Each commodity is
 				pinned to a single primary endpoint so the dataset has one parser, one rate-limit regime,
 				and one place to look when something disagrees with the rest of the financial press.
 			</p>
-			<h3>Stooq</h3>
+			<h3>CoinGecko</h3>
 			<p>
-				The primary source for BTC and for spot and continuous-front-month futures: BTC-USD
-				(<code>btcusd</code>), gold (<code>xauusd</code>), silver (<code>xagusd</code>), platinum
-				(<code>xptusd</code>), copper (<code>hg.c</code>), CBOT wheat (<code>zw.c</code>), and
-				ICE coffee (<code>kc.c</code>). Symbols use the <code>.c</code> suffix for continuous
-				contracts rather than <code>.f</code> per Stooq's published conventions. Stooq added an
-				API-key requirement after the initial bootstrap; the daily job sends the key with each
-				request, and a redacted form of every fetched URL is recorded in
+				The primary source for BTC-USD (coin id <code>bitcoin</code>) and for gold, priced via Pax
+				Gold (<code>pax-gold</code>) — a token redeemable for one fine troy ounce of LBMA gold that
+				tracks spot within a small premium. Both come from CoinGecko's keyless public API
+				(<code>market_chart</code>); the daily job records the last price of each UTC day. No API key
+				is required, so the shared pool is IP-throttled and the job backs off on HTTP&nbsp;429.
+								</p>
+				<h3>GoldAPI.io</h3>
+				<p>
+					The primary source for silver spot (<code>XAG/USD</code>, USD per troy ounce). The daily
+					job sends the key in the <code>x-access-token</code> header, and
+				a redacted form of every fetched URL is recorded in
 				<a href="/health.json" class="underline hover:no-underline">/health.json</a> so an
 				authentication failure surfaces clearly rather than presenting as silent forward-fill.
 			</p>
@@ -99,7 +103,15 @@
 				EIA spot price daily, typically with a one business-day lag. The daily job retries
 				transient HTTP errors on a backoff and forward-fills if the value never arrives.
 			</p>
-			<h3>Derived (no API)</h3>
+			<h3>Stooq (retired)</h3>
+				<p>
+					Stooq was the original source for BTC, gold, silver, and several deferred commodities
+					(platinum, copper, CBOT wheat, ICE coffee). It was dropped on 2026-06-13 after it began
+					blocking automated access. BTC, gold, and silver moved to the providers above; the
+					deferred commodities are not rendered in the interface and their historical values
+					remain frozen in the dataset.
+				</p>
+				<h3>Derived (no API)</h3>
 			<p>
 				BTC circulating supply is computed in <code>scripts/sources.ts</code> as a pure function
 				of days-since-genesis. Genesis is 2009-01-03; the protocol targets 144 blocks per day,
@@ -126,8 +138,8 @@
 				NDJSON that was bootstrapped before this column existed. Prospective per-row tracking
 				begins in v1.1, at which point the column will hold a pipe-delimited list of the
 				column names that were forward-filled on that date — for example
-				<code>xpt_usd|brent_usd</code> on a typical US-market holiday where the Stooq feeds
-				returned values but the FRED Brent series and Stooq XPT had not yet published.
+				<code>brent_usd</code> on a day where most feeds returned values but the FRED Brent
+				series had not yet published.
 			</p>
 			<p>
 				The daily cron writes a separate fill record per source into
@@ -340,7 +352,7 @@
 		<section id="cross-validation" class="prose-section">
 			<h2>Cross-validation</h2>
 			<p>
-				After the primary stooq and FRED fetches complete, the daily job queries a secondary
+				After the primary CoinGecko, GoldAPI.io, and FRED fetches complete, the daily job queries a secondary
 				source — Massive — for the same day's close on BTC-USD, XAU-USD, XAG-USD, and (where
 				available) XPT-USD. For each ticker where both providers return a value, the job
 				computes the absolute percent difference. When the difference exceeds 0.5%, an entry is

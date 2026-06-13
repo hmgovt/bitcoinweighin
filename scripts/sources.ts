@@ -5,28 +5,27 @@
 
 export interface SourceConfig {
 	id: string;
-	type: 'stooq' | 'fred' | 'coingecko';
-	symbol: string; // stooq symbol or FRED series ID
+	type: 'fred' | 'coingecko' | 'goldapi';
+	symbol: string; // CoinGecko coin id, GoldAPI metal code, or FRED series ID
 	field: string; // key name in prices.ndjson
 }
 
+// Stooq dropped 2026-06-13 after it began blocking automated access. The four
+// deferred commodities it used to supply (platinum, copper, wheat, coffee) were
+// not rendered in the launch UI and are no longer fetched; their historical
+// values remain frozen in data/prices.ndjson.
 export const SOURCES: SourceConfig[] = [
-	// BTC (stooq)
-	{ id: 'btc', type: 'stooq', symbol: 'btcusd', field: 'btc' },
+	// BTC — CoinGecko keyless public API
+	{ id: 'btc', type: 'coingecko', symbol: 'bitcoin', field: 'btc' },
 
-	// Precious metals (stooq)
-	{ id: 'gold', type: 'stooq', symbol: 'xauusd', field: 'xau' },
-	{ id: 'silver', type: 'stooq', symbol: 'xagusd', field: 'xag' },
-	{ id: 'platinum', type: 'stooq', symbol: 'xptusd', field: 'xpt' },
+	// Gold — PAX Gold (PAXG) on CoinGecko keyless; 1 PAXG = 1 fine troy oz,
+	// tracks LBMA spot within a small premium.
+	{ id: 'gold', type: 'coingecko', symbol: 'pax-gold', field: 'xau' },
 
-	// Industrial metals (stooq)
-	{ id: 'copper', type: 'stooq', symbol: 'hg.c', field: 'hg' },
+	// Silver — GoldAPI.io spot (USD/troy oz); requires GOLDAPI_KEY.
+	{ id: 'silver', type: 'goldapi', symbol: 'XAG', field: 'xag' },
 
-	// Agri (stooq)
-	{ id: 'wheat', type: 'stooq', symbol: 'zw.c', field: 'wheat' },
-	{ id: 'coffee', type: 'stooq', symbol: 'kc.c', field: 'coffee' },
-
-	// Energy (FRED)
+	// Energy — FRED
 	{ id: 'oil_brent', type: 'fred', symbol: 'DCOILBRENTEU', field: 'brent' },
 ];
 

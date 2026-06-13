@@ -37,25 +37,25 @@ export const COMMODITY_CONTENT: Record<string, CommodityContent> = {
 		title: 'Bitcoin to Gold: How Much Gold Does 1 BTC Buy Today?',
 		h1: 'Bitcoin to gold: how much gold does 1 BTC buy?',
 		metaDescription:
-			"How much gold does 1 bitcoin buy? Live BTC-to-gold ratio in troy ounces, with daily history back to 2013. Sourced from stooq's XAUUSD spot close.",
+			'How much gold does 1 bitcoin buy? Live BTC-to-gold ratio in troy ounces, with daily history back to 2013. Gold priced via Pax Gold (PAXG), a token tracking spot gold.',
 		intro: [
-			"One bitcoin currently buys roughly {ratio}. The ratio is recomputed every day at 02:00 UTC from the previous trading day's BTC-USD and XAU-USD closes on stooq — the same spot price the wholesale bullion market settles against. Move the slider on the homepage to see what a fractional or institutional-scale bitcoin position is worth in gold; the dataset goes back to 2 January 2013.",
+			"One bitcoin currently buys roughly {ratio}. The ratio is recomputed every day at 02:00 UTC from the latest BTC-USD price (CoinGecko) and the gold price — taken from Pax Gold (PAXG), a token redeemable for one fine troy ounce of LBMA Good Delivery gold that trades within a small premium of spot. Move the slider on the homepage to see what a fractional or institutional-scale bitcoin position is worth in gold; the dataset goes back to 2 January 2013.",
 			"Gold is the natural reference asset for any 'is bitcoin actually money?' question. It's mined at a roughly fixed 1.5% annual rate, has a four-thousand-year market history, and trades against every currency on the planet. A bitcoin's purchasing power in gold strips out fiat noise and leaves a pure scarcity-vs-scarcity ratio.",
 		],
 		context: [
 			"Gold's density is 19.32 g/cm³ — almost the densest naturally occurring metal you can hold without specialist handling. A troy ounce (31.1035 g) of gold occupies just 1.61 cm³, smaller than a sugar cube. The cube renderer on the homepage and this page draws the volume to true scale next to a constant 9-kg Shiba Inu so the eye has a reference.",
-			'For analysts, every BTC-to-gold pair in the dataset goes back to BTC\'s first liquid trading days. The full archive is published under CC-BY-4.0 at /data in CSV, JSON, NDJSON, and Parquet. The methodology page documents the stooq feed, the cross-validation step against Massive\'s secondary feed, and the forward-fill rule that handles weekends and exchange holidays.',
+			'For analysts, every BTC-to-gold pair in the dataset goes back to BTC\'s first liquid trading days. The full archive is published under CC-BY-4.0 at /data in CSV, JSON, NDJSON, and Parquet. The methodology page documents the data sources, the forward-fill rule that handles weekends and gaps, and the per-source health checks.',
 		],
 		faqs: [
 			{
 				question: 'How many troy ounces of gold does 1 bitcoin buy today?',
 				answer:
-					'About {ratio}. The number updates every day at 02:00 UTC from stooq XAUUSD and BTC-USD closes.',
+					'About {ratio}. The number updates every day at 02:00 UTC from CoinGecko BTC-USD and the Pax Gold (PAXG) gold price.',
 			},
 			{
 				question: 'How is the BTC-to-gold ratio calculated?',
 				answer:
-					"Each day's BTC-USD close is divided by the same day's XAU-USD close (USD per troy ounce). Both come from stooq's spot feeds. The methodology page describes the cross-validation, forward-fill, and per-source health-check rules.",
+					"Each day's BTC-USD price is divided by the same day's gold price (USD per troy ounce). BTC and gold (via Pax Gold) both come from CoinGecko. The methodology page describes the forward-fill and per-source health-check rules.",
 			},
 			{
 				question: 'Does the price include premiums for physical bullion?',
@@ -79,25 +79,25 @@ export const COMMODITY_CONTENT: Record<string, CommodityContent> = {
 		title: 'Bitcoin to Silver: How Much Silver Does 1 BTC Buy Today?',
 		h1: 'Bitcoin to silver: how much silver does 1 BTC buy?',
 		metaDescription:
-			'How much silver does 1 bitcoin buy? Live BTC-to-silver ratio in troy ounces, with daily history back to 2013. Sourced from stooq XAGUSD spot.',
+			'How much silver does 1 bitcoin buy? Live BTC-to-silver ratio in troy ounces, with daily history back to 2013. Silver priced from GoldAPI.io spot.',
 		intro: [
-			"One bitcoin currently buys roughly {ratio}. The ratio is recomputed every day at 02:00 UTC from the previous UTC trading day's BTC-USD and XAG-USD spot closes on stooq. The full history is published as a free CC-BY-4.0 dataset at /data so you can run your own gold-silver-bitcoin ratio analysis without an API key.",
+			"One bitcoin currently buys roughly {ratio}. The ratio is recomputed every day at 02:00 UTC from the latest BTC-USD price (CoinGecko) and the silver spot price (GoldAPI.io). The full history is published as a free CC-BY-4.0 dataset at /data so you can run your own gold-silver-bitcoin ratio analysis.",
 			"Silver is the high-volatility cousin in the precious-metals stack. It tracks gold loosely but has industrial-demand exposure (solar PV, electronics, batteries) that breaks the correlation in either direction. Pricing BTC in silver tends to amplify whatever's happening in BTC-USD because silver itself is the noisier denominator.",
 		],
 		context: [
 			'Silver is markedly less dense than gold — 10.49 g/cm³ versus 19.32 g/cm³ — so the same dollar value buys a much larger physical volume. The cube renderer on the homepage draws silver to true relative scale; at a thousand-USD position the cube is already palpably bigger than the equivalent gold cube. A US Mint "monster box" holds 500 troy oz; the comparison panel surfaces that as a tile when 1 BTC clears that threshold.',
-			"For machine-readable access, the BTC-silver pair is in the full daily dataset at /data alongside gold, platinum, copper, Brent crude, wheat, and coffee. The /methodology page documents stooq's XAGUSD continuous-front-month feed, the cross-validation step, and the forward-fill behaviour on weekends and exchange holidays.",
+			"For machine-readable access, the BTC-silver pair is in the full daily dataset at /data alongside gold and Brent crude, plus historical platinum, copper, wheat, and coffee. The /methodology page documents the GoldAPI.io silver feed, the forward-fill behaviour on weekends and gaps, and the per-source health checks.",
 		],
 		faqs: [
 			{
 				question: 'How many troy ounces of silver does 1 bitcoin buy today?',
 				answer:
-					'About {ratio}. Recomputed daily at 02:00 UTC from stooq XAGUSD and BTC-USD closes.',
+					'About {ratio}. Recomputed daily at 02:00 UTC from GoldAPI.io silver spot and CoinGecko BTC-USD.',
 			},
 			{
 				question: 'How is the BTC-to-silver ratio calculated?',
 				answer:
-					"Each day's BTC-USD close divided by the same day's XAG-USD close (USD per troy ounce). Both come from stooq spot feeds. Full methodology is at /methodology.",
+					"Each day's BTC-USD price divided by the same day's silver price (USD per troy ounce). BTC comes from CoinGecko, silver from GoldAPI.io. Full methodology is at /methodology.",
 			},
 			{
 				question: 'Is this spot silver or physical bullion?',
@@ -112,7 +112,7 @@ export const COMMODITY_CONTENT: Record<string, CommodityContent> = {
 			{
 				question: 'Where does the silver data come from?',
 				answer:
-					'stooq XAGUSD continuous spot. Cross-validated against Massive when both providers cover the same date. Forward-filled on weekends and holidays. See /methodology for full source notes.',
+					'GoldAPI.io spot (USD per troy ounce). Forward-filled on weekends and gaps. See /methodology for full source notes.',
 			},
 		],
 		relatedPages: RELATED_DEFAULT,

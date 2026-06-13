@@ -175,7 +175,7 @@ const gold: Commodity = {
 	cubeSpritePath: '/sprites/gold/cube@2x.webp',
 	cubeShadowPath: '/sprites/gold/cube-shadow@2x.webp',
 	sourceId: 'gold',
-	sourceName: 'stooq (XAUUSD)',
+	sourceName: 'CoinGecko (PAX Gold)',
 	dataQuality: 'live',
 	priceField: 'xau',
 	// 10-stage progression definition removed under cube-mode pivot (2026-04-25).
@@ -203,7 +203,7 @@ const silver: Commodity = {
 	cubeSpritePath: '/sprites/silver/cube@2x.webp',
 	cubeShadowPath: '/sprites/silver/cube-shadow@2x.webp',
 	sourceId: 'silver',
-	sourceName: 'stooq (XAGUSD)',
+	sourceName: 'GoldAPI.io (XAG/USD)',
 	dataQuality: 'live',
 	priceField: 'xag',
 	facts: [

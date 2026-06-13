@@ -19,12 +19,12 @@ export const HOMEPAGE_FAQS: FaqEntry[] = [
 	{
 		question: 'How much gold can 1 bitcoin buy today?',
 		answer:
-			'The exact ratio updates every day at 02:00 UTC from stooq XAUUSD spot prices. Move the slider on the homepage or open /btc/gold to see the current troy-ounce equivalent, plus the historical curve back to 2013.',
+			'The exact ratio updates every day at 02:00 UTC, pricing gold via Pax Gold (PAXG) on CoinGecko. Move the slider on the homepage or open /btc/gold to see the current troy-ounce equivalent, plus the historical curve back to 2013.',
 	},
 	{
 		question: 'How is the bitcoin-to-commodity price calculated?',
 		answer:
-			"Each day's BTC-USD close (from stooq) is divided by the commodity's USD-denominated close from the same trading day. Spot prices come from stooq (gold, silver, platinum, copper, coffee) and FRED (Brent crude). Bitcoin circulating supply is computed deterministically from the protocol's halving schedule. The full methodology is published at /methodology.",
+			"Each day's BTC-USD price (from CoinGecko) is divided by the commodity's USD-denominated price from the same day. Gold is priced via Pax Gold (PAXG) on CoinGecko, silver from GoldAPI.io, and Brent crude from FRED; historical platinum, copper, wheat, and coffee were sourced from Stooq. Bitcoin circulating supply is computed deterministically from the protocol's halving schedule. The full methodology is published at /methodology.",
 	},
 	{
 		question: 'Is the underlying dataset free to use?',
