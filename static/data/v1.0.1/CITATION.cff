@@ -7,7 +7,7 @@ authors:
     type: entity
     email: info@sortathing.com
 version: "1.0.1"
-date-released: "2026-06-12"
+date-released: "2026-06-13"
 url: "https://bitcoinweighin.com/data"
 repository-code: "https://github.com/hmgovt/bitcoinweighin"
 license: CC-BY-4.0
