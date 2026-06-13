@@ -90,7 +90,7 @@ export function hydrateFromUrl(latestDate: string) {
 		const entity = getEntity(presetSlug);
 		if (entity) {
 			activePreset.set(presetSlug);
-			selectedDate.set(clamp(entity.asOf ?? urlDate) ?? latestDate);
+			selectedDate.set(clamp(urlDate) || latestDate); // value at latest/shared date, not asOf — see activatePreset
 			btcAmount.set(entity.btc);
 		} else {
 			// Unknown slug — fall back to explicit params.
@@ -144,24 +144,24 @@ export function setDateFromPicker(date: string) {
 }
 
 /**
- * Activate a preset by entity slug. Flips selectedDate to the entity's
- * asOf (so the price calculation matches the dated valuation) and sets
- * btcAmount to the entity's holdings.
+ * Activate a preset by entity slug. Sets btcAmount to the entity's holdings
+ * and values it at the LATEST available price so every preset is compared
+ * like-for-like.
+ *
+ * The entity's `asOf` is reported-holdings provenance (surfaced on the pill
+ * as "845,256 BTC · June 2026"), NOT a valuation date. Pinning each preset to
+ * its own asOf priced two stacks on two different days, so a bigger BTC pile
+ * could read as "less" of a commodity purely because BTC moved between the
+ * dates — e.g. Strategy (845k @ 9 Jun, BTC $63.3k) showing under BlackRock
+ * (811k @ 22 May, BTC $75.8k). Valuing both at latest restores honest ordering.
  */
 export function activatePreset(presetSlug: string) {
 	const entity = getEntity(presetSlug);
 	if (!entity) return;
 
 	activePreset.set(presetSlug);
-	if (entity.asOf) {
-		// Entity asOf can lead the dataset (holdings reported today,
-		// before today's close has been published). Clamp to whichever
-		// date actually has price data.
-		const date =
-			datasetLatestDate && entity.asOf > datasetLatestDate
-				? datasetLatestDate
-				: entity.asOf;
-		selectedDate.set(date);
+	if (datasetLatestDate) {
+		selectedDate.set(datasetLatestDate);
 	}
 	btcAmount.set(entity.btc);
 }
