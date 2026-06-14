@@ -1,11 +1,11 @@
 {
   "version": "1.0.1",
-  "last_updated": "2026-06-13T10:32:03.686Z",
+  "last_updated": "2026-06-14T06:25:05.391Z",
   "coverage": {
     "first_date": "2013-01-02",
-    "last_date": "2026-06-12"
+    "last_date": "2026-06-13"
   },
-  "row_count": 4905,
+  "row_count": 4906,
   "title": "Bitcoin Weigh-In Daily Commodity Price Dataset",
   "abstract": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
   "homepage": "https://bitcoinweighin.com/data",
@@ -15,45 +15,21 @@
   "sources": [
     {
       "id": "btc",
-      "type": "stooq",
-      "symbol": "btcusd",
+      "type": "coingecko",
+      "symbol": "bitcoin",
       "field": "btc"
     },
     {
       "id": "gold",
-      "type": "stooq",
-      "symbol": "xauusd",
+      "type": "coingecko",
+      "symbol": "pax-gold",
       "field": "xau"
     },
     {
       "id": "silver",
-      "type": "stooq",
-      "symbol": "xagusd",
+      "type": "goldapi",
+      "symbol": "XAG",
       "field": "xag"
-    },
-    {
-      "id": "platinum",
-      "type": "stooq",
-      "symbol": "xptusd",
-      "field": "xpt"
-    },
-    {
-      "id": "copper",
-      "type": "stooq",
-      "symbol": "hg.c",
-      "field": "hg"
-    },
-    {
-      "id": "wheat",
-      "type": "stooq",
-      "symbol": "zw.c",
-      "field": "wheat"
-    },
-    {
-      "id": "coffee",
-      "type": "stooq",
-      "symbol": "kc.c",
-      "field": "coffee"
     },
     {
       "id": "oil_brent",
@@ -67,56 +43,56 @@
       "commodity": "Bitcoin",
       "ticker": "BTC-USD",
       "field": "btc_usd",
-      "originalSource": "Stooq",
-      "sourceUrl": "https://stooq.com/q/?s=btcusd",
+      "originalSource": "CoinGecko",
+      "sourceUrl": "https://www.coingecko.com/en/coins/bitcoin",
       "dataQuality": "live",
-      "updateCadence": "Daily (close)",
-      "licenseOfUnderlyingSource": "Stooq terms of service (free for non-commercial use; API key required)",
-      "notes": "Stooq publishes a continuous BTC-USD daily close aggregated across major spot exchanges."
+      "updateCadence": "Daily (last price per UTC day)",
+      "licenseOfUnderlyingSource": "CoinGecko keyless public API (free for non-commercial use; attribution requested)",
+      "notes": "CoinGecko market-chart USD price aggregated across major spot exchanges; the daily cron records the last point of each UTC day. Migrated from Stooq 2026-06-13 after Stooq began blocking automated access."
     },
     {
       "commodity": "Gold",
-      "ticker": "XAU-USD",
+      "ticker": "PAXG-USD",
       "field": "xau_usd",
-      "originalSource": "Stooq",
-      "sourceUrl": "https://stooq.com/q/?s=xauusd",
+      "originalSource": "CoinGecko (PAX Gold)",
+      "sourceUrl": "https://www.coingecko.com/en/coins/pax-gold",
       "dataQuality": "live",
-      "updateCadence": "Daily (London close)",
-      "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Spot gold per troy ounce, USD."
+      "updateCadence": "Daily (last price per UTC day)",
+      "licenseOfUnderlyingSource": "CoinGecko keyless public API (free for non-commercial use; attribution requested)",
+      "notes": "Proxy for spot gold per troy ounce, USD, via Pax Gold (PAXG) — a token redeemable 1:1 for a fine troy ounce of LBMA Good Delivery gold, which trades within a small premium of spot. Migrated from Stooq 2026-06-13."
     },
     {
       "commodity": "Silver",
       "ticker": "XAG-USD",
       "field": "xag_usd",
-      "originalSource": "Stooq",
-      "sourceUrl": "https://stooq.com/q/?s=xagusd",
+      "originalSource": "GoldAPI.io",
+      "sourceUrl": "https://www.goldapi.io/",
       "dataQuality": "live",
-      "updateCadence": "Daily (London close)",
-      "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Spot silver per troy ounce, USD."
+      "updateCadence": "Daily spot (USD/troy oz)",
+      "licenseOfUnderlyingSource": "GoldAPI.io free tier (API key required)",
+      "notes": "Spot silver per troy ounce, USD, from GoldAPI.io. Migrated from Stooq 2026-06-13 after Stooq began blocking automated access."
     },
     {
       "commodity": "Platinum",
       "ticker": "XPT-USD",
       "field": "xpt_usd",
-      "originalSource": "Stooq",
+      "originalSource": "Stooq (historical)",
       "sourceUrl": "https://stooq.com/q/?s=xptusd",
-      "dataQuality": "live",
-      "updateCadence": "Daily (London close)",
+      "dataQuality": "historical",
+      "updateCadence": "Frozen as of 2026-06-13",
       "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Spot platinum per troy ounce, USD."
+      "notes": "Spot platinum per troy ounce, USD. Not rendered in the launch UI; daily updates stopped 2026-06-13 when Stooq was dropped. Historical values retained in the dataset."
     },
     {
       "commodity": "Copper",
       "ticker": "HG (continuous)",
       "field": "copper_usd",
-      "originalSource": "Stooq",
+      "originalSource": "Stooq (historical)",
       "sourceUrl": "https://stooq.com/q/?s=hg.c",
-      "dataQuality": "live",
-      "updateCadence": "Daily (COMEX close)",
+      "dataQuality": "historical",
+      "updateCadence": "Frozen as of 2026-06-13",
       "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Continuous front-month copper futures (COMEX), USD per pound."
+      "notes": "Continuous front-month copper futures (COMEX), USD per pound. Not rendered in the launch UI; daily updates stopped 2026-06-13 when Stooq was dropped. Historical values retained in the dataset."
     },
     {
       "commodity": "Brent crude",
@@ -133,23 +109,23 @@
       "commodity": "Wheat",
       "ticker": "ZW (continuous)",
       "field": "wheat_usd",
-      "originalSource": "Stooq",
+      "originalSource": "Stooq (historical)",
       "sourceUrl": "https://stooq.com/q/?s=zw.c",
-      "dataQuality": "live",
-      "updateCadence": "Daily (CBOT close)",
+      "dataQuality": "historical",
+      "updateCadence": "Frozen as of 2026-06-13",
       "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Continuous front-month CBOT wheat futures, USD per bushel. Fetched but not yet rendered in the launch UI."
+      "notes": "Continuous front-month CBOT wheat futures, USD per bushel. Never rendered in the launch UI; daily updates stopped 2026-06-13 when Stooq was dropped. Historical values retained in the dataset."
     },
     {
       "commodity": "Coffee",
       "ticker": "KC (continuous)",
       "field": "coffee_usd",
-      "originalSource": "Stooq",
+      "originalSource": "Stooq (historical)",
       "sourceUrl": "https://stooq.com/q/?s=kc.c",
-      "dataQuality": "live",
-      "updateCadence": "Daily (ICE close)",
+      "dataQuality": "historical",
+      "updateCadence": "Frozen as of 2026-06-13",
       "licenseOfUnderlyingSource": "Stooq terms of service",
-      "notes": "Continuous front-month ICE Arabica coffee futures. Stooq quotes in USD cents per pound; normalised to USD per pound in coffee_usd."
+      "notes": "Continuous front-month ICE Arabica coffee futures, normalised to USD per pound. Never rendered in the launch UI; daily updates stopped 2026-06-13 when Stooq was dropped. Historical values retained in the dataset."
     },
     {
       "commodity": "BTC circulating supply",
@@ -191,12 +167,12 @@
   },
   "checksums": {
     "CHANGELOG.md": "6c671871d131011a84874899a25a19acf7eb3d6d03f42a71eefdff6556f4985f",
-    "CITATION.cff": "ac702e0803879915b35f0514ee9d77f91a2ba356a940b48c3d4b13ab3fc10642",
+    "CITATION.cff": "a996aab320da1efa95b600d743879bf12183f024de2d24adb6d066d7efbb2caa",
     "LICENSE.txt": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
-    "prices.csv": "754c3410bf9e402c60e6376a9e6a4a20661a23d798c93ca441771e46c796ad2f",
-    "prices.json": "654fdf6dc1d1f4db6ec5205cef1f2fbcbc3cd281023b0fbf1740f6cfeb3243b5",
-    "prices.ndjson": "22ec47ff158edb24a49eb05167a4c29bd92025193914cc4c069fabacfe77cd34",
-    "prices.parquet": "042d3fecc4fcf4f19317fd1fdeae50d375cd119af8e79552b73ce4a630ab9d5c",
+    "prices.csv": "68343b94d873158838876bd40f641369c12958edd94eb3b4d54d8ca470aea1f3",
+    "prices.json": "9fe157c8318d2565374e28ef95d76894c52b0064623425c9d23e72004ea9f136",
+    "prices.ndjson": "deeca4a5e5366012652f03062e7da507acb5d4e6bb4e834e0cf7941af0b06e27",
+    "prices.parquet": "2689deb6436b87bcb08c0e4764ad9b1ea01036900960a2118bfe158e148ca060",
     "schema.json": "0ae7badd92d0e984eb6fe8bb2f37512b4cf210aae485d2db6e639f9ca9724ac2"
   }
 }

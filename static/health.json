@@ -1,55 +1,32 @@
 {
-  "lastRun": "2026-06-13T06:07:36.654Z",
+  "lastRun": "2026-06-14T06:25:04.223Z",
   "type": "daily",
-  "date": "2026-06-12",
+  "date": "2026-06-13",
   "sources": {
     "btc": {
-      "status": "forward-filled",
+      "status": "ok",
       "httpStatus": 200,
-      "rowCount": 0,
-      "url": "https://stooq.com/q/d/l/?s=btcusd&d1=20260612&d2=20260612&i=d&apikey=***"
+      "rowCount": 3,
+      "url": "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=2"
     },
     "gold": {
-      "status": "forward-filled",
+      "status": "ok",
       "httpStatus": 200,
-      "rowCount": 0,
-      "url": "https://stooq.com/q/d/l/?s=xauusd&d1=20260612&d2=20260612&i=d&apikey=***"
+      "rowCount": 3,
+      "url": "https://api.coingecko.com/api/v3/coins/pax-gold/market_chart?vs_currency=usd&days=2"
     },
     "silver": {
-      "status": "forward-filled",
+      "status": "ok",
       "httpStatus": 200,
-      "rowCount": 0,
-      "url": "https://stooq.com/q/d/l/?s=xagusd&d1=20260612&d2=20260612&i=d&apikey=***"
-    },
-    "platinum": {
-      "status": "forward-filled",
-      "httpStatus": 200,
-      "rowCount": 0,
-      "url": "https://stooq.com/q/d/l/?s=xptusd&d1=20260612&d2=20260612&i=d&apikey=***"
-    },
-    "copper": {
-      "status": "forward-filled",
-      "httpStatus": 200,
-      "rowCount": 0,
-      "url": "https://stooq.com/q/d/l/?s=hg.c&d1=20260612&d2=20260612&i=d&apikey=***"
-    },
-    "wheat": {
-      "status": "forward-filled",
-      "httpStatus": 200,
-      "rowCount": 0,
-      "url": "https://stooq.com/q/d/l/?s=zw.c&d1=20260612&d2=20260612&i=d&apikey=***"
-    },
-    "coffee": {
-      "status": "forward-filled",
-      "httpStatus": 200,
-      "rowCount": 0,
-      "url": "https://stooq.com/q/d/l/?s=kc.c&d1=20260612&d2=20260612&i=d&apikey=***"
+      "rowCount": 1,
+      "url": "https://www.goldapi.io/api/XAG/USD"
     },
     "oil_brent": {
-      "status": "forward-filled",
+      "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 0,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-06-12&observation_end=2026-06-12&api_key=***&file_type=json"
+      "rowCount": 4,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-06-03&observation_end=2026-06-13&api_key=20dc3ceebf17a1c21a98984e2ad9259a&file_type=json",
+      "matchedDate": "2026-06-08"
     }
   },
   "cross_validation": {
@@ -71,7 +48,7 @@
       },
       {
         "field": "xpt",
-        "reason": "HTTP 404"
+        "reason": "no stooq value to compare"
       }
     ],
     "flags": []
