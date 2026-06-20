@@ -1,11 +1,11 @@
 {
   "monthKey": "2026-06",
-  "postsThisMonth": 95,
-  "creditsSpentCents": 196,
+  "postsThisMonth": 96,
+  "creditsSpentCents": 198,
   "lastSlotDate": {
     "gold-am": "2026-06-20",
     "silver-mid": "2026-06-20",
-    "cocaine-eve": "2026-06-19",
+    "cocaine-eve": "2026-06-20",
     "pu238-night": "2026-06-20",
     "hashweight-mid": "2026-06-20"
   },
@@ -695,6 +695,13 @@
       "commodity": "silver",
       "tweetId": "2068395576954429779",
       "caption": "In silver, 1 BTC held steady overnight — within a rounding error of yesterday's close."
+    },
+    {
+      "at": "2026-06-20T22:01:22.865Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2068454202607845549",
+      "caption": "1 BTC today = 2.1 kg (4.6 lb) of cocaine, at wholesale."
     }
   ]
 }
