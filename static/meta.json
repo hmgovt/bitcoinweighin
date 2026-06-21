@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2026-06-20T06:10:18.396Z",
+  "lastUpdated": "2026-06-21T06:42:16.053Z",
   "dateRange": {
     "first": "2013-01-02",
-    "last": "2026-06-19"
+    "last": "2026-06-20"
   },
-  "totalDates": 4912,
-  "fileSizeBytes": 462443,
+  "totalDates": 4913,
+  "fileSizeBytes": 462557,
   "sources": [
     {
       "id": "btc",
