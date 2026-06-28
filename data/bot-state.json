@@ -1,9 +1,9 @@
 {
   "monthKey": "2026-06",
-  "postsThisMonth": 132,
-  "creditsSpentCents": 270,
+  "postsThisMonth": 133,
+  "creditsSpentCents": 272,
   "lastSlotDate": {
-    "gold-am": "2026-06-27",
+    "gold-am": "2026-06-28",
     "silver-mid": "2026-06-27",
     "cocaine-eve": "2026-06-27",
     "pu238-night": "2026-06-28",
@@ -954,6 +954,13 @@
       "commodity": "pu238",
       "tweetId": "2071101908362862897",
       "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-28T14:47:00.289Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2071244152168181914",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 460 g (1.01 lb)."
     }
   ]
 }
