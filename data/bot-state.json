@@ -1,12 +1,12 @@
 {
   "monthKey": "2026-06",
-  "postsThisMonth": 136,
-  "creditsSpentCents": 278,
+  "postsThisMonth": 137,
+  "creditsSpentCents": 280,
   "lastSlotDate": {
     "gold-am": "2026-06-28",
     "silver-mid": "2026-06-28",
     "cocaine-eve": "2026-06-28",
-    "pu238-night": "2026-06-28",
+    "pu238-night": "2026-06-29",
     "hashweight-mid": "2026-06-28"
   },
   "posts": [
@@ -982,6 +982,13 @@
       "commodity": "cocaine",
       "tweetId": "2071352186693365944",
       "caption": "1 BTC today = 2.0 kg (4.4 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-29T05:56:00.318Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2071472910091632765",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
     }
   ]
 }
