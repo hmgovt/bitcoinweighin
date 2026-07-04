@@ -1,10 +1,10 @@
 {
   "monthKey": "2026-07",
-  "postsThisMonth": 18,
-  "creditsSpentCents": 334,
+  "postsThisMonth": 19,
+  "creditsSpentCents": 336,
   "lastSlotDate": {
     "gold-am": "2026-07-04",
-    "silver-mid": "2026-07-03",
+    "silver-mid": "2026-07-04",
     "cocaine-eve": "2026-07-03",
     "pu238-night": "2026-07-04",
     "hashweight-mid": "2026-07-04"
@@ -1178,6 +1178,13 @@
       "commodity": "hashweight",
       "tweetId": "2073438244717425003",
       "caption": "The Bitcoin network's mining hardware weighs ~85,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 945 EH/s."
+    },
+    {
+      "at": "2026-07-04T17:59:22.482Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2073466846268018736",
+      "caption": "In silver, 1 BTC grew heavier by a basketball since yesterday's close (+563 g)."
     }
   ]
 }
