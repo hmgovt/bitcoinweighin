@@ -1,11 +1,11 @@
 {
   "monthKey": "2026-07",
-  "postsThisMonth": 24,
-  "creditsSpentCents": 346,
+  "postsThisMonth": 25,
+  "creditsSpentCents": 348,
   "lastSlotDate": {
     "gold-am": "2026-07-05",
     "silver-mid": "2026-07-05",
-    "cocaine-eve": "2026-07-04",
+    "cocaine-eve": "2026-07-05",
     "pu238-night": "2026-07-05",
     "hashweight-mid": "2026-07-05"
   },
@@ -1220,6 +1220,13 @@
       "commodity": "silver",
       "tweetId": "2073829079439020104",
       "caption": "In silver, 1 BTC grew heavier by a full can of soda since yesterday's close (+299 g)."
+    },
+    {
+      "at": "2026-07-05T21:54:24.902Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2073888293461074309",
+      "caption": "1 BTC today = 2.1 kg (4.6 lb) of cocaine, at wholesale."
     }
   ]
 }
