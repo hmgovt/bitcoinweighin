@@ -510,6 +510,7 @@
 			btcAmount={sceneBtc}
 			btcUsdPrice={dayPrices?.btc ?? 0}
 			{prices}
+			selectedDate={$selectedDate}
 		>
 			{#snippet controls()}
 			<!-- Controls — two-row compact panel (~120px tall) -->
