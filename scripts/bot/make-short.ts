@@ -7,7 +7,8 @@
  *   3. delta  — the same panel + the day-over-day weight-delta reframe
  *
  * It reuses the bot's capture approach (deep-link → headless chromium →
- * screenshot) and the delta engine (deltas.ts / objects.json), then stitches
+ * screenshot) and the shared delta engine (src/lib/deltas.ts +
+ * src/lib/delta-objects.json), then stitches
  * the three stills into an MP4 with a gentle ken-burns zoom and crossfades
  * via ffmpeg. It writes nothing to X — that's the caller's job.
  *
@@ -27,11 +28,11 @@ import { spawn } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import { dirname, join, resolve, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computeDelta } from './deltas.ts';
+import { computeDelta, gramsPerBtc, type DeltaObjectsFile } from '../../src/lib/deltas.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, '..', '..');
-const OBJECTS_PATH = join(__dirname, 'objects.json');
+const OBJECTS_PATH = join(PROJECT_ROOT, 'src', 'lib', 'delta-objects.json');
 const CONFIG_PATH = join(__dirname, 'config.json');
 const PRICES_PATH = join(PROJECT_ROOT, 'static', 'prices.json');
 const OUT_DIR = join(PROJECT_ROOT, 'output', 'shorts');
@@ -41,7 +42,6 @@ const SITE_BASE_URL = process.env.SITE_BASE_URL ?? 'http://localhost:5173';
 const W = 1080;
 const H = 1920;
 const FPS = 30;
-const TROY_OZ_G = 31.1035;
 const LB_PER_KG = 2.20462;
 
 // Beat durations (seconds) and crossfade length.
@@ -65,14 +65,6 @@ interface Config {
 }
 type DayPrices = { btc: number; [field: string]: number };
 type PriceData = Record<string, DayPrices>;
-
-// ── Content math (mirrors run.ts/deltas.ts; kept local so run.ts stays untouched) ──
-function gramsPerBtc(commodity: CommodityId, day: DayPrices, objs: any): number {
-	const rule = objs.pricing[commodity];
-	if (rule.kind === 'fixed') return day.btc / rule.usdPerGram;
-	const usdPerGram = rule.perTroyOz ? day[rule.field] / TROY_OZ_G : day[rule.field];
-	return day.btc / usdPerGram;
-}
 
 function fmtWeight(grams: number): string {
 	const kg = grams / 1000;
@@ -105,11 +97,11 @@ function humanDate(iso: string): string {
 }
 
 /** Compute the three on-screen lines for a commodity on the latest dataset day. */
-function buildBeats(commodity: CommodityId, cfg: Config, objs: any, prices: PriceData): Beats {
+function buildBeats(commodity: CommodityId, cfg: Config, objs: DeltaObjectsFile, prices: PriceData): Beats {
 	const dates = Object.keys(prices).sort();
 	const [pd, cd] = [dates[dates.length - 2], dates[dates.length - 1]];
 	const phys = cfg.physical[commodity];
-	const grams = gramsPerBtc(commodity, prices[cd], objs);
+	const grams = gramsPerBtc(objs, commodity, prices[cd]);
 	const weight = fmtWeight(grams);
 
 	let revealMain: string;
@@ -392,7 +384,7 @@ async function main() {
 
 	const [cfg, objs, prices] = await Promise.all([
 		fs.readFile(CONFIG_PATH, 'utf-8').then(JSON.parse) as Promise<Config>,
-		fs.readFile(OBJECTS_PATH, 'utf-8').then(JSON.parse),
+		fs.readFile(OBJECTS_PATH, 'utf-8').then(JSON.parse) as Promise<DeltaObjectsFile>,
 		fs.readFile(PRICES_PATH, 'utf-8').then(JSON.parse) as Promise<PriceData>,
 	]);
 

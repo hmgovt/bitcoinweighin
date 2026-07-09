@@ -2,8 +2,9 @@
  * drift.test.ts — cross-source constant equality.
  *
  * functions/_lib.ts openly declares itself a "minimal copy" of src/lib/
- * kept in sync by hand, and scripts/bot/deltas.ts prices commodities from
- * its own JSON. Hand-sync has already drifted once (the cocaine OG price
+ * kept in sync by hand, and src/lib/delta-objects.json (consumed by both
+ * the homepage's Daily Delta line and the X bot) has its own pricing
+ * figures. Hand-sync has already drifted once (the cocaine OG price
  * shipped at $35/g while the site and bot used $30/g — see DECISIONS.md
  * 2026-06-09 audit, finding Q1). These tests pin every duplicated
  * pricing/format constant to its src/lib source so that class of bug
@@ -13,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { OG_COMMODITIES } from '../functions/_lib.js';
 import { getCommodity } from '../src/lib/commodities.js';
 import illustrativePrices from '../src/lib/illustrative-prices.json';
-import objects from '../scripts/bot/objects.json';
+import objects from '../src/lib/delta-objects.json';
 
 describe('functions/_lib.ts OG_COMMODITIES vs src/lib/commodities.ts', () => {
 	const ids = ['gold', 'silver', 'pu238', 'cocaine'] as const;
@@ -46,11 +47,11 @@ describe('functions/_lib.ts illustrative prices vs src/lib/illustrative-prices.j
 	});
 });
 
-describe('scripts/bot/objects.json pricing vs src/lib/illustrative-prices.json', () => {
-	// The bot's fixed-price commodities (cocaine, pu238) duplicate the USD/g
-	// figure that illustrative-prices.json already carries. Live commodities
-	// (gold, silver) read prices.json directly and have no separate constant
-	// to drift, so they're not asserted here.
+describe('src/lib/delta-objects.json pricing vs src/lib/illustrative-prices.json', () => {
+	// The bot/homepage delta engine's fixed-price commodities (cocaine, pu238)
+	// duplicate the USD/g figure that illustrative-prices.json already
+	// carries. Live commodities (gold, silver) read prices.json directly and
+	// have no separate constant to drift, so they're not asserted here.
 	it('cocaine: usdPerGram matches the wholesale tier ($/kg -> $/g)', () => {
 		const wholesalePerGram = illustrativePrices.cocaine.tiers.wholesale.pricePerKg / 1000;
 		const rule = objects.pricing.cocaine;
