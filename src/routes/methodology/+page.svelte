@@ -233,6 +233,48 @@
 				how other commodities are priced (standardised purity, kilogram-scale transactions).
 				As-of date: 2024-12-31.
 			</p>
+			<h3>Impossibility lines</h3>
+			<p>
+				Past a certain quantity, comparing to a real-world object stops being honest — there is no
+				gold bar, silver hoard, or production run of that size. Four figures mark where the readout
+				switches from "here's what this looks like" to "this has never existed," and each overshoot
+				is stated as a multiple computed from these figures, never a hardcoded number:
+			</p>
+			<ul class="my-3 list-disc pl-6 text-sm">
+				<li>
+					<strong>All gold ever mined:</strong> ~213,000 t (World Gold Council 2024) —
+					already the largest gold quantity anchor on the site.
+				</li>
+				<li>
+					<strong>All silver ever mined:</strong> ~1,740,000 t (USGS / The Silver Institute) —
+					already the largest silver quantity anchor on the site.
+				</li>
+				<li>
+					<strong>Global annual cocaine production:</strong> ~2,250 t/yr (UNODC 2024 estimate,
+					the figure already used by the denomination and brick-stack copy above). The same
+					report's newest headline number, for 2022 output, is a record ~2,757 t — sources on
+					annual cocaine manufacture range roughly 2,250–2,800 t/yr depending on report vintage;
+					the site keeps its previously established, more conservative figure rather than
+					introducing a second, slightly different total for the same concept.
+				</li>
+				<li>
+					<strong>Global annual Pu-238 production:</strong> the US restart at Oak Ridge has ramped
+					from ~50 g/yr (2015) through ~400 g/yr (2023) toward a ~1.5 kg/yr steady-state target by
+					2026 (DOE Office of Nuclear Energy / NASA Planetary Science Division). The site uses the
+					1.5 kg/yr target — the higher, more conservative figure — for its "years of global
+					production" framing.
+				</li>
+			</ul>
+			<h3>Plutonium-238 decay heat</h3>
+			<p>
+				Pure Pu-238 metal generates ~0.567 W/g of decay heat. The visualiser depicts the oxide fuel
+				(PuO₂, see "Density and the cube" above), whose effective specific power is lower —
+				approximately 0.40–0.42 W/g of oxide — because RTG-grade material is not isotopically pure
+				Pu-238 and because PuO₂ carries the oxygen's extra molecular weight. The readout uses the
+				midpoint, 0.41 W/g of oxide, applied to the same oxide mass the cube is sized from. Source:
+				DOE Office of Nuclear Energy / NASA Planetary Science Division published RTG fuel
+				specifications.
+			</p>
 		</section>
 
 		<section id="visualiser" class="prose-section">
