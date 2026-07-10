@@ -106,7 +106,8 @@
 			"displayName": "≈ all gold ever mined",
 			"description": "Fits in a cube ~22 m on a side. Warren Buffett's frame.",
 			"source": "World Gold Council 2024",
-			"priority": 1
+			"priority": 1,
+			"impossibilityVerb": "mined"
 		}
 	],
 	"silver": [
@@ -175,7 +176,8 @@
 			"displayName": "≈ all silver ever mined",
 			"description": "All silver mined throughout human history.",
 			"source": "USGS / The Silver Institute",
-			"priority": 1
+			"priority": 1,
+			"impossibilityVerb": "mined"
 		}
 	]
 }
