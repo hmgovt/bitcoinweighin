@@ -16,6 +16,8 @@
 	import type { Commodity } from '$lib/commodities.js';
 	import type { PriceData } from '$lib/prices.js';
 	import { computeMassGrams } from '$lib/volume.js';
+	import { computeDelta, type CommodityId as DeltaCommodityId, type DeltaObjectsFile } from '$lib/deltas.js';
+	import deltaObjectsJson from '$lib/delta-objects.json';
 	import LiveStage from '$lib/scene/LiveStage.svelte';
 	import ReadoutStrip from './ReadoutStrip.svelte';
 	import QuantityAnchorCard from './QuantityAnchorCard.svelte';
@@ -26,6 +28,8 @@
 	import CocaineReadout from './CocaineReadout.svelte';
 	import QualityBadge from './QualityBadge.svelte';
 
+	const deltaObjects = deltaObjectsJson as unknown as DeltaObjectsFile;
+
 	let {
 		commodities,
 		selectedId = $bindable('gold'),
@@ -33,6 +37,7 @@
 		btcAmount,
 		btcUsdPrice,
 		prices,
+		selectedDate = '',
 		controls,
 	}: {
 		/** Hero tabs in locked order: gold, silver, pu238, cocaine. */
@@ -43,6 +48,14 @@
 		btcAmount: number;
 		btcUsdPrice: number;
 		prices: PriceData | null;
+		/**
+		 * Currently viewed date (YYYY-MM-DD), i.e. the page's `$selectedDate`.
+		 * Drives the Daily Delta line: at the latest date it compares the last
+		 * two archive days ("since yesterday's close"); scrubbed to an earlier
+		 * date, it compares that date to its previous trading day ("since the
+		 * previous close").
+		 */
+		selectedDate?: string;
 		/** Slider/controls, rendered between the stage and the readout. The page
 		 *  owns the slider (URL sync + preset tween); the hero owns its position. */
 		controls?: Snippet;
@@ -82,6 +95,61 @@
 
 	const massGrams = $derived(amount > 0 ? (computeMassGrams(amount, active) ?? 0) : 0);
 	const massKg = $derived(massGrams / 1000);
+
+	// ── Daily Delta line ──────────────────────────────────────────
+	// The bot's day-over-day reframe ("1 BTC put on a golf ball of gold
+	// since yesterday's close"), ported to the homepage via src/lib/deltas.ts.
+	// Always framed on 1 BTC — independent of the slider's current amount.
+	const sortedDates = $derived(prices ? Object.keys(prices).sort() : []);
+
+	const dailyDelta = $derived.by(() => {
+		if (sortedDates.length < 2) return null; // initial SSR: only the latest day is inlined
+		if (!(active.id in deltaObjects.pricing)) return null;
+
+		const latest = sortedDates[sortedDates.length - 1];
+		let prevIdx: number;
+		let currIdx: number;
+		let sincePhrase: string | undefined;
+
+		if (!selectedDate || selectedDate === latest) {
+			// Default view: the last two archive days, bot's original wording.
+			prevIdx = sortedDates.length - 2;
+			currIdx = sortedDates.length - 1;
+			sincePhrase = undefined;
+		} else {
+			// Date-scrub mode: compare the scrubbed date to its previous
+			// trading day in the archive, not literally "yesterday".
+			const idx = sortedDates.indexOf(selectedDate);
+			if (idx <= 0) return null; // scrubbed date not yet loaded, or no earlier day exists
+			prevIdx = idx - 1;
+			currIdx = idx;
+			sincePhrase = 'the previous close';
+		}
+
+		const prevDate = sortedDates[prevIdx];
+		const currDate = sortedDates[currIdx];
+		const prevDay = prices?.[prevDate];
+		const currDay = prices?.[currDate];
+		if (!prevDay || !currDay) return null;
+
+		return computeDelta(
+			deltaObjects,
+			active.id as DeltaCommodityId,
+			{ date: prevDate, day: prevDay },
+			{ date: currDate, day: currDay },
+			sincePhrase ? { sincePhrase } : undefined
+		);
+	});
+
+	/** Split "...since yesterday's close (+46 g)." into sentence / figure / trailing punctuation
+	 *  so the parenthetical can render in tabular-nums without extra markup upstream. */
+	const deltaCaptionParts = $derived.by(() => {
+		const caption = dailyDelta?.caption ?? '';
+		if (!caption) return null;
+		const m = caption.match(/^(.*?)(\([^()]*\))([.!?]?)$/);
+		if (!m) return { main: caption, figure: '', tail: '' };
+		return { main: m[1], figure: m[2], tail: m[3] };
+	});
 
 	// The bot waits on data-commodity to confirm the deep-linked tab is active
 	// AND rendered before screenshotting. For metals the LiveStage poster/canvas
@@ -205,6 +273,16 @@
 				activityCi={isPu ? activityCiText : null}
 				activityDps={isPu ? dpsBig : null}
 			/>
+			<!--
+				Daily Delta line — always in the DOM (reserves its line height) so
+				the archive's async load-in doesn't shift layout; content fills in
+				once >=2 dataset days are loaded. See src/lib/deltas.ts.
+			-->
+			<p class="delta-line">
+				{#if deltaCaptionParts}
+					{deltaCaptionParts.main}<span class="delta-figure">{deltaCaptionParts.figure}</span>{deltaCaptionParts.tail}
+				{/if}
+			</p>
 			{#if staged}
 				<!--
 					Staging honesty line: when the dog walks to the foreground the
@@ -330,6 +408,24 @@
 		flex-direction: column;
 		gap: 8px;
 	}
+
+	/* Daily Delta line — quiet, dry, matches the bot's own voice. Always
+	   rendered (see markup) so its reserved line height never shifts layout
+	   when the background archive fetch fills the caption in. */
+	.delta-line {
+		margin: 0;
+		min-height: 18px;
+		font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+		font-size: 12px;
+		line-height: 1.5;
+		color: #71717a; /* zinc-500 */
+		letter-spacing: 0.005em;
+	}
+	.delta-figure {
+		font-variant-numeric: tabular-nums;
+		color: #a1a1aa; /* zinc-400 — a touch brighter, mirrors .metric-dim elsewhere */
+	}
+
 	.staging-line {
 		margin: 0;
 		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;

@@ -70,7 +70,10 @@ export const OG_COMMODITIES: Record<string, OgCommodity> = {
 		priceField: 'cocaine',
 		dataQuality: 'illustrative',
 		// UNODC wholesale tier midpoint, USD per gram (illustrative).
-		illustrativePricePerUnit: 35,
+		// $30,000/kg — matches src/lib/illustrative-prices.json
+		// (tiers.wholesale.pricePerKg) and scripts/bot pricing; guarded by
+		// tests/drift.test.ts so this can't silently drift again.
+		illustrativePricePerUnit: 30,
 		accentColor: '#f4f4f5',
 	},
 };

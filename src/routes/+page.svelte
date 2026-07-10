@@ -351,29 +351,49 @@
 			: 'Bitcoin Weigh-In — BTC purchasing power in physical commodities'
 	);
 
-	onMount(async () => {
-		// Preset tween respects reduced-motion (jump instead of dolly).
-		reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+	// ── Beehiiv subscribe form ──────────────────────────────────
+	// Beehiiv v3 INLINE forms render exactly where the embed <script> tag
+	// sits in the DOM; only popup/slide/sticky layouts self-position. The
+	// previous body-append + idle-defer put the form at the literal bottom
+	// of the document, seconds late — invisible unless a visitor hard-
+	// scrolled and waited, i.e. no signups. The script is now injected
+	// INTO the visible subscribe section below, when that section
+	// approaches the viewport (600 px root margin), with a timed floor so
+	// a popup/slide-configured form still fires for non-scrollers.
+	let subscribeSlotEl: HTMLElement | undefined = $state();
 
-		// Beehiiv loader self-positions (sticky-bottom). Append to body so
-		// the script governs its own placement rather than getting trapped
-		// inside an inline container. Defer to idle — the subscribe form is
-		// below the fold and not needed for first paint; injecting the
-		// script during onMount adds ~30 ms to the TBT measurement window.
+	$effect(() => {
+		const slot = subscribeSlotEl;
+		if (!slot) return;
 		const BEEHIIV_ID = '6a25c97c-4b00-4c3e-9ed4-cb25c2db7be2';
-		const insertBeehiiv = () => {
+		const inject = () => {
 			if (document.querySelector(`script[data-beehiiv-form="${BEEHIIV_ID}"]`)) return;
 			const s = document.createElement('script');
 			s.async = true;
 			s.src = 'https://subscribe-forms.beehiiv.com/v3/loader.js';
 			s.setAttribute('data-beehiiv-form', BEEHIIV_ID);
-			document.body.appendChild(s);
+			slot.appendChild(s);
 		};
-		if (typeof requestIdleCallback === 'function') {
-			requestIdleCallback(insertBeehiiv, { timeout: 4000 });
-		} else {
-			setTimeout(insertBeehiiv, 1500);
-		}
+		const obs = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((e) => e.isIntersecting)) {
+					inject();
+					obs.disconnect();
+				}
+			},
+			{ rootMargin: '600px 0px' }
+		);
+		obs.observe(slot);
+		const floor = setTimeout(inject, 8000);
+		return () => {
+			obs.disconnect();
+			clearTimeout(floor);
+		};
+	});
+
+	onMount(async () => {
+		// Preset tween respects reduced-motion (jump instead of dolly).
+		reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 		// Background load of the full archive so the slider/preset can
 		// reach historical dates. Initial render already has today's
@@ -465,10 +485,8 @@
 
 	<!--
 		Header: two-zone layout. Brand left (image + subtitle), preset pills
-		right. The subscribe form has moved out of the header — Beehiiv code
-		decides where it surfaces (sticky-bottom or wherever the loader chooses);
-		the markup container lives later in the document so the loader has a
-		DOM target to attach to without crowding the masthead.
+		right. The subscribe form lives in its own visible section after the
+		Hashweight panel (see .subscribe-section below) — not in the header.
 	-->
 	<div class="mx-auto max-w-[1280px] px-6 pt-4 sm:pt-6">
 		<header class="site-header">
@@ -510,6 +528,7 @@
 			btcAmount={sceneBtc}
 			btcUsdPrice={dayPrices?.btc ?? 0}
 			{prices}
+			selectedDate={$selectedDate}
 		>
 			{#snippet controls()}
 			<!-- Controls — two-row compact panel (~120px tall) -->
@@ -587,6 +606,20 @@
 		<div class="mt-12">
 			<NetworkWeightPanel />
 		</div>
+
+		<!--
+			Subscribe — The Weigh-In. The Beehiiv inline form renders INSIDE
+			.subscribe-slot (the v3 loader places inline forms at the embed
+			script's DOM position; see the $effect above). min-height reserves
+			space so the async form doesn't shift layout when it lands.
+		-->
+		<section aria-labelledby="subscribe-heading" class="subscribe-section mt-12">
+			<h2 id="subscribe-heading" class="subscribe-heading">The Weigh-In — the newsletter</h2>
+			<p class="subscribe-sub">What a bitcoin weighs, and what moved it. Same voice as the site.</p>
+			<div bind:this={subscribeSlotEl} class="subscribe-slot">
+				<noscript><p class="subscribe-sub">The subscribe form needs JavaScript.</p></noscript>
+			</div>
+		</section>
 	</div>
 
 		<!--
@@ -682,6 +715,32 @@
 </div>
 
 <style>
+	/* ── Subscribe section ─────────────────────────── */
+	.subscribe-section {
+		background: #09090b;
+		border-radius: 12px;
+		padding: 24px;
+	}
+	.subscribe-heading {
+		font-family: 'Inter Tight', 'Inter', sans-serif;
+		font-size: 22px;
+		font-weight: 600;
+		color: #f4f4f5;
+		margin: 0 0 6px 0;
+		letter-spacing: -0.02em;
+	}
+	.subscribe-sub {
+		font-size: 14px;
+		color: #71717a;
+		margin: 0 0 16px 0;
+		line-height: 1.5;
+		max-width: 540px;
+	}
+	.subscribe-slot {
+		/* Reserve roughly one slim inline form's height; grows when it lands. */
+		min-height: 96px;
+	}
+
 	.controls-panel {
 		background: #18181b; /* zinc-900 */
 		border-radius: 8px;

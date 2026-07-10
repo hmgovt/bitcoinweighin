@@ -18,13 +18,13 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderCard, renderHashweightCard } from './make-card.ts';
 import { postTweet } from './post.ts';
-import { computeDelta } from './deltas.ts';
+import { computeDelta, gramsPerBtc, type DeltaObjectsFile } from '../../src/lib/deltas.ts';
 import { fetchHashrateEH, computeNetworkWeight } from '../../src/lib/network-weight.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, '..', '..');
 const CONFIG_PATH = join(__dirname, 'config.json');
-const OBJECTS_PATH = join(__dirname, 'objects.json');
+const OBJECTS_PATH = join(PROJECT_ROOT, 'src', 'lib', 'delta-objects.json');
 const PRICES_PATH = join(PROJECT_ROOT, 'static', 'prices.json');
 const STATE_PATH = join(PROJECT_ROOT, 'data', 'bot-state.json');
 const CARD_OUT = join(PROJECT_ROOT, 'output', 'cards');
@@ -55,7 +55,6 @@ interface State {
 type DayPrices = { btc: number; [field: string]: number };
 type PriceData = Record<string, DayPrices>;
 
-const TROY_OZ_G = 31.1035;
 const LB_PER_KG = 2.20462;
 const HASHRATE_FALLBACK_EH = 800; // mirrors NetworkWeightPanel's offline fallback
 
@@ -73,14 +72,6 @@ function monthKeyOf(d: Date): string {
 }
 function isoDate(d: Date): string {
 	return d.toISOString().slice(0, 10);
-}
-
-/** grams of `commodity` that 1 BTC buys at a day's prices (mirrors deltas.ts). */
-function gramsPerBtc(commodity: CommodityId, day: DayPrices, objs: any): number {
-	const rule = objs.pricing[commodity];
-	if (rule.kind === 'fixed') return day.btc / rule.usdPerGram;
-	const usdPerGram = rule.perTroyOz ? day[rule.field] / TROY_OZ_G : day[rule.field];
-	return day.btc / usdPerGram;
 }
 
 function fmtWeight(grams: number): string {
@@ -103,9 +94,9 @@ interface Content {
 	commodity: CommodityId | 'hashweight';
 }
 
-function buildAbsolute(slot: Slot, cfg: Config, objs: any, day: DayPrices): Content {
+function buildAbsolute(slot: Slot, cfg: Config, objs: DeltaObjectsFile, day: DayPrices): Content {
 	const phys = cfg.physical[slot.commodity as CommodityId];
-	const grams = gramsPerBtc(slot.commodity as CommodityId, day, objs) * slot.btc;
+	const grams = gramsPerBtc(objs, slot.commodity as CommodityId, day) * slot.btc;
 	const weight = fmtWeight(grams);
 
 	let caption: string;
@@ -125,7 +116,7 @@ function buildAbsolute(slot: Slot, cfg: Config, objs: any, day: DayPrices): Cont
 	return { caption, btc: slot.btc, commodity: slot.commodity };
 }
 
-function buildDelta(slot: Slot, cfg: Config, objs: any, prices: PriceData, dates: string[]): Content {
+function buildDelta(slot: Slot, cfg: Config, objs: DeltaObjectsFile, prices: PriceData, dates: string[]): Content {
 	const [pd, cd] = [dates[dates.length - 2], dates[dates.length - 1]];
 	const r = computeDelta(objs, slot.commodity as CommodityId, { date: pd, day: prices[pd] }, { date: cd, day: prices[cd] });
 	return { caption: r.caption, btc: slot.btc, commodity: slot.commodity };
@@ -175,7 +166,7 @@ async function main() {
 
 	const [cfg, objs, prices, state] = await Promise.all([
 		readJson<Config>(CONFIG_PATH),
-		readJson<any>(OBJECTS_PATH),
+		readJson<DeltaObjectsFile>(OBJECTS_PATH),
 		readJson<PriceData>(PRICES_PATH),
 		readJson<State>(STATE_PATH),
 	]);
