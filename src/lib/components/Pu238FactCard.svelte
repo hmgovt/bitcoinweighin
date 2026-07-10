@@ -7,7 +7,12 @@
 	 * than a comparable object).
 	 */
 
-	import { pu238Fact, pu238Blurb } from './Pu238FactCard.helpers.js';
+	import {
+		pu238Fact,
+		pu238Blurb,
+		pu238DecayHeatLine,
+		pu238ProductionLine,
+	} from './Pu238FactCard.helpers.js';
 
 	let {
 		currentMassGrams,
@@ -20,6 +25,15 @@
 
 	const headline = $derived(currentMassGrams > 0 ? pu238Fact(currentMassGrams) : null);
 	const blurb = $derived(currentMassGrams > 0 ? pu238Blurb(currentMassGrams) : null);
+	// Decay-heat wattage (brief §5.2) and the production-years honesty line
+	// (brief §1.2) — additional lines that sit alongside the categorical
+	// headline/blurb bands above, not a parallel threshold system.
+	const decayHeatLine = $derived(
+		currentMassGrams > 0 ? pu238DecayHeatLine(currentMassGrams) : null
+	);
+	const productionLine = $derived(
+		currentMassGrams > 0 ? pu238ProductionLine(currentMassGrams) : null
+	);
 
 	const accentBgStyle = $derived(`background: ${hexToRgba(accent, 0.07)};`);
 	const accentRuleStyle = $derived(`border-left-color: ${accent};`);
@@ -40,6 +54,12 @@
 		<div class="pu238-fact-headline">{headline}</div>
 		{#if blurb}
 			<p class="pu238-fact-blurb">{blurb}</p>
+		{/if}
+		{#if decayHeatLine}
+			<p class="pu238-fact-blurb">{decayHeatLine}</p>
+		{/if}
+		{#if productionLine}
+			<p class="pu238-fact-blurb">{productionLine}</p>
 		{/if}
 	</div>
 {/if}

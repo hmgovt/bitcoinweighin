@@ -13,7 +13,7 @@
 	import { COCAINE_PRICE_DATA } from '$lib/prices.js';
 	import { formatMassConsumer } from '$lib/format.js';
 	import { system, toggleSystem } from '$lib/stores/system.js';
-	import { denomination } from './CocaineDenominationRow.helpers.js';
+	import { denomination, cocaineImpossibilityLine } from './CocaineDenominationRow.helpers.js';
 	import TieredPricingTable from './TieredPricingTable.svelte';
 
 	let {
@@ -30,6 +30,9 @@
 
 	const massKg = $derived(massGrams / 1000);
 	const denominationText = $derived(denomination(massKg));
+	// Honesty line past a full year of global cocaine production — the one
+	// permitted cocaine change in the delight pass (brief §1.2 + §6).
+	const impossibilityLine = $derived(cocaineImpossibilityLine(massKg));
 
 	const primarySys = $derived($system);
 	const secondarySys = $derived($system === 'imperial' ? 'metric' : 'imperial');
@@ -109,6 +112,10 @@
 		not production. Street figures reflect 30–50% purity; the
 		pure-equivalent column standardises across tiers.
 	</p>
+
+	{#if impossibilityLine}
+		<p class="impossibility-note">{impossibilityLine}</p>
+	{/if}
 
 	<p class="sources-footer">
 		Wholesale: UNODC 2024 · Retail: DEA 2024 · Producer: UNODC 2024 ·
@@ -247,6 +254,16 @@
 	}
 	.markup-lead {
 		color: #52525b;
+	}
+
+	.impossibility-note {
+		font-size: 12px;
+		font-weight: 400;
+		color: #71717a;
+		margin: 12px 0 0;
+		line-height: 1.55;
+		max-width: 640px;
+		letter-spacing: 0.005em;
 	}
 
 	.sources-footer {
