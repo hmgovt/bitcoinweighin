@@ -288,6 +288,7 @@
 				with the camera. The honesty rule is that every apparent size on screen derives from one
 				declared camera geometry per frame, never from an artistic fudge.
 			</p>
+			<p>Scale reference: Sat, Shiba Inu, 40 cm at the shoulder, 9 kg. Constant.</p>
 			<h3>Camera model</h3>
 			<p>
 				A single perspective camera (35° field of view) frames the scene, and exactly one
@@ -309,7 +310,7 @@
 				real perspective (an object twice as far away appears half as large) rather than by a
 				shared scale factor. That is a true depiction, not a trick of the eye, but because it
 				differs from the simple side-by-side comparison the readout says so explicitly —
-				<em>"Shiba standing nearer the camera"</em> — whenever the dog is staged in the
+				<em>"Sat is standing nearer the camera"</em> — whenever the dog is staged in the
 				foreground. Nothing on screen is ever resized by feel; the apparent sizes always follow
 				from the one declared camera geometry.
 			</p>

@@ -15,8 +15,9 @@
 	 *    in `./materials.ts`. This component is the renderer + lifecycle only.
 	 *
 	 * The stage is a pure consumer of `(commodity, amount)`. `staged` is a
-	 * bindable the page reads to add the "Shiba standing nearer the camera"
-	 * honesty line to the readout when the dog is in the foreground.
+	 * bindable the page reads to add the "Sat is standing nearer the camera"
+	 * honesty line to the readout when the dog — Sat, the Shiba — is in the
+	 * foreground.
 	 */
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';

@@ -799,7 +799,7 @@
 					does <em>one bitcoin</em> actually buy, expressed as something you could pick up off a
 					table? The site renders a single BTC's purchasing power as physical commodities —
 					gold, silver, plutonium-238, cocaine — at <em>true relative scale</em>, next to a
-					constant 9-kg Shiba Inu so the eye has somewhere to land. Move the slider and the cube
+					constant 9-kg Shiba Inu named Sat so the eye has somewhere to land. Move the slider and the cube
 					grows or shrinks; scrub the date and you can watch a bitcoin's weight in gold drift
 					across thirteen years of market history.
 				</p>
