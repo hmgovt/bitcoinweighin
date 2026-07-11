@@ -14,6 +14,8 @@
 		hydrateFromUrl,
 	} from '$lib/stores/url.js';
 	import { formatBtc } from '$lib/format.js';
+	import { parseAmountInput } from '$lib/amount-input.js';
+	import { applyDetent, DETENT_BTC_VALUES } from '$lib/detent.js';
 	import { getEntity } from '$lib/holdings.js';
 	import HeroStage from '$lib/components/HeroStage.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
@@ -150,25 +152,122 @@
 		}
 	});
 
+	// ── Detents (delight brief §1.5b) ───────────────────────────
+	// Magnetic snap in slider space at the meaningful BTC values. Positions
+	// derive from the same btcToSlider as everything else — no duplicate log
+	// maths. `navigator.vibrate` ticks once per snap ENGAGEMENT (unsnapped →
+	// snapped), feature-detected, and skipped under reduced-motion.
+	const detentPositions = DETENT_BTC_VALUES.map(btcToSlider);
+	let snappedDetent: number | null = null;
+
 	function handleSliderInput(e: Event) {
 		cancelTween(); // a manual drag interrupts any preset tween
 		const target = e.target as HTMLInputElement;
-		sliderPos = parseInt(target.value);
+		const rawPos = parseInt(target.value);
 		if (sliderMode === 'btc') {
-			setBtcFromSlider(sliderToBtc(sliderPos));
+			const snapped = applyDetent(rawPos, detentPositions);
+			if (snapped !== rawPos && snappedDetent !== snapped) {
+				snappedDetent = snapped;
+				if (!reduceMotion) navigator.vibrate?.(10);
+			} else if (snapped === rawPos) {
+				snappedDetent = null;
+			}
+			sliderPos = snapped;
+			target.value = String(snapped); // keep the native thumb on the detent
+			setBtcFromSlider(sliderToBtc(snapped));
 		} else {
-			setDateFromPicker(sliderIdxToDate(sliderPos, sortedDates));
+			sliderPos = rawPos;
+			setDateFromPicker(sliderIdxToDate(rawPos, sortedDates));
 		}
 	}
 
-	function handleSliderDblClick() {
-		if (sortedDates.length <= 1) return;
-		if (sliderMode === 'btc') {
+	// Mode switching — one implementation shared by the dblclick shortcut, the
+	// visible BTC|DATE segmented control, and the `t` key (brief §1.5c).
+	function setSliderMode(mode: 'btc' | 'date') {
+		if (mode === sliderMode) return;
+		if (mode === 'date') {
+			if (sortedDates.length <= 1) return; // archive not loaded yet
 			lockedBtcForDateMode = $btcAmount;
 			sliderMode = 'date';
 		} else {
 			sliderMode = 'btc';
 			setBtcFromSlider(lockedBtcForDateMode);
+		}
+	}
+
+	function handleSliderDblClick() {
+		setSliderMode(sliderMode === 'btc' ? 'date' : 'btc');
+	}
+
+	// ── Keyboard (delight brief §1.5c) ──────────────────────────
+	// On the sliders: Shift+arrows / PageUp/Down jump a decade (BTC mode) or
+	// one year (date mode). Native unmodified arrows keep their built-in nudge.
+	function handleSliderKeydown(e: KeyboardEvent) {
+		const isJumpKey =
+			e.key === 'PageUp' ||
+			e.key === 'PageDown' ||
+			(e.shiftKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown'));
+		if (!isJumpKey) return;
+		e.preventDefault();
+		const up = e.key === 'PageUp' || e.key === 'ArrowRight' || e.key === 'ArrowUp';
+		cancelTween();
+		if (sliderMode === 'btc') {
+			const next = Math.min(BTC_MAX, Math.max(BTC_MIN, $btcAmount * (up ? 10 : 0.1)));
+			setBtcFromSlider(next);
+		} else if (sortedDates.length > 1 && $selectedDate) {
+			const targetYear = Number($selectedDate.slice(0, 4)) + (up ? 1 : -1);
+			const target = `${targetYear}${$selectedDate.slice(4)}`;
+			setDateFromPicker(sliderIdxToDate(dateToSliderIdx(target, sortedDates), sortedDates));
+		}
+	}
+
+	// Global keys: g/s/p/c switch hero tabs, t toggles BTC/date mode. Only
+	// when nothing focusable owns the keystroke and no ctrl/alt/meta chord.
+	function handleGlobalKeydown(e: KeyboardEvent) {
+		if (e.ctrlKey || e.metaKey || e.altKey) return;
+		const t = e.target as HTMLElement | null;
+		if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable))
+			return;
+		const key = e.key.toLowerCase();
+		const tabByKey: Record<string, string> = { g: 'gold', s: 'silver', p: 'pu238', c: 'cocaine' };
+		if (key in tabByKey) {
+			selectedCommodity = tabByKey[key];
+		} else if (key === 't') {
+			setSliderMode(sliderMode === 'btc' ? 'date' : 'btc');
+		}
+	}
+
+	// ── Click-to-type amount (delight brief §1.5a) ──────────────
+	// The big BTC readout becomes an input on click (BTC mode only). Enter
+	// commits through the same setter as the slider; Escape reverts; blur
+	// commits if the draft parses, otherwise reverts silently — invalid input
+	// has no error state, it simply doesn't commit.
+	let editingAmount = $state(false);
+	let amountDraft = $state('');
+	let amountInputEl: HTMLInputElement | undefined = $state();
+
+	function startAmountEdit() {
+		if (sliderMode !== 'btc' || tweening) return;
+		amountDraft = formatBtc(sceneBtc).replace(/ BTC$/, '');
+		editingAmount = true;
+		queueMicrotask(() => amountInputEl?.select());
+	}
+
+	function commitAmountEdit() {
+		const parsed = parseAmountInput(amountDraft, dayPrices?.btc ?? null);
+		editingAmount = false;
+		if (parsed === null) return; // revert: readout re-renders from state
+		cancelTween();
+		setBtcFromSlider(parsed);
+	}
+
+	function handleAmountKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			commitAmountEdit();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			editingAmount = false; // cancel — no commit
 		}
 	}
 
@@ -412,6 +511,10 @@
 	});
 </script>
 
+<!-- Global keys (brief §1.5c): g/s/p/c switch hero tabs, t toggles BTC/date.
+     Guarded inside the handler — never fires while an input owns focus. -->
+<svelte:window onkeydown={handleGlobalKeydown} />
+
 <svelte:head>
 	<title>{pageTitle}</title>
 	<meta name="description" content={pageDescription} />
@@ -462,6 +565,7 @@
 					value={sliderPos}
 					oninput={handleSliderInput}
 					ondblclick={handleSliderDblClick}
+					onkeydown={handleSliderKeydown}
 					class="w-full"
 					class:accent-amber-500={sliderMode === 'btc'}
 					class:accent-sky-400={sliderMode === 'date'}
@@ -545,6 +649,7 @@
 							value={sliderPos}
 							oninput={handleSliderInput}
 							ondblclick={handleSliderDblClick}
+							onkeydown={handleSliderKeydown}
 							class="slider"
 							class:accent-amber-500={sliderMode === 'btc'}
 							class:accent-sky-400={sliderMode === 'date'}
@@ -565,7 +670,37 @@
 				<div class="controls-value-row">
 					<div class="value-block">
 						{#if sliderMode === 'btc'}
-							<div class="value-btc">{formatBtc(sceneBtc)}</div>
+							{#if editingAmount}
+								<!--
+									Click-to-type (brief §1.5a): same box, same type — the input
+									is styled identical to the readout so toggling never shifts
+									layout. Accepts BTC ("0.5"), sats ("50000 sats", "10k sats"),
+									and dollars ("$1M") via the day's price. Invalid input just
+									reverts — no error state.
+								-->
+								<input
+									bind:this={amountInputEl}
+									bind:value={amountDraft}
+									onkeydown={handleAmountKeydown}
+									onblur={commitAmountEdit}
+									class="value-btc value-btc--input"
+									type="text"
+									inputmode="decimal"
+									spellcheck="false"
+									autocomplete="off"
+									aria-label="Type a BTC amount, sats amount, or dollar amount"
+									placeholder="0.5 · 50k sats · $1M"
+								/>
+							{:else}
+								<button
+									type="button"
+									class="value-btc value-btc--button"
+									onclick={startAmountEdit}
+									title="Click to type an amount — BTC, sats, or $"
+								>
+									{formatBtc(sceneBtc)}
+								</button>
+							{/if}
 							{#if dayPrices}
 								<div class="value-context">
 									{formatUsd(sceneBtc * dayPrices.btc)} · {formatDateReadout($selectedDate)}
@@ -582,9 +717,34 @@
 							{/if}
 						{/if}
 					</div>
-					{#if sliderMode === 'date'}
-						<div class="mode-badge">DATE</div>
-					{/if}
+					<!--
+						Visible BTC | DATE mode toggle (brief §1.5c) — the dblclick
+						shortcut stays (tooltip unchanged); this makes the second mode
+						discoverable without hover. Disabled until the archive loads,
+						same guard as setSliderMode. Colour-coding matches the slider:
+						amber = BTC, sky = date.
+					-->
+					<div class="mode-toggle" role="group" aria-label="Slider mode">
+						<button
+							type="button"
+							class="mode-toggle__seg mode-toggle__seg--btc"
+							class:mode-toggle__seg--active={sliderMode === 'btc'}
+							aria-pressed={sliderMode === 'btc'}
+							onclick={() => setSliderMode('btc')}
+						>
+							BTC
+						</button>
+						<button
+							type="button"
+							class="mode-toggle__seg mode-toggle__seg--date"
+							class:mode-toggle__seg--active={sliderMode === 'date'}
+							aria-pressed={sliderMode === 'date'}
+							disabled={sortedDates.length <= 1}
+							onclick={() => setSliderMode('date')}
+						>
+							DATE
+						</button>
+					</div>
 				</div>
 			</div>
 
@@ -820,24 +980,81 @@
 		color: #f5f0e6;
 		letter-spacing: -0.01em;
 	}
+	/* Click-to-type: the button (rest state) and the input (edit state) must
+	   occupy the identical box as the plain readout — no layout shift when
+	   toggling. Both inherit .value-btc's type; everything below just strips
+	   native chrome. */
+	.value-btc--button {
+		background: none;
+		border: none;
+		padding: 0;
+		margin: 0;
+		text-align: left;
+		cursor: text;
+		border-bottom: 1px dashed transparent;
+	}
+	.value-btc--button:hover {
+		border-bottom-color: #3f3f46; /* zinc-700 — quiet "this is editable" affordance */
+	}
+	.value-btc--input {
+		background: none;
+		border: none;
+		padding: 0;
+		margin: 0;
+		width: 100%;
+		min-width: 0;
+		outline: none;
+		caret-color: #f59e0b; /* amber-500, matches the slider thumb */
+	}
+	.value-btc--input::placeholder {
+		color: #3f3f46;
+		font-weight: 400;
+	}
 	.value-context {
 		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
 		font-variant-numeric: tabular-nums;
 		font-size: 14px;
 		color: #9aa0a6;
 	}
-	.mode-badge {
+	/* BTC | DATE segmented mode toggle — replaces the passive DATE badge.
+	   Active segment takes the mode's slider colour (amber / sky). */
+	.mode-toggle {
 		flex-shrink: 0;
 		align-self: flex-end;
+		display: inline-flex;
+		border: 1px solid #3f3f46; /* zinc-700 */
+		border-radius: 6px;
+		overflow: hidden;
+	}
+	.mode-toggle__seg {
 		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.08em;
 		color: #71717a; /* zinc-500 */
-		background: #27272a; /* zinc-800 */
-		border: 1px solid #3f3f46; /* zinc-700 */
-		border-radius: 4px;
-		padding: 4px 7px;
+		background: #18181b; /* zinc-900 */
+		border: none;
+		padding: 5px 9px;
+		cursor: pointer;
+		transition: background-color 120ms ease-out, color 120ms ease-out;
+	}
+	.mode-toggle__seg + .mode-toggle__seg {
+		border-left: 1px solid #3f3f46;
+	}
+	.mode-toggle__seg:hover:not(:disabled):not(.mode-toggle__seg--active) {
+		color: #a1a1aa;
+	}
+	.mode-toggle__seg:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+	.mode-toggle__seg--active.mode-toggle__seg--btc {
+		background: rgba(245, 158, 11, 0.14); /* amber */
+		color: #f59e0b;
+	}
+	.mode-toggle__seg--active.mode-toggle__seg--date {
+		background: rgba(56, 189, 248, 0.14); /* sky */
+		color: #38bdf8;
 	}
 
 	.site-header {
