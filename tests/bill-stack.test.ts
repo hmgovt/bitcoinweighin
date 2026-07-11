@@ -5,6 +5,7 @@ import {
 	BILL_THICKNESS_MM,
 	BILL_MASS_G,
 	stackHeightMm,
+	selectBillTier,
 } from '../src/lib/billStack.js';
 
 describe('physical constants', () => {
@@ -33,5 +34,37 @@ describe('stackHeightMm', () => {
 
 	it('110,000 notes -> ~12,014.2 mm (the 1 BTC worked example)', () => {
 		expect(stackHeightMm(110_000)).toBeCloseTo(12_014.2, 1);
+	});
+});
+
+describe('selectBillTier', () => {
+	it('returns null for non-positive counts', () => {
+		expect(selectBillTier(0)).toBeNull();
+		expect(selectBillTier(-1)).toBeNull();
+	});
+
+	it('loose below 100 notes', () => {
+		expect(selectBillTier(1)).toBe('loose');
+		expect(selectBillTier(99)).toBe('loose');
+	});
+
+	it('strap from 100 to 999 notes', () => {
+		expect(selectBillTier(100)).toBe('strap');
+		expect(selectBillTier(999)).toBe('strap');
+	});
+
+	it('bundle from 1,000 to 99,999 notes', () => {
+		expect(selectBillTier(1000)).toBe('bundle');
+		expect(selectBillTier(99_999)).toBe('bundle');
+	});
+
+	it('cube from 100,000 to 9,999,999 notes', () => {
+		expect(selectBillTier(100_000)).toBe('cube');
+		expect(selectBillTier(9_999_999)).toBe('cube');
+	});
+
+	it('pallet at 10,000,000 notes and above', () => {
+		expect(selectBillTier(10_000_000)).toBe('pallet');
+		expect(selectBillTier(2_310_000_000_000)).toBe('pallet');
 	});
 });
