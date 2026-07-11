@@ -7,6 +7,7 @@ import {
 	stackHeightMm,
 	selectBillTier,
 	cubicGridDims,
+	nearestHeightComparison,
 } from '../src/lib/billStack.js';
 
 describe('physical constants', () => {
@@ -102,5 +103,35 @@ describe('cubicGridDims', () => {
 		const g = cubicGridDims(110, 66.294, 155.956, 109.22);
 		expect(g).toMatchObject({ colsX: 8, colsZ: 3, layersY: 5 });
 		expect(g.colsX * g.colsZ * g.layersY).toBeGreaterThanOrEqual(110);
+	});
+});
+
+describe('nearestHeightComparison', () => {
+	it('returns null below the shortest rung (an adult human, 1.7 m)', () => {
+		expect(nearestHeightComparison(0.5)).toBeNull();
+	});
+
+	it('matches the shortest rung exactly at 1.7 m', () => {
+		const c = nearestHeightComparison(1.7)!;
+		expect(c.label).toBe('an adult human');
+		expect(c.multiple).toBeCloseTo(1, 5);
+	});
+
+	it('1 BTC stack height (~12.01 m) -> ~5.9x a doorway', () => {
+		const c = nearestHeightComparison(12.0142)!;
+		expect(c.label).toBe('a doorway');
+		expect(c.multiple).toBeCloseTo(5.918, 2);
+	});
+
+	it('100 BTC stack height (~1201.4 m) -> ~1.45x the Burj Khalifa', () => {
+		const c = nearestHeightComparison(1201.42)!;
+		expect(c.label).toBe('the Burj Khalifa');
+		expect(c.multiple).toBeCloseTo(1.451, 2);
+	});
+
+	it('21M BTC stack height (~252,298 km) -> ~2523x the Karman line', () => {
+		const c = nearestHeightComparison(252_298_200)!;
+		expect(c.label).toBe('the Karman line (edge of space)');
+		expect(c.multiple).toBeCloseTo(2522.98, 1);
 	});
 });

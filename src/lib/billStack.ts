@@ -89,3 +89,38 @@ export function cubicGridDims(
 		extentYMm: layersY * itemHeightMm,
 	};
 }
+
+export interface HeightComparison {
+	label: string;
+	metres: number;
+}
+
+/** Ascending by height — the ladder `nearestHeightComparison` walks. */
+export const HEIGHT_COMPARISONS: HeightComparison[] = [
+	{ label: 'an adult human', metres: 1.7 },
+	{ label: 'a doorway', metres: 2.03 },
+	{ label: 'the Statue of Liberty (pedestal to torch)', metres: 93 },
+	{ label: 'the Eiffel Tower', metres: 330 },
+	{ label: 'the Burj Khalifa', metres: 828 },
+	{ label: 'Mount Everest', metres: 8849 },
+	{ label: 'the Karman line (edge of space)', metres: 100_000 },
+	{ label: 'the Moon', metres: 384_400_000 },
+];
+
+/**
+ * The tallest ladder rung at or below `heightM`, and how many multiples of
+ * it the stack stands. Returns null below the shortest rung — a fraction
+ * of a doorway isn't a useful comparison, so the readout falls back to the
+ * raw length in that case (see BillReadout).
+ */
+export function nearestHeightComparison(
+	heightM: number
+): { label: string; multiple: number } | null {
+	if (heightM < HEIGHT_COMPARISONS[0].metres) return null;
+	let best = HEIGHT_COMPARISONS[0];
+	for (const c of HEIGHT_COMPARISONS) {
+		if (c.metres <= heightM) best = c;
+		else break;
+	}
+	return { label: best.label, multiple: heightM / best.metres };
+}
