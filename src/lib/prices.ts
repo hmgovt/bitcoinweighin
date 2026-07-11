@@ -67,6 +67,13 @@ export function getCommodityPrice(
 	commodity: Commodity,
 	dayPrices: DayPrices | undefined
 ): number | null {
+	// Cash: one $1 note is worth exactly one dollar, always — not a market
+	// price, so it bypasses both the live-feed lookup and the illustrative
+	// pricing table below.
+	if (commodity.id === 'cash') {
+		return 1;
+	}
+
 	if (commodity.dataQuality === 'illustrative') {
 		// Cocaine: priced via the wholesale tier midpoint per spec
 		// (the canonical equivalence). Other tiers are surfaced separately
