@@ -73,6 +73,17 @@
 	// Stage element for the Geiger IntersectionObserver gate.
 	let stageEl: HTMLElement | undefined = $state();
 
+	// LiveStage instance — undefined on the cocaine tab (no WebGL stage
+	// mounted there). Used only to forward the Konami hook (brief §2.4).
+	let liveStageEl: LiveStage | undefined = $state();
+
+	/** Konami hook — forwards to LiveStage's own trigger. No-ops (silently)
+	 *  when the stage isn't a live WebGL dog, e.g. the cocaine tab. Exposed
+	 *  for the page's global keydown handler via `bind:this`. */
+	export function triggerKonami(): void {
+		liveStageEl?.triggerKonami();
+	}
+
 	const accent = $derived(commodityAccent(active.id));
 	function commodityAccent(id: string): string {
 		switch (id) {
@@ -251,7 +262,7 @@
 			<CocaineBrickStack {massGrams} />
 		</div>
 	{:else}
-		<LiveStage commodity={active} {amount} bind:staged />
+		<LiveStage commodity={active} {amount} bind:staged bind:this={liveStageEl} />
 	{/if}
 
 	{#if controls}
