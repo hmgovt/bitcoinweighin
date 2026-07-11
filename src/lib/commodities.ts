@@ -2,11 +2,12 @@
  * MVP commodity catalogue for Bitcoin Weigh-In.
  *
  * Page render loop iterates `mvpLaunch === true` commodities sorted ascending
- * by `pageOrder`. Locked launch order (2026-05-04 four-commodity pivot):
+ * by `pageOrder`. Locked launch order (2026-07-11 five-commodity pivot):
  *   1. gold
  *   2. silver
  *   3. pu238
  *   4. cocaine
+ *   5. cash
  *
  * Other commodities (copper, oil_brent, uranium_fuel_pellet, platinum, coffee)
  * remain in this file flagged `mvpLaunch: false`. They re-enter post-launch.
@@ -15,6 +16,7 @@
 export type RenderStyle =
 	| 'cube' // gold, silver, Pu-238 — live WebGL cube + Shiba
 	| 'still_with_readout' // cocaine — inline-SVG brick stack + pricing readout
+	| 'bill_stack' // cash — live WebGL dollar-bill stack + pricing readout
 	| 'progression' // legacy, unused at MVP
 	| 'vessel' // legacy, unused at MVP
 	| 'bulk'; // legacy, unused at MVP
@@ -88,7 +90,7 @@ export interface Commodity {
 	brandVoiceClarification?: string;
 	/** Key into quantity-anchors.json for proximity fact-card firing. */
 	quantityAnchorsKey?: string;
-	unit: 'troy_oz' | 'lb' | 'barrel' | 'gram' | 'kg' | 'pellet';
+	unit: 'troy_oz' | 'lb' | 'barrel' | 'gram' | 'kg' | 'pellet' | 'note';
 	unitMassGrams?: number;
 	densityGPerCm3?: number;
 	bulkDensityKgPerM3?: number;
@@ -257,6 +259,23 @@ const cocaine: Commodity = {
 	expectedHeightPx: { mobile: 1010, desktop: 1130 },
 };
 
+const cash: Commodity = {
+	id: 'cash',
+	displayName: 'Cash',
+	mvpLaunch: true,
+	pageOrder: 5,
+	renderStyle: 'bill_stack',
+	unit: 'note',
+	unitMassGrams: 1,
+	sourceId: 'cash',
+	sourceName:
+		'U.S. Bureau of Engraving and Printing (note dimensions) — exact by construction, not a market price',
+	dataQuality: 'live', // depends only on the live BTC/USD price already in prices.json
+	priceField: 'usd_note', // sentinel — never looked up, see getCommodityPrice's cash special-case
+	facts: [],
+	expectedHeightPx: { mobile: 1010, desktop: 1130 },
+};
+
 const copper: Commodity = {
 	id: 'copper',
 	displayName: 'Copper',
@@ -408,6 +427,7 @@ export const ALL_COMMODITIES: Commodity[] = [
 	silver,
 	pu238,
 	cocaine,
+	cash,
 	copper,
 	oil_brent,
 	uranium_fuel_pellet,
@@ -417,7 +437,7 @@ export const ALL_COMMODITIES: Commodity[] = [
 
 /**
  * Launch commodities, sorted by `pageOrder`. Single source of truth for the
- * page render loop: 1=gold, 2=silver, 3=pu238, 4=cocaine.
+ * page render loop: 1=gold, 2=silver, 3=pu238, 4=cocaine, 5=cash.
  */
 export const LAUNCH_COMMODITIES: Commodity[] = ALL_COMMODITIES.filter(
 	(c) => c.mvpLaunch
