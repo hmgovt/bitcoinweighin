@@ -17,6 +17,7 @@
 	import { parseAmountInput } from '$lib/amount-input.js';
 	import { applyDetent, DETENT_BTC_VALUES } from '$lib/detent.js';
 	import { getEntity } from '$lib/holdings.js';
+	import { createKonamiTracker } from '$lib/konami.js';
 	import HeroStage from '$lib/components/HeroStage.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
 	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
@@ -221,13 +222,27 @@
 		}
 	}
 
-	// Global keys: g/s/p/c switch hero tabs, t toggles BTC/date mode. Only
-	// when nothing focusable owns the keystroke and no ctrl/alt/meta chord.
+	// Konami code (delight brief §2.4): ↑↑↓↓←→←→BA anywhere on the page
+	// triggers Sat's three easter-egg tricks in sequence. Tracker is a pure
+	// state machine (src/lib/konami.ts); the DOM/reduced-motion/mixer guards
+	// all live in LiveStage's `triggerKonami`, reached through HeroStage's
+	// thin forwarding export.
+	const konamiTracker = createKonamiTracker();
+	let heroStageEl: HeroStage | undefined = $state();
+
+	// Global keys: g/s/p/c switch hero tabs, t toggles BTC/date mode, and the
+	// Konami code triggers the dog's tricks. Only when nothing focusable owns
+	// the keystroke and no ctrl/alt/meta chord — same guard for all of them.
 	function handleGlobalKeydown(e: KeyboardEvent) {
 		if (e.ctrlKey || e.metaKey || e.altKey) return;
 		const t = e.target as HTMLElement | null;
 		if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable))
 			return;
+
+		if (konamiTracker.feed(e.key) === 'matched') {
+			heroStageEl?.triggerKonami();
+		}
+
 		const key = e.key.toLowerCase();
 		const tabByKey: Record<string, string> = { g: 'gold', s: 'silver', p: 'pu238', c: 'cocaine' };
 		if (key in tabByKey) {
@@ -626,6 +641,7 @@
 	<!-- Hero: one live WebGL stage + Au/Ag/Pu tabs + slider + readout (one-stage layout, pre-launch review §2) -->
 	<div class="mx-auto mt-8 max-w-2xl md:max-w-[1100px] px-4 pb-6 sm:pb-10">
 		<HeroStage
+			bind:this={heroStageEl}
 			commodities={HERO_COMMODITIES}
 			bind:selectedId={selectedCommodity}
 			amounts={heroAmounts}
@@ -799,7 +815,7 @@
 					does <em>one bitcoin</em> actually buy, expressed as something you could pick up off a
 					table? The site renders a single BTC's purchasing power as physical commodities —
 					gold, silver, plutonium-238, cocaine — at <em>true relative scale</em>, next to a
-					constant 9-kg Shiba Inu so the eye has somewhere to land. Move the slider and the cube
+					constant 9-kg Shiba Inu named Sat so the eye has somewhere to land. Move the slider and the cube
 					grows or shrinks; scrub the date and you can watch a bitcoin's weight in gold drift
 					across thirteen years of market history.
 				</p>

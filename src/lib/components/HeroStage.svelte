@@ -73,6 +73,17 @@
 	// Stage element for the Geiger IntersectionObserver gate.
 	let stageEl: HTMLElement | undefined = $state();
 
+	// LiveStage instance — undefined on the cocaine tab (no WebGL stage
+	// mounted there). Used only to forward the Konami hook (brief §2.4).
+	let liveStageEl: LiveStage | undefined = $state();
+
+	/** Konami hook — forwards to LiveStage's own trigger. No-ops (silently)
+	 *  when the stage isn't a live WebGL dog, e.g. the cocaine tab. Exposed
+	 *  for the page's global keydown handler via `bind:this`. */
+	export function triggerKonami(): void {
+		liveStageEl?.triggerKonami();
+	}
+
 	const accent = $derived(commodityAccent(active.id));
 	function commodityAccent(id: string): string {
 		switch (id) {
@@ -95,6 +106,15 @@
 
 	const massGrams = $derived(amount > 0 ? (computeMassGrams(amount, active) ?? 0) : 0);
 	const massKg = $derived(massGrams / 1000);
+
+	// ── "1 sat. Also: one Sat." (brief §2.1) ──────────────────────
+	// The dog is named Sat. At exactly one satoshi the readout gets one quiet
+	// line acknowledging it. `btcAmount` (not the active tab's `amount`) is
+	// the page's raw slider value — the joke is about the unit, independent
+	// of which commodity tab is open. Crisp float-tolerant definition: within
+	// half a sat of 1e-8. A plain {#if} is enough — this only ever renders at
+	// one exact slider position, so there's no layout to reserve against.
+	const isOneSat = $derived(btcAmount > 0 && btcAmount <= 1.5e-8);
 
 	// ── Daily Delta line ──────────────────────────────────────────
 	// The bot's day-over-day reframe ("1 BTC put on a golf ball of gold
@@ -242,7 +262,7 @@
 			<CocaineBrickStack {massGrams} />
 		</div>
 	{:else}
-		<LiveStage commodity={active} {amount} bind:staged />
+		<LiveStage commodity={active} {amount} bind:staged bind:this={liveStageEl} />
 	{/if}
 
 	{#if controls}
@@ -283,13 +303,16 @@
 					{deltaCaptionParts.main}<span class="delta-figure">{deltaCaptionParts.figure}</span>{deltaCaptionParts.tail}
 				{/if}
 			</p>
+			{#if isOneSat}
+				<p class="sat-line">1 sat. Also: one Sat.</p>
+			{/if}
 			{#if staged}
 				<!--
 					Staging honesty line: when the dog walks to the foreground the
 					apparent sizes come from real perspective (dog nearer the camera),
 					not a fudge. Stated, per the methodology's staging-honesty rule.
 				-->
-				<p class="staging-line">Shiba standing nearer the camera — true perspective, not rescaled.</p>
+				<p class="staging-line">Sat is standing nearer the camera — true perspective, not rescaled.</p>
 			{/if}
 		</div>
 
@@ -424,6 +447,18 @@
 	.delta-figure {
 		font-variant-numeric: tabular-nums;
 		color: #a1a1aa; /* zinc-400 — a touch brighter, mirrors .metric-dim elsewhere */
+	}
+
+	/* "1 sat. Also: one Sat." — same quiet register as .delta-line; no
+	   reserved min-height, since this only ever appears at one exact
+	   slider position (see isOneSat above). */
+	.sat-line {
+		margin: 0;
+		font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+		font-size: 12px;
+		line-height: 1.5;
+		color: #71717a; /* zinc-500 */
+		letter-spacing: 0.005em;
 	}
 
 	.staging-line {

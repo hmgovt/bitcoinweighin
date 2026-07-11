@@ -14,7 +14,7 @@ export const HOMEPAGE_FAQS: FaqEntry[] = [
 	{
 		question: 'What is Bitcoin Weigh-In?',
 		answer:
-			"Bitcoin Weigh-In visualises one bitcoin's purchasing power as physical commodities you can actually hold — gold, silver, plutonium-238, cocaine — rendered at true relative scale next to a constant reference (a 9-kg Shiba Inu). It pairs a live, daily-updated price dataset with a side-by-side cube renderer so a glance tells you how heavy a bitcoin is, today, in things that exist.",
+			"Bitcoin Weigh-In visualises one bitcoin's purchasing power as physical commodities you can actually hold — gold, silver, plutonium-238, cocaine — rendered at true relative scale next to a constant reference (a 9-kg Shiba Inu named Sat). It pairs a live, daily-updated price dataset with a side-by-side cube renderer so a glance tells you how heavy a bitcoin is, today, in things that exist.",
 	},
 	{
 		question: 'How much gold can 1 bitcoin buy today?',

@@ -499,6 +499,95 @@ export interface PuGlow {
  * point light scale up, and bloom strength ramps so the glow radiates. Verbatim
  * from the prototype's `update()` glow block. Monotonic in `edge`.
  */
+// ── Gaze tracking (brief §2.2) ──────────────────────────────────────────────
+
+/**
+ * The head bone's own "nose forward" axis, in the bone's LOCAL space (i.e. as
+ * a child of the neck). Derived once, offline, from the shipped rig's BIND
+ * pose — not a guess: in `static/models/references/shiba_inu/shiba.glb`,
+ * `nose_jnt` is a direct, ZERO-local-rotation child of `head_jnt` (their bind
+ * quaternions are identical), so `normalize(nose_jnt.bindWorldPos -
+ * head_jnt.bindWorldPos)`, rotated into `head_jnt`'s own local frame by the
+ * inverse of its bind world quaternion, is an exact (not approximate) reading
+ * of which local axis the snout points along. Computed via a one-off
+ * `@gltf-transform/core` forward-kinematics script (bind-pose translations +
+ * rotations composed root→head — no WebGL required, no runtime cost). Mostly
+ * +Z — the whole rig's own forward axis (see the `+ 0.14` correction on
+ * `dog.rotation.y` in `LiveStage.svelte`, which compensates for the body
+ * itself sitting a few degrees off true +Z) — with a ~11.4° tilt toward -Y:
+ * the snout points slightly down from the head joint, matching the model.
+ */
+export const HEAD_FORWARD_LOCAL_AXIS: Vec3 = { x: 0, y: -0.19842, z: 0.98012 };
+
+/** Gaze clamp, radians — how far the head may turn away from wherever the
+ *  current animation frame (idle sway, breathing, a trick's own head motion)
+ *  already has it pointing before the clamp binds; i.e. relative to the
+ *  neck's rest pose for that instant, not a fixed bind-pose reference. Yaw
+ *  gets more latitude than pitch: a dog swivels its head side to side more
+ *  freely than it cranes up or down. */
+export const GAZE_MAX_YAW_RAD = MathUtils.degToRad(40);
+export const GAZE_MAX_PITCH_RAD = MathUtils.degToRad(30);
+
+/** Gaze damping rate, 1/s, for `1 - exp(-dt * k)`. Reaches ~95% of the way to
+ *  the target in about 0.5 s (3 time constants) — which doubles as the
+ *  "ease back in" time the brief asks for once a trick ends and the gaze
+ *  override resumes from a fresh (zero-offset) baseline. */
+export const GAZE_DAMPING_K = 6;
+
+/**
+ * The cube's top-front corner nearest the dog, world space — the point the
+ * head aims at. `dogX` is the dog's own current world x (which side of the
+ * cube it stands on); the sign picks the corner on the dog's side rather
+ * than the far one, so the gaze target is always the visually "near" corner
+ * at every scale, from a speck the dog looks down its nose at to a monolith
+ * it looks up a wall at. Falls back to the +x corner if `dogX` is exactly 0
+ * (before the dog has ever been staged) rather than collapsing to the cube's
+ * centreline.
+ */
+export function gazeTargetWorld(edge: number, dogX: number): Vec3 {
+	const half = edge / 2;
+	return { x: half * Math.sign(dogX || 1), y: edge, z: half };
+}
+
+/**
+ * Clamp a desired world-space gaze direction to a natural yaw/pitch budget
+ * around `current` (the un-adjusted forward direction for this frame — the
+ * neck's rest pose, whatever the idle/trick animation has it at right now).
+ * Both vectors are unit direction vectors in the same (world) space.
+ * Decomposed as azimuth (rotation about world Y) and elevation (angle above
+ * the horizontal) rather than a raw angular clamp, so yaw and pitch can carry
+ * different limits — deliberately axis/model-agnostic; converting to and
+ * from the head bone's own local axis is the caller's job
+ * (`HEAD_FORWARD_LOCAL_AXIS` above), not this function's.
+ */
+export function clampGazeDirection(
+	current: Vec3,
+	desired: Vec3,
+	maxYawRad: number = GAZE_MAX_YAW_RAD,
+	maxPitchRad: number = GAZE_MAX_PITCH_RAD
+): Vec3 {
+	const azimuthOf = (v: Vec3) => Math.atan2(v.x, v.z);
+	const elevationOf = (v: Vec3) => Math.asin(MathUtils.clamp(v.y, -1, 1));
+
+	const azCurrent = azimuthOf(current);
+	const elCurrent = elevationOf(current);
+
+	let yaw = azimuthOf(desired) - azCurrent;
+	yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw)); // wrap to (-π, π]
+	const pitch = elevationOf(desired) - elCurrent;
+
+	const yawClamped = MathUtils.clamp(yaw, -maxYawRad, maxYawRad);
+	const pitchClamped = MathUtils.clamp(pitch, -maxPitchRad, maxPitchRad);
+
+	const az = azCurrent + yawClamped;
+	const el = elCurrent + pitchClamped;
+	return {
+		x: Math.cos(el) * Math.sin(az),
+		y: Math.sin(el),
+		z: Math.cos(el) * Math.cos(az),
+	};
+}
+
 export function puGlowRamp(edge: number): PuGlow {
 	const gT = MathUtils.clamp(
 		(Math.log10(edge) - Math.log10(GLOW_EDGE_MIN_M)) /
