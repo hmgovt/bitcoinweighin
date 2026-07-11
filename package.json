@@ -15,6 +15,7 @@
     "fetch-daily": "tsx scripts/fetch-daily.ts",
     "build-prices": "tsx scripts/build-prices-json.ts",
     "compress-shiba": "tsx scripts/compress-shiba.ts",
+    "compress-bill": "tsx scripts/compress-bill.ts",
     "build-dataset": "tsx scripts/build-dataset-artifacts.ts",
     "holdings:list": "tsx scripts/holdings-list.ts",
     "holdings:update": "tsx scripts/holdings-update.ts",
