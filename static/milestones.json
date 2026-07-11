@@ -1,0 +1,38 @@
+[
+	{
+		"date": "2017-03-02",
+		"commodity": "gold",
+		"label": "1 BTC = 1 ozt of gold",
+		"ozt": 1
+	},
+	{
+		"date": "2017-12-06",
+		"commodity": "gold",
+		"label": "1 BTC = 10 ozt of gold",
+		"ozt": 10
+	},
+	{
+		"date": "2021-03-10",
+		"commodity": "gold",
+		"label": "1 BTC = 1 kg of gold",
+		"ozt": 32.15072258749015
+	},
+	{
+		"date": "2013-11-18",
+		"commodity": "silver",
+		"label": "1 BTC = 1 kg of silver",
+		"ozt": 32.15072258749015
+	},
+	{
+		"date": "2017-10-15",
+		"commodity": "silver",
+		"label": "1 BTC = 10 kg of silver",
+		"ozt": 321.5072258749015
+	},
+	{
+		"date": "2024-12-06",
+		"commodity": "silver",
+		"label": "1 BTC = 100 kg of silver",
+		"ozt": 3215.072258749015
+	}
+]
