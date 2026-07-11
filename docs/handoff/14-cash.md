@@ -84,13 +84,13 @@ Both modes feed the **same generic camera-dolly maths** in `scene/maths.ts` unch
 
 ### Worked positions (canonical slider checkpoints, 1 BTC ≈ $110,000 today)
 
-| BTC | USD | Notes | Tiered tier | Literal height |
-|---|---|---|---|---|
-| 1 sat | $0.0011 | 0 (rounds down) | empty state | — |
-| 0.001 BTC | $110 | 110 | 1 strap + 10 loose | 12 mm |
-| 1 BTC | $110,000 | 110,000 | roughly-cubic bundle grid | 12 m |
-| 100 BTC | $11M | 11,000,000 | palletised field | 1.2 km |
-| 21M BTC | $2.3T | 2.3 trillion | palletised field, big-number hero | ≈252,300 km — about 66% of the way to the Moon (384,400 km average distance). Compute this ratio at build time against a `DISTANCE_TO_MOON_KM` constant; don't hardcode the percentage in copy since it moves with the live BTC price. |
+| BTC | USD | Notes | Mass | Tiered tier | Literal height |
+|---|---|---|---|---|---|
+| 1 sat | $0.0011 | 0 (rounds down) | 0 g | empty state | — |
+| 0.001 BTC | $110 | 110 | 110 g | 1 strap + 10 loose | 12 mm |
+| 1 BTC | $110,000 | 110,000 | 110 kg | roughly-cubic bundle grid | 12 m |
+| 100 BTC | $11M | 11,000,000 | 11 tonnes | palletised field | 1.2 km |
+| 21M BTC | $2.3T | 2.3 trillion | 2,310,000 tonnes | palletised field, big-number hero | ≈252,300 km — about 66% of the way to the Moon (384,400 km average distance). Compute this ratio at build time against a `DISTANCE_TO_MOON_KM` constant; don't hardcode the percentage in copy since it moves with the live BTC price. |
 
 ---
 
@@ -118,11 +118,14 @@ Click/tap the stage to toggle `viewMode` between `'tiered'` and `'literal'`. Cam
 
 ## Readout (`BillReadout.svelte`, parallel to `CocaineReadout.svelte`)
 
+Every other tab leads with mass, not count — Gold/Silver/Pu-238's `ReadoutStrip` eyebrow is "You could carry {troy oz / grams}"; Cocaine's hero figure (52px) is mass in kg/lb, with the bag/brick/pallet count as a secondary line. Cash inverts that (note count is the more narratively central figure for a *bill stack*), but mass still needs to appear for cross-tab consistency — and it comes for free: `unitMassGrams: 1` is already set on the commodity, so `computeMassGrams(amount, commodity)` (the same helper `HeroStage` already calls for every tab) yields `noteCount × 1 g` with zero new calculation code. Feed it through the existing `formatMassConsumer` (dual-unit kg/lb swap, identical UI to `CocaineReadout`'s mass row) rather than inventing a new formatter.
+
 Top to bottom:
 1. **Note count** (hero figure, large) — "1,482,391 bills" style, via `formatNoteCount`.
-2. **Mode-dependent secondary line** — literal mode: stack height with a human-scale comparison (nearest-below match against a fixed ladder: doorway 2.03 m → adult human 1.7 m → Statue of Liberty 93 m → Eiffel Tower 330 m → Burj Khalifa 828 m → Everest 8,849 m → Kármán line 100 km → distance to the Moon 384,400 km). Tiered mode: current tier label + bundle-grid dimensions.
-3. **Exactness note** (small, persistent) — "Priced exactly: one $1 note is worth $1. No market estimate." (This tab has no illustrative-pricing caveat unlike Cocaine/Pu-238 — worth stating plainly since every other tab on the site does carry some pricing uncertainty.)
-4. **Source/methodology footer** — BEP dimensions citation, links to `/methodology` and `/data`, same pattern as every other readout.
+2. **Mass** — `formatMassConsumer(massGrams, system)`, dual-unit (kg primary / lb secondary, click-to-swap — same interaction as `CocaineReadout`'s mass row). Cross-checked worked values: 110 notes → 110 g; 110,000 notes → 110 kg; 11,000,000 notes → 11 tonnes; 2.31 trillion notes → 2,310,000 tonnes.
+3. **Mode-dependent secondary line** — literal mode: stack height with a human-scale comparison (nearest-below match against a fixed ladder: doorway 2.03 m → adult human 1.7 m → Statue of Liberty 93 m → Eiffel Tower 330 m → Burj Khalifa 828 m → Everest 8,849 m → Kármán line 100 km → distance to the Moon 384,400 km). Tiered mode: current tier label + bundle-grid dimensions.
+4. **Exactness note** (small, persistent) — "Priced exactly: one $1 note is worth $1. No market estimate." (This tab has no illustrative-pricing caveat unlike Cocaine/Pu-238 — worth stating plainly since every other tab on the site does carry some pricing uncertainty.)
+5. **Source/methodology footer** — BEP dimensions citation, links to `/methodology` and `/data`, same pattern as every other readout.
 
 ---
 
@@ -142,6 +145,7 @@ Top to bottom:
 ## Testing
 
 - `billStack.ts` pure functions: unit tests for `noteCount → height`, tier selection at boundary values (99/100, 999/1000, etc.), `cubicGridDims` near-equal-extent property, the BEP-constant cross-check (100 × thickness ≈ 0.43 in).
+- Mass readout: `computeMassGrams` returns `noteCount × 1 g` for this commodity (no new function, but worth a regression test pinning the worked-table values — 110,000 notes → 110 kg, etc.) and `formatMassConsumer` renders it with the same kg/lb toggle as Cocaine.
 - Visual regression baselines at the canonical worked positions above (mirrors Cocaine's 5-baseline requirement).
 - Toggle interaction: both keyboard and pointer, at a low count (loose bills) and a high count (pallet tier) — confirm the camera dolly completes and doesn't strand mid-transition on reduced-motion (should snap, not tween, matching the existing `prefersReduced` handling in `LiveStage`).
 - No-WebGL / reduced-motion fallback: `BillRenderer` poster renders and is legible at at least one mid-range amount.
@@ -161,7 +165,7 @@ Top to bottom:
 
 - Cash tab renders coherently at the five canonical worked positions (1 sat, 0.001 BTC, 1 BTC, 100 BTC, 21M BTC)
 - Toggle between tiered and literal views works via click and keyboard, at both a low and a high note count
-- Note count, height/grid-dimension readout, and the human-scale comparison line are all correct against the physical constants (spot-check by hand against the worked table)
+- Note count, mass, height/grid-dimension readout, and the human-scale comparison line are all correct against the physical constants (spot-check by hand against the worked table)
 - `/btc/cash` builds, has correct FAQ JSON-LD matching visible copy, and its poster renders without JS
 - Homepage SEO card + methodology paragraph present
 - `compress-bill.ts` produces a budget-compliant, watermark-free `bill.glb`
