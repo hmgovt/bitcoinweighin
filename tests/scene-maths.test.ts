@@ -18,8 +18,14 @@ import {
 	CAM_HEIGHT_MAX_M,
 	CAM_HEIGHT_MIN_M,
 	FRAMING_FLOOR_M,
+	gazeTargetWorld,
+	clampGazeDirection,
+	HEAD_FORWARD_LOCAL_AXIS,
+	GAZE_MAX_YAW_RAD,
+	GAZE_MAX_PITCH_RAD,
 } from '../src/lib/scene/maths.js';
 import { getCommodity } from '../src/lib/commodities.js';
+import { MathUtils } from 'three';
 
 /**
  * Scene-maths regressions for the live stage. These pin the camera/staging/
@@ -398,5 +404,113 @@ describe('Pu-238 glow ramp — monotonic, bloom thresholds per commodity', () =>
 	it('emissive intensity is pushed past the bloom threshold at scale', () => {
 		// At full heat, emissiveIntensity (0.9 + 3.2) = 4.1 ≫ 0.85 threshold.
 		expect(puGlowRamp(3.4).emissiveIntensity).toBeGreaterThan(0.85);
+	});
+});
+
+describe('gaze — target point + yaw/pitch clamp (delight brief §2.2)', () => {
+	it('gazeTargetWorld sits at the cube top, x-signed toward the dog side', () => {
+		expect(gazeTargetWorld(2, 5)).toEqual({ x: 1, y: 2, z: 1 });
+		expect(gazeTargetWorld(2, -5)).toEqual({ x: -1, y: 2, z: 1 });
+	});
+
+	it('gazeTargetWorld falls back to the +x corner when dogX is exactly 0', () => {
+		expect(gazeTargetWorld(4, 0)).toEqual({ x: 2, y: 4, z: 2 });
+	});
+
+	it('scales linearly with edge', () => {
+		const a = gazeTargetWorld(1, 1);
+		const b = gazeTargetWorld(10, 1);
+		expect(b.x).toBeCloseTo(a.x * 10, 9);
+		expect(b.y).toBeCloseTo(a.y * 10, 9);
+		expect(b.z).toBeCloseTo(a.z * 10, 9);
+	});
+
+	it('HEAD_FORWARD_LOCAL_AXIS is a unit vector', () => {
+		const { x, y, z } = HEAD_FORWARD_LOCAL_AXIS;
+		expect(Math.hypot(x, y, z)).toBeCloseTo(1, 5);
+	});
+
+	it('clampGazeDirection is a no-op when desired already equals current', () => {
+		const v = { x: 0, y: 0, z: 1 };
+		const out = clampGazeDirection(v, v);
+		expect(out.x).toBeCloseTo(0, 9);
+		expect(out.y).toBeCloseTo(0, 9);
+		expect(out.z).toBeCloseTo(1, 9);
+	});
+
+	it('passes small deviations through unclamped', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const az = MathUtils.degToRad(10);
+		const desired = { x: Math.sin(az), y: 0, z: Math.cos(az) };
+		const out = clampGazeDirection(current, desired);
+		expect(Math.atan2(out.x, out.z)).toBeCloseTo(az, 5);
+		expect(out.y).toBeCloseTo(0, 9);
+	});
+
+	it('clamps yaw to the max when the desired direction is far to one side', () => {
+		const current = { x: 0, y: 0, z: 1 }; // straight ahead
+		const desired = { x: 1, y: 0, z: 0 }; // 90° to the right
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.atan2(out.x, out.z)).toBeCloseTo(GAZE_MAX_YAW_RAD, 5);
+	});
+
+	it('clamps yaw to the max on the other side too', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const desired = { x: -1, y: 0, z: 0 }; // 90° to the left
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.atan2(out.x, out.z)).toBeCloseTo(-GAZE_MAX_YAW_RAD, 5);
+	});
+
+	it('clamps pitch to the max when the desired direction is far above', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const desired = { x: 0, y: 1, z: 0 }; // straight up
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.asin(MathUtils.clamp(out.y, -1, 1))).toBeCloseTo(GAZE_MAX_PITCH_RAD, 5);
+	});
+
+	it('clamps pitch to the max when the desired direction is far below', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const desired = { x: 0, y: -1, z: 0.001 }; // nearly straight down
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.asin(MathUtils.clamp(out.y, -1, 1))).toBeCloseTo(-GAZE_MAX_PITCH_RAD, 5);
+	});
+
+	it('clamps yaw and pitch independently at the same time', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const desired = { x: 1, y: 1, z: 0.01 }; // far up-right
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		const yaw = Math.atan2(out.x, out.z);
+		const pitch = Math.asin(MathUtils.clamp(out.y, -1, 1));
+		expect(yaw).toBeCloseTo(GAZE_MAX_YAW_RAD, 5);
+		expect(pitch).toBeCloseTo(GAZE_MAX_PITCH_RAD, 5);
+	});
+
+	it('the clamped output is always a unit vector', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		for (let az = -180; az <= 180; az += 15) {
+			for (let el = -80; el <= 80; el += 20) {
+				const a = MathUtils.degToRad(az);
+				const e = MathUtils.degToRad(el);
+				const desired = {
+					x: Math.cos(e) * Math.sin(a),
+					y: Math.sin(e),
+					z: Math.cos(e) * Math.cos(a),
+				};
+				const out = clampGazeDirection(current, desired);
+				expect(Math.hypot(out.x, out.y, out.z)).toBeCloseTo(1, 6);
+			}
+		}
+	});
+
+	it('the current direction can itself be off-centre (clamp is relative, not absolute)', () => {
+		// "current" is already turned 20° right of world-forward (e.g. the
+		// idle animation mid-sway); the clamp budget is measured from THAT,
+		// not from world +Z, so a further 40° yaw lands at 60° total.
+		const az0 = MathUtils.degToRad(20);
+		const current = { x: Math.sin(az0), y: 0, z: Math.cos(az0) };
+		const az1 = MathUtils.degToRad(90);
+		const desired = { x: Math.sin(az1), y: 0, z: Math.cos(az1) };
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.atan2(out.x, out.z)).toBeCloseTo(az0 + GAZE_MAX_YAW_RAD, 5);
 	});
 });
