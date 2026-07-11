@@ -29,6 +29,7 @@
 	import type { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 	import type { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 	import type { CubeMaterials } from './materials.js';
+	import { loadNormalizedModel } from './loadNormalizedModel.js';
 
 	let {
 		commodity,
@@ -349,34 +350,32 @@
 		GLTFLoader: typeof import('three/addons/loaders/GLTFLoader.js').GLTFLoader,
 		MeshoptDecoder: typeof import('three/addons/libs/meshopt_decoder.module.js').MeshoptDecoder
 	): void {
-		const loader = new GLTFLoader();
-		loader.setMeshoptDecoder(MeshoptDecoder);
-		loader.load(
+		loadNormalizedModel(
+			three,
+			GLTFLoader,
+			MeshoptDecoder,
 			'/models/references/shiba_inu/shiba.glb',
-			(gltf) => {
+			M!.DOG_TOTAL_HEIGHT_M,
+			'y',
+			(object, animations) => {
 				if (destroyed || !scene || !M) return;
-				dog = gltf.scene;
-				const box = new three.Box3().setFromObject(dog);
-				const size = box.getSize(new three.Vector3());
-				dog.scale.setScalar(M.DOG_TOTAL_HEIGHT_M / size.y);
-				const box2 = new three.Box3().setFromObject(dog);
-				dog.position.y -= box2.min.y; // feet on ground
+				dog = object;
 				dog.traverse((o) => {
 					if ((o as THREE.Mesh).isMesh) o.castShadow = true;
 				});
 				scene.add(dog);
 
-				if (gltf.animations?.length) {
+				if (animations.length) {
 					mixer = new three.AnimationMixer(dog);
 					// Clips: play_dead, rollover, shake, sitting, standing. sitting is
 					// the resting idle; the first three are easter-egg tricks. Select
 					// the idle by NAME — animations[0] is play_dead (the dog dies; a
 					// shipped prototype bug we must NOT regress).
 					const idleClip =
-						gltf.animations.find((c) => c.name.includes('sitting')) ??
-						gltf.animations[gltf.animations.length - 1];
+						animations.find((c) => c.name.includes('sitting')) ??
+						animations[animations.length - 1];
 					idleAction = mixer.clipAction(idleClip);
-					trickClips = gltf.animations.filter((c) => /play_dead|rollover|shake/.test(c.name));
+					trickClips = animations.filter((c) => /play_dead|rollover|shake/.test(c.name));
 					if (!prefersReduced) idleAction.play();
 					mixer.addEventListener('finished', () => {
 						trickPlaying = false;
@@ -388,7 +387,6 @@
 				}
 				update(true);
 			},
-			undefined,
 			() => {
 				/* Model failed — scene continues without the dog; the poster keeps a
 				   Shiba anyway, so this degrades gracefully. */
