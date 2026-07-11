@@ -1,22 +1,15 @@
 {
   "monthKey": "2026-07",
-  "postsThisMonth": 51,
-  "creditsSpentCents": 400,
+  "postsThisMonth": 52,
+  "creditsSpentCents": 402,
   "lastSlotDate": {
-    "gold-am": "2026-07-10",
+    "gold-am": "2026-07-11",
     "silver-mid": "2026-07-10",
     "cocaine-eve": "2026-07-10",
     "pu238-night": "2026-07-11",
     "hashweight-mid": "2026-07-10"
   },
   "posts": [
-    {
-      "at": "2026-05-31T10:12:25.343Z",
-      "slot": "gold-am",
-      "commodity": "gold",
-      "tweetId": "2061028030496039079",
-      "caption": "1 BTC today = a 30 mm gold cube. Fits in your palm. Weighs 503 g (1.11 lb).\nhttps://bitcoinweighin.com/?btc=1&commodity=gold"
-    },
     {
       "at": "2026-05-31T17:58:01.733Z",
       "slot": "silver-mid",
@@ -1409,6 +1402,13 @@
       "commodity": "pu238",
       "tweetId": "2075796726590345484",
       "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-11T14:20:40.078Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2075948554208563321",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 485 g (1.07 lb)."
     }
   ]
 }
