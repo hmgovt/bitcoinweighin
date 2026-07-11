@@ -68,6 +68,13 @@ async function verify(): Promise<void> {
 	// (plus the meshopt decoder dependency) — a bare NodeIO throws "Missing
 	// required extension" on EXT_meshopt_compression / KHR_mesh_quantization
 	// otherwise.
+	//
+	// MeshoptDecoder's WASM module is assigned inside an async
+	// WebAssembly.instantiate(...) callback, so it must be awaited before
+	// constructing a NodeIO that depends on it — otherwise io.read() can
+	// race the WASM load and throw a confusing TypeError instead of failing
+	// clearly. See @gltf-transform/extensions' documented usage pattern.
+	await MeshoptDecoder.ready;
 	const io = new NodeIO()
 		.registerExtensions([EXTMeshoptCompression, KHRMeshQuantization])
 		.registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
