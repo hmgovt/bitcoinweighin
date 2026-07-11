@@ -35,3 +35,57 @@ export function selectBillTier(noteCount: number): BillTier | null {
 	if (noteCount < PALLET_TIER_MIN_NOTES) return 'cube';
 	return 'pallet';
 }
+
+export interface CubicGrid {
+	colsX: number;
+	colsZ: number;
+	layersY: number;
+	extentXMm: number;
+	extentZMm: number;
+	extentYMm: number;
+}
+
+/**
+ * Arrange `n` identical items (each `itemWidthMm` x `itemLengthMm` x
+ * `itemHeightMm`) into an integer 3D grid whose overall extents are as
+ * close to equal as possible — the "roughly cubic stack" from the brief.
+ * Closed-form target-extent solve (no brute-force search): if every axis
+ * filled the same target extent `E`, the item count would be
+ * `E^3 / (w*l*h)`; solve for `E`, round each axis's item count, then grow
+ * whichever axis has the smallest extent until the grid holds >= n items.
+ */
+export function cubicGridDims(
+	n: number,
+	itemWidthMm: number,
+	itemLengthMm: number,
+	itemHeightMm: number
+): CubicGrid {
+	if (!(n > 0)) {
+		return { colsX: 0, colsZ: 0, layersY: 0, extentXMm: 0, extentZMm: 0, extentYMm: 0 };
+	}
+	const targetExtent = Math.cbrt(n * itemWidthMm * itemLengthMm * itemHeightMm);
+	let colsX = Math.max(1, Math.round(targetExtent / itemWidthMm));
+	let colsZ = Math.max(1, Math.round(targetExtent / itemLengthMm));
+	let layersY = Math.max(1, Math.round(targetExtent / itemHeightMm));
+
+	while (colsX * colsZ * layersY < n) {
+		const extents: [number, number, number] = [
+			colsX * itemWidthMm,
+			colsZ * itemLengthMm,
+			layersY * itemHeightMm,
+		];
+		const minIdx = extents.indexOf(Math.min(...extents));
+		if (minIdx === 0) colsX++;
+		else if (minIdx === 1) colsZ++;
+		else layersY++;
+	}
+
+	return {
+		colsX,
+		colsZ,
+		layersY,
+		extentXMm: colsX * itemWidthMm,
+		extentZMm: colsZ * itemLengthMm,
+		extentYMm: layersY * itemHeightMm,
+	};
+}

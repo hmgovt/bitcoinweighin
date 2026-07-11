@@ -6,6 +6,7 @@ import {
 	BILL_MASS_G,
 	stackHeightMm,
 	selectBillTier,
+	cubicGridDims,
 } from '../src/lib/billStack.js';
 
 describe('physical constants', () => {
@@ -66,5 +67,40 @@ describe('selectBillTier', () => {
 	it('pallet at 10,000,000 notes and above', () => {
 		expect(selectBillTier(10_000_000)).toBe('pallet');
 		expect(selectBillTier(2_310_000_000_000)).toBe('pallet');
+	});
+});
+
+describe('cubicGridDims', () => {
+	it('returns a zeroed grid for n <= 0', () => {
+		const g = cubicGridDims(0, 1, 1, 1);
+		expect(g).toEqual({ colsX: 0, colsZ: 0, layersY: 0, extentXMm: 0, extentZMm: 0, extentYMm: 0 });
+	});
+
+	it('unit cubes: perfect cube counts produce equal-side grids', () => {
+		expect(cubicGridDims(8, 1, 1, 1)).toMatchObject({ colsX: 2, colsZ: 2, layersY: 2 });
+		expect(cubicGridDims(27, 1, 1, 1)).toMatchObject({ colsX: 3, colsZ: 3, layersY: 3 });
+		expect(cubicGridDims(1000, 1, 1, 1)).toMatchObject({ colsX: 10, colsZ: 10, layersY: 10 });
+	});
+
+	it('the grid always holds at least n items', () => {
+		for (const n of [1, 5, 100, 110, 12345]) {
+			const g = cubicGridDims(n, 66.294, 155.956, 109.22);
+			expect(g.colsX * g.colsZ * g.layersY).toBeGreaterThanOrEqual(n);
+		}
+	});
+
+	it('100 bundles (66.294 x 155.956 x 109.22 mm each) -> 7 x 3 x 5, roughly equal extents', () => {
+		const g = cubicGridDims(100, 66.294, 155.956, 109.22);
+		expect(g).toMatchObject({ colsX: 7, colsZ: 3, layersY: 5 });
+		expect(g.colsX * g.colsZ * g.layersY).toBe(105);
+		const extents = [g.extentXMm, g.extentZMm, g.extentYMm];
+		const ratio = Math.max(...extents) / Math.min(...extents);
+		expect(ratio).toBeLessThan(1.3); // "roughly cubic" — no side more than 30% off the others
+	});
+
+	it('110 bundles (the 1 BTC worked example) -> 8 x 3 x 5', () => {
+		const g = cubicGridDims(110, 66.294, 155.956, 109.22);
+		expect(g).toMatchObject({ colsX: 8, colsZ: 3, layersY: 5 });
+		expect(g.colsX * g.colsZ * g.layersY).toBeGreaterThanOrEqual(110);
 	});
 });
