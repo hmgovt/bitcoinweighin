@@ -1,22 +1,15 @@
 {
   "monthKey": "2026-07",
-  "postsThisMonth": 52,
-  "creditsSpentCents": 402,
+  "postsThisMonth": 53,
+  "creditsSpentCents": 404,
   "lastSlotDate": {
     "gold-am": "2026-07-11",
     "silver-mid": "2026-07-10",
     "cocaine-eve": "2026-07-10",
     "pu238-night": "2026-07-11",
-    "hashweight-mid": "2026-07-10"
+    "hashweight-mid": "2026-07-11"
   },
   "posts": [
-    {
-      "at": "2026-05-31T17:58:01.733Z",
-      "slot": "silver-mid",
-      "commodity": "silver",
-      "tweetId": "2061145204682260814",
-      "caption": "In silver, 1 BTC held steady overnight — within a rounding error of yesterday's close.\nhttps://bitcoinweighin.com/?btc=1&commodity=silver"
-    },
     {
       "at": "2026-05-31T21:53:23.331Z",
       "slot": "cocaine-eve",
@@ -1409,6 +1402,13 @@
       "commodity": "gold",
       "tweetId": "2075948554208563321",
       "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 485 g (1.07 lb)."
+    },
+    {
+      "at": "2026-07-11T15:58:39.183Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2075973221573448186",
+      "caption": "The Bitcoin network's mining hardware weighs ~80,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 888 EH/s."
     }
   ]
 }
