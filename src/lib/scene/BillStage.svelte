@@ -14,10 +14,13 @@
 	 * three visual branches — individually-instanced bills (loose/strap),
 	 * coalesced textured blocks in a roughly-cubic grid (bundle/cube), or a
 	 * capped receding field of pallet-scale blocks (pallet) — via
-	 * `billStack.ts`'s tier/grid maths. Task 13 (this) adds literal-mode
-	 * rendering: a `viewMode` prop that, when `'literal'`, always renders a
-	 * single true-height column instead of the tiered view. The
-	 * click/keyboard toggle lands in Task 14.
+	 * `billStack.ts`'s tier/grid maths. Task 13 adds literal-mode rendering:
+	 * a `viewMode` prop that, when `'literal'`, always renders a single
+	 * true-height column instead of the tiered view. Task 14 (this) wires
+	 * the camera to `renderTiered`/`renderLiteral`'s returned dominant
+	 * extent via `cameraTransform` (`./maths.js`), adds the damped dolly
+	 * loop, and makes clicking/tapping (or Enter/Space when focused) toggle
+	 * `viewMode`.
 	 */
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
@@ -297,6 +300,73 @@
 		return totalHeightM;
 	}
 
+	let wantPos: THREE.Vector3 | null = null;
+	let wantAim: THREE.Vector3 | null = null;
+	let prefersReduced = false;
+
+	/** Reframes the camera target to whatever `renderTiered`/`renderLiteral`
+	 *  reports as the dominant extent, via the same `cameraTransform` maths
+	 *  LiveStage uses for the metal cubes. Under reduced motion the camera
+	 *  snaps straight to the new target instead of leaving it for `loop()` to
+	 *  damp toward. */
+	function reframe(three: typeof THREE, M: typeof import('./maths.js'), dominant: number): void {
+		if (!camera || !camPos || !camAim) return;
+		const safeDominant = Math.max(dominant, 1e-4);
+		const tr = M.cameraTransform(safeDominant);
+		wantPos = new three.Vector3(tr.pos.x, tr.pos.y, tr.pos.z);
+		wantAim = new three.Vector3(tr.aim.x, tr.aim.y, tr.aim.z);
+		if (prefersReduced) {
+			camPos.copy(wantPos);
+			camAim.copy(wantAim);
+		}
+		camera.position.copy(camPos);
+		camera.lookAt(camAim);
+		// Literal-mode height is uncapped (a single true-height column can run
+		// into the kilometres at extreme note counts), so the near/far planes
+		// must track the camera distance every reframe — same as LiveStage's
+		// loop() — or a large dominant dollies the camera straight past the
+		// fixed far plane and the object vanishes.
+		camera.near = Math.max(camPos.length() / 100, 1e-4);
+		camera.far = camPos.length() * 60;
+		camera.updateProjectionMatrix();
+	}
+
+	let running = false;
+	const clock = { last: 0 };
+
+	/** Damped dolly loop — matches LiveStage's damping constant so a reframe
+	 *  on toggle/slider-move animates with the same feel. */
+	function loop(): void {
+		if (!running || destroyed || !T || !camera || !camPos || !camAim || !wantPos || !wantAim) return;
+		rafId = requestAnimationFrame(loop);
+		const now = performance.now();
+		const dt = Math.min((now - clock.last) / 1000 || 0, 0.05);
+		clock.last = now;
+		const k = 1 - Math.exp(-dt * 3.2); // same damping constant as LiveStage
+		camPos.lerp(wantPos, k);
+		camAim.lerp(wantAim, k);
+		camera.position.copy(camPos);
+		camera.lookAt(camAim);
+		// See the matching comment in reframe() — near/far must track distance
+		// every frame, not just on reframe, since the dolly moves camPos here.
+		camera.near = Math.max(camPos.length() / 100, 1e-4);
+		camera.far = camPos.length() * 60;
+		camera.updateProjectionMatrix();
+		render();
+	}
+
+	function startLoop(): void {
+		if (running || destroyed) return;
+		running = true;
+		clock.last = performance.now();
+		rafId = requestAnimationFrame(loop);
+	}
+	function stopLoop(): void {
+		running = false;
+		if (rafId) cancelAnimationFrame(rafId);
+		rafId = 0;
+	}
+
 	async function hydrate(): Promise<void> {
 		if (destroyed || canvasActive || !containerEl) return;
 
@@ -372,6 +442,7 @@
 
 		canvasActive = true;
 		render();
+		startLoop();
 
 		resizeObs = new ResizeObserver(() => onResize());
 		resizeObs.observe(containerEl);
@@ -393,6 +464,7 @@
 	}
 
 	function teardown(): void {
+		stopLoop();
 		if (resizeObs) resizeObs.disconnect();
 
 		// Tier-group resources (bundle/pallet box geometry, cloned edge
@@ -435,6 +507,7 @@
 
 	onMount(() => {
 		if (!browser) return;
+		prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 		if (!hasWebGL()) return;
 		void hydrate();
 		return () => {
@@ -447,16 +520,35 @@
 		const count = noteCount;
 		const mode = viewMode;
 		if (!canvasActive || !T || !bakedBillGeometry) return;
-		import('../billStack.js').then((billStackMod) => {
+		Promise.all([import('../billStack.js'), import('./maths.js')]).then(([billStackMod, M]) => {
 			if (destroyed || !T) return;
-			if (mode === 'literal') renderLiteral(T, billStackMod, count);
-			else renderTiered(T, billStackMod, count);
+			const dominant = mode === 'literal' ? renderLiteral(T, billStackMod, count) : renderTiered(T, billStackMod, count);
+			reframe(T, M, dominant);
 			render();
 		});
 	});
+
+	function toggleViewMode(): void {
+		viewMode = viewMode === 'tiered' ? 'literal' : 'tiered';
+	}
 </script>
 
-<div class="bill-stage" bind:this={containerEl}></div>
+<div
+	class="bill-stage"
+	bind:this={containerEl}
+	role="button"
+	tabindex="0"
+	aria-label={`Dollar bill stack, ${viewMode === 'tiered' ? 'bundled view — tap for the literal true-height stack' : 'literal true-height stack — tap for the bundled view'}`}
+	onclick={toggleViewMode}
+	onkeydown={(e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			toggleViewMode();
+		}
+	}}
+>
+	<div class="mode-hint">{viewMode === 'tiered' ? 'tap to see it as one column' : 'tap to see it bundled'}</div>
+</div>
 
 <style>
 	.bill-stage {
@@ -466,6 +558,7 @@
 		overflow: hidden;
 		border-radius: 8px;
 		background: #18181b;
+		cursor: pointer;
 	}
 	.bill-stage :global(canvas.stage-canvas) {
 		position: absolute;
@@ -473,5 +566,15 @@
 		width: 100%;
 		height: 100%;
 		display: block;
+	}
+	.mode-hint {
+		position: absolute;
+		bottom: 8px;
+		right: 12px;
+		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+		font-size: 11px;
+		color: #71717a;
+		pointer-events: none;
+		z-index: 1;
 	}
 </style>
