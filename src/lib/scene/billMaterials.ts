@@ -91,6 +91,7 @@ export function makeBillEdgeTexture(): THREE.CanvasTexture {
 
 	const texture = new THREE.CanvasTexture(canvas);
 	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+	texture.colorSpace = THREE.SRGBColorSpace;
 	return texture;
 }
 
