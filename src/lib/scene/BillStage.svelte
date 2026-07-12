@@ -173,13 +173,15 @@
 
 	function teardown(): void {
 		if (resizeObs) resizeObs.disconnect();
-		if (renderer) {
-			renderer.domElement.remove();
-			renderer.dispose();
-		}
 
 		// previewMesh reuses bakedBillGeometry + billMats.face — dispose those
 		// once below, not per-mesh, to avoid double-disposing shared resources.
+		// This MUST run before renderer.dispose(): WebGLRenderer.dispose()
+		// resets WebGLProperties' internal WeakMap, so Texture/Material
+		// .dispose() calls made afterward can no longer look up their GPU
+		// resources and silently no-op (BufferGeometry.dispose() is unaffected
+		// since it uses its own independent WeakMap, but order it consistently
+		// anyway).
 		bakedBillGeometry?.dispose();
 		billMats?.face.map?.dispose();
 		billMats?.face.dispose();
@@ -187,6 +189,11 @@
 		billMats?.edge.dispose();
 		groundGeometry?.dispose();
 		groundMaterial?.dispose();
+
+		if (renderer) {
+			renderer.domElement.remove();
+			renderer.dispose();
+		}
 
 		renderer = scene = camera = key = null;
 		bakedBillGeometry = null;
