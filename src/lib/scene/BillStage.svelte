@@ -331,6 +331,23 @@
 			dist * Math.cos(elev) * Math.cos(azim)
 		);
 		wantAim = new three.Vector3(0, framingDominant * 0.32, 0);
+		// Key light + shadow-camera frustum track the scale, mirroring
+		// LiveStage's update() — without this the light stays at three.js's
+		// default (0, 1, 0), shining straight down, and the near-vertical side
+		// faces of bundle/cube/pallet BoxGeometry blocks (which dominate the
+		// view at BillStage's shallow camera elevation) receive almost no
+		// direct light and render black. `0 -` replaces LiveStage's
+		// `tr.aim.x -` term: BillStage has no dog-staging offset, so aim.x is
+		// always 0 here.
+		if (key) {
+			key.position.set(0 - framingDominant * 1.6, framingDominant * 2.4, framingDominant * 1.2);
+			const sc = key.shadow.camera;
+			sc.left = sc.bottom = -framingDominant * 2.2;
+			sc.right = sc.top = framingDominant * 2.2;
+			sc.near = framingDominant * 0.1;
+			sc.far = framingDominant * 8;
+			sc.updateProjectionMatrix();
+		}
 		if (prefersReduced) {
 			camPos.copy(wantPos);
 			camAim.copy(wantAim);
