@@ -20,6 +20,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type * as THREE from 'three';
+	import type { CubicGrid } from '../billStack.js';
 
 	let { noteCount = 0 }: { noteCount?: number } = $props();
 
@@ -37,10 +38,14 @@
 	let camPos: THREE.Vector3 | null = null;
 	let camAim: THREE.Vector3 | null = null;
 
-	let bakedBillGeometry: THREE.BufferGeometry | null = null;
+	// $state so the tiered-render $effect (which reads it) re-runs once the
+	// async GLTF load (see hydrate()) assigns it — otherwise the effect's
+	// first run (triggered by canvasActive) fires while this is still null,
+	// bails on the guard below, and nothing re-triggers it for a static
+	// noteCount mount.
+	let bakedBillGeometry: THREE.BufferGeometry | null = $state(null);
 	let billMats: { face: THREE.MeshStandardMaterial; edge: THREE.MeshStandardMaterial } | null =
 		null;
-	let previewMesh: THREE.Mesh | null = null;
 	let groundGeometry: THREE.BufferGeometry | null = null;
 	let groundMaterial: THREE.MeshStandardMaterial | null = null;
 
@@ -112,13 +117,52 @@
 		tierGroup = null;
 	}
 
+	/** Fills an InstancedMesh with cap-respecting positions arranged per
+	 *  `grid` (a `cubicGridDims` result), adds it to `tierGroup`/`scene`, and
+	 *  returns the grid's dominant extent in metres — the shared
+	 *  grid-placement routine used by both the bundle/cube branch and the
+	 *  pallet branch of `renderTiered`, which differ only in geometry,
+	 *  materials, per-axis cell size, and the render cap (`renderLimit`,
+	 *  e.g. `PALLET_RENDER_CAP` for pallet). */
+	function placeGridInstances(
+		three: typeof THREE,
+		geometry: THREE.BoxGeometry,
+		materials: THREE.MeshStandardMaterial[],
+		grid: CubicGrid,
+		cellWidthM: number,
+		cellHeightM: number,
+		cellLengthM: number,
+		renderLimit: number
+	): number {
+		if (!scene || !tierGroup) return 0;
+		const instanced = new three.InstancedMesh(geometry, materials, grid.colsX * grid.colsZ * grid.layersY);
+		instanced.castShadow = true;
+		const m = new three.Matrix4();
+		let i = 0;
+		for (let x = 0; x < grid.colsX; x++) {
+			for (let y = 0; y < grid.layersY; y++) {
+				for (let z = 0; z < grid.colsZ; z++) {
+					if (i >= renderLimit) break;
+					m.setPosition(
+						(x - (grid.colsX - 1) / 2) * cellWidthM,
+						y * cellHeightM + cellHeightM / 2,
+						(z - (grid.colsZ - 1) / 2) * cellLengthM
+					);
+					instanced.setMatrixAt(i, m);
+					i++;
+				}
+			}
+		}
+		instanced.count = i;
+		instanced.instanceMatrix.needsUpdate = true;
+		tierGroup.add(instanced);
+		scene.add(tierGroup);
+		return Math.max(grid.extentXMm, grid.extentYMm, grid.extentZMm) / 1000;
+	}
+
 	function renderTiered(three: typeof THREE, billStackMod: typeof import('../billStack.js'), count: number): number {
 		if (!scene || !bakedBillGeometry || !billMats) return 0;
 		clearTierGroup(three);
-		if (previewMesh) {
-			scene.remove(previewMesh);
-			previewMesh = null;
-		}
 		tierGroup = new three.Group();
 
 		const tier = billStackMod.selectBillTier(count);
@@ -169,29 +213,16 @@
 				billStackMod.BILL_LENGTH_MM,
 				BUNDLE_HEIGHT_MM
 			);
-			const instanced = new three.InstancedMesh(bundleGeom, blockMats, grid.colsX * grid.colsZ * grid.layersY);
-			instanced.castShadow = true;
-			const m = new three.Matrix4();
-			let i = 0;
-			for (let x = 0; x < grid.colsX; x++) {
-				for (let y = 0; y < grid.layersY; y++) {
-					for (let z = 0; z < grid.colsZ; z++) {
-						if (i >= bundleCount) break;
-						m.setPosition(
-							(x - (grid.colsX - 1) / 2) * widthM,
-							y * (BUNDLE_HEIGHT_MM / 1000) + BUNDLE_HEIGHT_MM / 1000 / 2,
-							(z - (grid.colsZ - 1) / 2) * lengthM
-						);
-						instanced.setMatrixAt(i, m);
-						i++;
-					}
-				}
-			}
-			instanced.count = i;
-			instanced.instanceMatrix.needsUpdate = true;
-			tierGroup.add(instanced);
-			scene.add(tierGroup);
-			return Math.max(grid.extentXMm, grid.extentYMm, grid.extentZMm) / 1000;
+			return placeGridInstances(
+				three,
+				bundleGeom,
+				blockMats,
+				grid,
+				widthM,
+				BUNDLE_HEIGHT_MM / 1000,
+				lengthM,
+				bundleCount
+			);
 		}
 
 		// pallet: a receding field of pallet-scale blocks (10x10x10 bundles
@@ -207,29 +238,8 @@
 		const totalPallets = Math.ceil(count / (billStackMod.NOTES_PER_BUNDLE * PALLET_BUNDLES));
 		const renderedPallets = Math.min(totalPallets, PALLET_RENDER_CAP);
 		const grid = billStackMod.cubicGridDims(renderedPallets, palletExtentMm, palletExtentMm, palletExtentMm);
-		const instanced = new three.InstancedMesh(palletGeom, blockMats, grid.colsX * grid.colsZ * grid.layersY);
-		instanced.castShadow = true;
-		const m = new three.Matrix4();
-		let i = 0;
-		for (let x = 0; x < grid.colsX; x++) {
-			for (let y = 0; y < grid.layersY; y++) {
-				for (let z = 0; z < grid.colsZ; z++) {
-					if (i >= renderedPallets) break;
-					m.setPosition(
-						(x - (grid.colsX - 1) / 2) * (palletExtentMm / 1000),
-						y * (palletExtentMm / 1000) + palletExtentMm / 1000 / 2,
-						(z - (grid.colsZ - 1) / 2) * (palletExtentMm / 1000)
-					);
-					instanced.setMatrixAt(i, m);
-					i++;
-				}
-			}
-		}
-		instanced.count = i;
-		instanced.instanceMatrix.needsUpdate = true;
-		tierGroup.add(instanced);
-		scene.add(tierGroup);
-		return Math.max(grid.extentXMm, grid.extentYMm, grid.extentZMm) / 1000;
+		const palletCellM = palletExtentMm / 1000;
+		return placeGridInstances(three, palletGeom, blockMats, grid, palletCellM, palletCellM, palletCellM, renderedPallets);
 	}
 
 	async function hydrate(): Promise<void> {
@@ -293,14 +303,11 @@
 			'x',
 			(object) => {
 				if (destroyed || !scene || !billMats) return;
+				// Assigning bakedBillGeometry (now $state) triggers the tiered
+				// $effect below to run renderTiered() with the current noteCount —
+				// no preview mesh here, so a static-noteCount mount goes straight
+				// to the correct tiered view instead of a lingering single bill.
 				bakedBillGeometry = extractBakedGeometry(three, object);
-				if (bakedBillGeometry && billMats) {
-					previewMesh = new three.Mesh(bakedBillGeometry, billMats.face);
-					previewMesh.castShadow = true;
-					previewMesh.position.y = billStackMod.BILL_THICKNESS_MM / 1000 / 2;
-					scene.add(previewMesh);
-					render();
-				}
 			},
 			() => {
 				/* Model failed to load — the poster (BillRenderer, Task 15) covers
@@ -341,9 +348,10 @@
 		// below).
 		if (T) clearTierGroup(T);
 
-		// previewMesh reuses bakedBillGeometry + billMats.face — dispose those
-		// once below, not per-mesh, to avoid double-disposing shared resources.
-		// This MUST run before renderer.dispose(): WebGLRenderer.dispose()
+		// bakedBillGeometry + billMats.face/.edge are shared across every
+		// tier's InstancedMesh — dispose them once below, not per-mesh, to
+		// avoid double-disposing shared resources. This MUST run before
+		// renderer.dispose(): WebGLRenderer.dispose()
 		// resets WebGLProperties' internal WeakMap, so Texture/Material
 		// .dispose() calls made afterward can no longer look up their GPU
 		// resources and silently no-op (BufferGeometry.dispose() is unaffected
@@ -365,7 +373,6 @@
 		renderer = scene = camera = key = null;
 		bakedBillGeometry = null;
 		billMats = null;
-		previewMesh = null;
 		groundGeometry = null;
 		groundMaterial = null;
 		tierGroup = null;
