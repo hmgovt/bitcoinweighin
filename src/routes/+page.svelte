@@ -651,6 +651,12 @@
 							<span class="seo-card__sub">Wholesale, producer, retail tiers.</span>
 						</a>
 					</li>
+					<li>
+						<a href="/btc/cash" class="seo-card">
+							<span class="seo-card__title">BTC → Cash</span>
+							<span class="seo-card__sub">A literal stack of $1 bills, to true thickness.</span>
+						</a>
+					</li>
 				</ul>
 
 				<h2 class="seo-section__h2">Free, citable, machine-readable</h2>
