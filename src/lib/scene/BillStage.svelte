@@ -37,6 +37,8 @@
 	let billMats: { face: THREE.MeshStandardMaterial; edge: THREE.MeshStandardMaterial } | null =
 		null;
 	let previewMesh: THREE.Mesh | null = null;
+	let groundGeometry: THREE.BufferGeometry | null = null;
+	let groundMaterial: THREE.MeshStandardMaterial | null = null;
 
 	let width = 0;
 	let height = 0;
@@ -108,10 +110,9 @@
 		scene.add(key);
 		scene.add(new three.AmbientLight(0x404048, 0.4));
 
-		const ground = new three.Mesh(
-			new three.CircleGeometry(4000, 64).rotateX(-Math.PI / 2),
-			new three.MeshStandardMaterial({ color: 0x202024, roughness: 0.95, metalness: 0 })
-		);
+		groundGeometry = new three.CircleGeometry(4000, 64).rotateX(-Math.PI / 2);
+		groundMaterial = new three.MeshStandardMaterial({ color: 0x202024, roughness: 0.95, metalness: 0 });
+		const ground = new three.Mesh(groundGeometry, groundMaterial);
 		ground.receiveShadow = true;
 		scene.add(ground);
 
@@ -176,7 +177,23 @@
 			renderer.domElement.remove();
 			renderer.dispose();
 		}
+
+		// previewMesh reuses bakedBillGeometry + billMats.face — dispose those
+		// once below, not per-mesh, to avoid double-disposing shared resources.
+		bakedBillGeometry?.dispose();
+		billMats?.face.map?.dispose();
+		billMats?.face.dispose();
+		billMats?.edge.map?.dispose();
+		billMats?.edge.dispose();
+		groundGeometry?.dispose();
+		groundMaterial?.dispose();
+
 		renderer = scene = camera = key = null;
+		bakedBillGeometry = null;
+		billMats = null;
+		previewMesh = null;
+		groundGeometry = null;
+		groundMaterial = null;
 	}
 
 	onMount(() => {
