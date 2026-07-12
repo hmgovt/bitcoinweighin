@@ -25,6 +25,12 @@ export const entries: EntryGenerator = () => {
 	return LAUNCH_COMMODITIES.map((c) => ({ commodity: c.id }));
 };
 
+function formatNoteCountForRatio(amount: number): string {
+	if (amount >= 1_000_000_000_000) return `${(amount / 1_000_000_000_000).toFixed(2)} trillion $1 bills`;
+	if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(2)} billion $1 bills`;
+	return `${(amount / 1_000_000).toFixed(2)} million $1 bills`;
+}
+
 function formatRatio(amount: number, commodityId: string): string {
 	const c = getCommodity(commodityId);
 	if (!c) return amount.toString();
@@ -42,6 +48,11 @@ function formatRatio(amount: number, commodityId: string): string {
 		if (g >= 1) return `${g.toFixed(1)} g`;
 		if (g >= 0.001) return `${(g * 1000).toFixed(0)} mg`;
 		return `${(g * 1_000_000).toFixed(0)} µg`;
+	}
+
+	if (c.unit === 'note') {
+		if (amount >= 1_000_000) return formatNoteCountForRatio(amount);
+		return `${Math.round(amount).toLocaleString('en-US')} $1 bills`;
 	}
 
 	return `${amount.toFixed(2)} ${c.unit}`;

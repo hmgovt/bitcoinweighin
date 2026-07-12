@@ -5,6 +5,7 @@
 		webPageJsonLd,
 	} from '$lib/seo/jsonld.js';
 	import CommodityPoster from '$lib/components/CommodityPoster.svelte';
+	import BillRenderer from '$lib/components/BillRenderer.svelte';
 
 	let { data } = $props();
 
@@ -13,11 +14,12 @@
 	const deeplinkHref = `/?commodity=${data.commodityId}`;
 	const btcUsdFormatted =
 		'$' + Math.round(data.btcUsd).toLocaleString('en-US') + ' USD';
-	// Posters render for cube-mode commodities only (gold, silver, pu238).
-	// Still-with-readout commodities (cocaine) keep the amber callout
-	// because their homepage panel is a different visual idiom that
-	// doesn't translate to a single sprite.
-	const showPoster = data.renderStyle === 'cube' && data.amount !== null;
+	// Posters render for cube-mode commodities (gold, silver, pu238) and
+	// the bill-stack commodity (cash). Still-with-readout commodities
+	// (cocaine) keep the amber callout because their homepage panel is a
+	// different visual idiom that doesn't translate to a single sprite.
+	const showPoster =
+		(data.renderStyle === 'cube' || data.renderStyle === 'bill_stack') && data.amount !== null;
 </script>
 
 <svelte:head>
@@ -79,11 +81,15 @@
 
 		{#if showPoster}
 			<div class="poster-wrap my-8">
-				<CommodityPoster
-					commodity={data.commodity}
-					amount={data.amount ?? 0}
-					btcUsdPrice={data.btcUsd}
-				/>
+				{#if data.renderStyle === 'bill_stack'}
+					<BillRenderer noteCount={data.amount ?? 0} />
+				{:else}
+					<CommodityPoster
+						commodity={data.commodity}
+						amount={data.amount ?? 0}
+						btcUsdPrice={data.btcUsd}
+					/>
+				{/if}
 				<p class="poster-cta">
 					<a href={deeplinkHref} class="poster-cta__link"
 						>Open the interactive viewer →</a
