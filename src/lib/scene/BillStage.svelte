@@ -14,15 +14,20 @@
 	 * three visual branches — individually-instanced bills (loose/strap),
 	 * coalesced textured blocks in a roughly-cubic grid (bundle/cube), or a
 	 * capped receding field of pallet-scale blocks (pallet) — via
-	 * `billStack.ts`'s tier/grid maths. Literal-mode instancing lands in
-	 * Task 13; the click/keyboard toggle lands in Task 14.
+	 * `billStack.ts`'s tier/grid maths. Task 13 (this) adds literal-mode
+	 * rendering: a `viewMode` prop that, when `'literal'`, always renders a
+	 * single true-height column instead of the tiered view. The
+	 * click/keyboard toggle lands in Task 14.
 	 */
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type * as THREE from 'three';
 	import type { CubicGrid } from '../billStack.js';
 
-	let { noteCount = 0 }: { noteCount?: number } = $props();
+	let {
+		noteCount = 0,
+		viewMode = $bindable<'tiered' | 'literal'>('tiered'),
+	}: { noteCount?: number; viewMode?: 'tiered' | 'literal' } = $props();
 
 	const BG = 0x18181b;
 	const BILL_MODEL_URL = '/models/references/one_dollar_bill/bill.glb';
@@ -242,6 +247,56 @@
 		return placeGridInstances(three, palletGeom, blockMats, grid, palletCellM, palletCellM, palletCellM, renderedPallets);
 	}
 
+	const LITERAL_INSTANCE_CAP = 2000; // individually-instanced bills at the base of the column
+
+	/** Literal mode: a single true-height column regardless of tier — the
+	 *  base is individually-instanced real bill geometry (up to
+	 *  `LITERAL_INSTANCE_CAP`, matching the loose/strap approach in
+	 *  `renderTiered`), and any remaining height above that cap is a single
+	 *  coalesced block sized to make up the rest of `stackHeightMm(count)`
+	 *  exactly, so the column's total height is always physically honest. */
+	function renderLiteral(three: typeof THREE, billStackMod: typeof import('../billStack.js'), count: number): number {
+		if (!scene || !bakedBillGeometry || !billMats) return 0;
+		clearTierGroup(three);
+		tierGroup = new three.Group();
+
+		const widthM = billStackMod.BILL_WIDTH_MM / 1000;
+		const lengthM = billStackMod.BILL_LENGTH_MM / 1000;
+		const thicknessM = billStackMod.BILL_THICKNESS_MM / 1000;
+		const totalHeightM = billStackMod.stackHeightMm(count) / 1000;
+
+		const instancedCount = Math.min(count, LITERAL_INSTANCE_CAP);
+		if (instancedCount > 0) {
+			const instanced = new three.InstancedMesh(bakedBillGeometry, billMats.face, instancedCount);
+			instanced.castShadow = true;
+			const m = new three.Matrix4();
+			for (let i = 0; i < instancedCount; i++) {
+				m.makeTranslation(0, thicknessM * (i + 0.5), 0);
+				instanced.setMatrixAt(i, m);
+			}
+			instanced.instanceMatrix.needsUpdate = true;
+			tierGroup.add(instanced);
+		}
+
+		const remaining = count - instancedCount;
+		if (remaining > 0) {
+			const remainingHeightM = totalHeightM - instancedCount * thicknessM;
+			const blockGeom = new three.BoxGeometry(widthM, remainingHeightM, lengthM);
+			const edgeMat = billMats.edge.clone();
+			edgeMat.map = edgeMat.map!.clone();
+			edgeMat.map.repeat.set(1, remaining); // physically-honest stripe density (Task 10)
+			edgeMat.map.needsUpdate = true;
+			const blockMats = [edgeMat, edgeMat, billMats.face, billMats.face, edgeMat, edgeMat];
+			const block = new three.Mesh(blockGeom, blockMats);
+			block.castShadow = true;
+			block.position.y = instancedCount * thicknessM + remainingHeightM / 2;
+			tierGroup.add(block);
+		}
+
+		scene.add(tierGroup);
+		return totalHeightM;
+	}
+
 	async function hydrate(): Promise<void> {
 		if (destroyed || canvasActive || !containerEl) return;
 
@@ -390,10 +445,12 @@
 
 	$effect(() => {
 		const count = noteCount;
+		const mode = viewMode;
 		if (!canvasActive || !T || !bakedBillGeometry) return;
 		import('../billStack.js').then((billStackMod) => {
 			if (destroyed || !T) return;
-			renderTiered(T, billStackMod, count);
+			if (mode === 'literal') renderLiteral(T, billStackMod, count);
+			else renderTiered(T, billStackMod, count);
 			render();
 		});
 	});
