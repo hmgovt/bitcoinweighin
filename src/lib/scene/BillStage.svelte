@@ -356,7 +356,12 @@
 	}
 
 	function startLoop(): void {
-		if (running || destroyed) return;
+		// Reduced-motion: no continuous rAF loop. reframe() already snaps
+		// camPos/camAim straight to the target (and updates near/far) on the
+		// prefersReduced path, and the render $effect calls render() right
+		// after — so the scene is fully correct with zero animated frames,
+		// and we avoid burning GPU cycles for users who opted out of motion.
+		if (prefersReduced || running || destroyed) return;
 		running = true;
 		clock.last = performance.now();
 		rafId = requestAnimationFrame(loop);
