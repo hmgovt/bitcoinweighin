@@ -305,16 +305,32 @@
 	let prefersReduced = false;
 
 	/** Reframes the camera target to whatever `renderTiered`/`renderLiteral`
-	 *  reports as the dominant extent, via the same `cameraTransform` maths
-	 *  LiveStage uses for the metal cubes. Under reduced motion the camera
-	 *  snaps straight to the new target instead of leaving it for `loop()` to
-	 *  damp toward. */
+	 *  reports as the dominant extent. Deliberately does NOT call
+	 *  `M.cameraTransform()` — that function's aim point is blended (via
+	 *  `aimBlend`/`besidePlacement` in maths.ts) toward a position beside a
+	 *  Shiba dog model, because LiveStage's metal-cube scene stages a dog next
+	 *  to the cube. BillStage has no dog anywhere in its scene, so that
+	 *  sideways aim offset just points the look-at target past the edge of
+	 *  the rendered grid (see Task 17b bugfix notes). Instead this rebuilds
+	 *  the same position/elevation/height geometry `cameraTransform` derives
+	 *  from `framingDominant`/`framingDistance`/`cameraElevationRad`/
+	 *  `cameraHeight`/`AZIMUTH_RAD`, but aims strictly at the scene's own
+	 *  centre (x = 0) — matching `cameraTransform`'s own `aim.y` formula
+	 *  (`dominant * 0.32`) without the dog-driven `aim.x` term. */
 	function reframe(three: typeof THREE, M: typeof import('./maths.js'), dominant: number): void {
 		if (!camera || !camPos || !camAim) return;
 		const safeDominant = Math.max(dominant, 1e-4);
-		const tr = M.cameraTransform(safeDominant);
-		wantPos = new three.Vector3(tr.pos.x, tr.pos.y, tr.pos.z);
-		wantAim = new three.Vector3(tr.aim.x, tr.aim.y, tr.aim.z);
+		const framingDominant = M.framingDominant(safeDominant);
+		const dist = M.framingDistance(framingDominant);
+		const elev = M.cameraElevationRad(safeDominant);
+		const azim = M.AZIMUTH_RAD;
+		const camY = M.cameraHeight(framingDominant);
+		wantPos = new three.Vector3(
+			dist * Math.cos(elev) * Math.sin(azim),
+			camY,
+			dist * Math.cos(elev) * Math.cos(azim)
+		);
+		wantAim = new three.Vector3(0, framingDominant * 0.32, 0);
 		if (prefersReduced) {
 			camPos.copy(wantPos);
 			camAim.copy(wantAim);
