@@ -8,6 +8,8 @@
 	import {
 		BILL_WIDTH_MM,
 		BILL_LENGTH_MM,
+		BILL_THICKNESS_MM,
+		BILL_MASS_G,
 		selectBillTier,
 		stackHeightMm,
 		nearestHeightComparison,
@@ -22,7 +24,7 @@
 		viewMode = 'tiered',
 	}: { noteCount?: number; viewMode?: 'tiered' | 'literal' } = $props();
 
-	const massGrams = $derived(noteCount); // BILL_MASS_G is 1 g/note
+	const massGrams = $derived(noteCount * BILL_MASS_G);
 	const tier = $derived(selectBillTier(noteCount));
 	const heightM = $derived(stackHeightMm(noteCount) / 1000);
 	const comparison = $derived(nearestHeightComparison(heightM));
@@ -42,7 +44,7 @@
 			bundleCount,
 			BILL_WIDTH_MM,
 			BILL_LENGTH_MM,
-			NOTES_PER_BUNDLE * 0.10922
+			NOTES_PER_BUNDLE * BILL_THICKNESS_MM
 		);
 		return `${grid.colsX} x ${grid.colsZ} x ${grid.layersY} bundles`;
 	});
