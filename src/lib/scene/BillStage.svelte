@@ -7,11 +7,15 @@
 	 * fundamentally different: instanced real bill geometry + coalesced
 	 * textured blocks, not a single scaled cube.
 	 *
-	 * This task (11) only proves the pipeline: load the bill glb, normalize
-	 * its scale, bake its transform into a reusable geometry, and render one
-	 * bill so the load->normalize->material chain is verified working.
-	 * Tiered/literal instancing land in Tasks 12-13; the click/keyboard
-	 * toggle lands in Task 14.
+	 * Task 11 proved the pipeline: load the bill glb, normalize its scale,
+	 * bake its transform into a reusable geometry, and render one bill so
+	 * the load->normalize->material chain is verified working. Task 12
+	 * (this) adds tiered-mode rendering: `noteCount` now selects one of
+	 * three visual branches — individually-instanced bills (loose/strap),
+	 * coalesced textured blocks in a roughly-cubic grid (bundle/cube), or a
+	 * capped receding field of pallet-scale blocks (pallet) — via
+	 * `billStack.ts`'s tier/grid maths. Literal-mode instancing lands in
+	 * Task 13; the click/keyboard toggle lands in Task 14.
 	 */
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
@@ -71,6 +75,161 @@
 			}
 		});
 		return found;
+	}
+
+	const BUNDLE_HEIGHT_MM = 1000 * 0.10922; // NOTES_PER_BUNDLE x BILL_THICKNESS_MM, see billStack.ts
+	const PALLET_BUNDLES = 1000; // 1,000 bundles/pallet = 1,000,000 notes/pallet (10x10x10 grid)
+	const PALLET_RENDER_CAP = 60; // receding field caps here; the readout's note-count carries the rest
+
+	let tierGroup: THREE.Group | null = null;
+
+	/** Removes the current tier's render group from the scene and frees the
+	 *  GPU resources it alone owns. `bakedBillGeometry` and `billMats.face`/
+	 *  `billMats.edge` are shared across every tier switch — reused directly
+	 *  (not cloned) by the loose/strap branch and by the block face material
+	 *  — and are owned/disposed by `teardown()` instead; disposing them here
+	 *  would free a resource the next render still needs. Only resources
+	 *  built fresh inside `renderTiered` on each call (the bundle/pallet box
+	 *  geometry, and the cloned edge material + its cloned texture) are
+	 *  disposed here. */
+	function clearTierGroup(three: typeof THREE): void {
+		if (!scene || !tierGroup) return;
+		scene.remove(tierGroup);
+		tierGroup.traverse((child) => {
+			const mesh = child as THREE.Mesh;
+			if (!mesh.isMesh) return;
+			if (mesh.geometry && mesh.geometry !== bakedBillGeometry) {
+				mesh.geometry.dispose();
+			}
+			const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+			for (const mat of mats) {
+				const stdMat = mat as THREE.MeshStandardMaterial | undefined;
+				if (!stdMat || stdMat === billMats?.face || stdMat === billMats?.edge) continue;
+				stdMat.map?.dispose();
+				stdMat.dispose();
+			}
+		});
+		tierGroup = null;
+	}
+
+	function renderTiered(three: typeof THREE, billStackMod: typeof import('../billStack.js'), count: number): number {
+		if (!scene || !bakedBillGeometry || !billMats) return 0;
+		clearTierGroup(three);
+		if (previewMesh) {
+			scene.remove(previewMesh);
+			previewMesh = null;
+		}
+		tierGroup = new three.Group();
+
+		const tier = billStackMod.selectBillTier(count);
+		if (!tier) {
+			scene.add(tierGroup);
+			return 0;
+		}
+
+		const widthM = billStackMod.BILL_WIDTH_MM / 1000;
+		const lengthM = billStackMod.BILL_LENGTH_MM / 1000;
+		const thicknessM = billStackMod.BILL_THICKNESS_MM / 1000;
+
+		if (tier === 'loose' || tier === 'strap') {
+			// Individually-instanced real bill geometry — cheap up to ~1,000
+			// instances of a 24-vertex mesh, and this is exactly the range
+			// where the eye can still resolve individual bills.
+			const instanced = new three.InstancedMesh(bakedBillGeometry, billMats.face, count);
+			instanced.castShadow = true;
+			const m = new three.Matrix4();
+			for (let i = 0; i < count; i++) {
+				const jitterX = (Math.random() - 0.5) * widthM * 0.02;
+				const jitterZ = (Math.random() - 0.5) * lengthM * 0.02;
+				const jitterRotY = (Math.random() - 0.5) * 0.05;
+				m.makeRotationY(jitterRotY);
+				m.setPosition(jitterX, thicknessM * (i + 0.5), jitterZ);
+				instanced.setMatrixAt(i, m);
+			}
+			instanced.instanceMatrix.needsUpdate = true;
+			tierGroup.add(instanced);
+			scene.add(tierGroup);
+			return count * thicknessM; // dominant extent, metres
+		}
+
+		// bundle / cube / pallet: coalesced textured blocks, one per bundle
+		// of NOTES_PER_BUNDLE notes, arranged via cubicGridDims.
+		const bundleGeom = new three.BoxGeometry(widthM, BUNDLE_HEIGHT_MM / 1000, lengthM);
+		const edgeMat = billMats.edge.clone();
+		edgeMat.map = edgeMat.map!.clone();
+		edgeMat.map.repeat.set(1, billStackMod.NOTES_PER_BUNDLE);
+		edgeMat.map.needsUpdate = true;
+		const blockMats = [edgeMat, edgeMat, billMats.face, billMats.face, edgeMat, edgeMat]; // BoxGeometry face order: +x -x +y -y +z -z
+
+		if (tier === 'bundle' || tier === 'cube') {
+			const bundleCount = Math.ceil(count / billStackMod.NOTES_PER_BUNDLE);
+			const grid = billStackMod.cubicGridDims(
+				bundleCount,
+				billStackMod.BILL_WIDTH_MM,
+				billStackMod.BILL_LENGTH_MM,
+				BUNDLE_HEIGHT_MM
+			);
+			const instanced = new three.InstancedMesh(bundleGeom, blockMats, grid.colsX * grid.colsZ * grid.layersY);
+			instanced.castShadow = true;
+			const m = new three.Matrix4();
+			let i = 0;
+			for (let x = 0; x < grid.colsX; x++) {
+				for (let y = 0; y < grid.layersY; y++) {
+					for (let z = 0; z < grid.colsZ; z++) {
+						if (i >= bundleCount) break;
+						m.setPosition(
+							(x - (grid.colsX - 1) / 2) * widthM,
+							y * (BUNDLE_HEIGHT_MM / 1000) + BUNDLE_HEIGHT_MM / 1000 / 2,
+							(z - (grid.colsZ - 1) / 2) * lengthM
+						);
+						instanced.setMatrixAt(i, m);
+						i++;
+					}
+				}
+			}
+			instanced.count = i;
+			instanced.instanceMatrix.needsUpdate = true;
+			tierGroup.add(instanced);
+			scene.add(tierGroup);
+			return Math.max(grid.extentXMm, grid.extentYMm, grid.extentZMm) / 1000;
+		}
+
+		// pallet: a receding field of pallet-scale blocks (10x10x10 bundles
+		// each), capped for renderability — the readout's note count carries
+		// the true magnitude past the cap, same principle as Cocaine's
+		// `production` tier.
+		const palletExtentMm = 10 * Math.max(billStackMod.BILL_WIDTH_MM, billStackMod.BILL_LENGTH_MM, BUNDLE_HEIGHT_MM);
+		const palletGeom = new three.BoxGeometry(
+			(10 * billStackMod.BILL_WIDTH_MM) / 1000,
+			(10 * BUNDLE_HEIGHT_MM) / 1000,
+			(10 * billStackMod.BILL_LENGTH_MM) / 1000
+		);
+		const totalPallets = Math.ceil(count / (billStackMod.NOTES_PER_BUNDLE * PALLET_BUNDLES));
+		const renderedPallets = Math.min(totalPallets, PALLET_RENDER_CAP);
+		const grid = billStackMod.cubicGridDims(renderedPallets, palletExtentMm, palletExtentMm, palletExtentMm);
+		const instanced = new three.InstancedMesh(palletGeom, blockMats, grid.colsX * grid.colsZ * grid.layersY);
+		instanced.castShadow = true;
+		const m = new three.Matrix4();
+		let i = 0;
+		for (let x = 0; x < grid.colsX; x++) {
+			for (let y = 0; y < grid.layersY; y++) {
+				for (let z = 0; z < grid.colsZ; z++) {
+					if (i >= renderedPallets) break;
+					m.setPosition(
+						(x - (grid.colsX - 1) / 2) * (palletExtentMm / 1000),
+						y * (palletExtentMm / 1000) + palletExtentMm / 1000 / 2,
+						(z - (grid.colsZ - 1) / 2) * (palletExtentMm / 1000)
+					);
+					instanced.setMatrixAt(i, m);
+					i++;
+				}
+			}
+		}
+		instanced.count = i;
+		instanced.instanceMatrix.needsUpdate = true;
+		tierGroup.add(instanced);
+		scene.add(tierGroup);
+		return Math.max(grid.extentXMm, grid.extentYMm, grid.extentZMm) / 1000;
 	}
 
 	async function hydrate(): Promise<void> {
@@ -174,6 +333,14 @@
 	function teardown(): void {
 		if (resizeObs) resizeObs.disconnect();
 
+		// Tier-group resources (bundle/pallet box geometry, cloned edge
+		// material + its cloned texture) are owned by whichever renderTiered()
+		// call created them, not by this function — free them the same way a
+		// tier switch would, before the shared resources below and before
+		// renderer.dispose() resets WebGLProperties' tracking (see the note
+		// below).
+		if (T) clearTierGroup(T);
+
 		// previewMesh reuses bakedBillGeometry + billMats.face — dispose those
 		// once below, not per-mesh, to avoid double-disposing shared resources.
 		// This MUST run before renderer.dispose(): WebGLRenderer.dispose()
@@ -201,6 +368,7 @@
 		previewMesh = null;
 		groundGeometry = null;
 		groundMaterial = null;
+		tierGroup = null;
 	}
 
 	onMount(() => {
@@ -211,6 +379,16 @@
 			destroyed = true;
 			teardown();
 		};
+	});
+
+	$effect(() => {
+		const count = noteCount;
+		if (!canvasActive || !T || !bakedBillGeometry) return;
+		import('../billStack.js').then((billStackMod) => {
+			if (destroyed || !T) return;
+			renderTiered(T, billStackMod, count);
+			render();
+		});
 	});
 </script>
 
