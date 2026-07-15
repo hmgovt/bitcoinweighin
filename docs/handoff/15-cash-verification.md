@@ -61,6 +61,30 @@ Partway through verification, several browser-pane screenshots showed a large wh
 
 ---
 
+## Review pass (Fable 5, 2026-07-15) — findings and corrections
+
+The requested second pass ran against this document. Outcome: one significant correction committed, one systemic verification trap identified, two items closed, two left open.
+
+### R1. The preview pane's `requestAnimationFrame` never fires — all framing screenshots above were bogus
+
+Measured directly: an rAF-driven counter ticked **zero** times over multiple seconds in the Browser pane, with `prefers-reduced-motion: false`. `BillStage`'s camera only reaches its computed framing via the rAF damped-dolly loop (`reframe()` sets `wantPos`; only `loop()` moves `camPos` toward it, except on the reduced-motion path, which snaps). With rAF frozen, the camera stayed at whatever position it last had — usually the ~0.5 m bootstrap close-up — while everything else (DOM updates, one-shot `render()` calls per `$effect`) kept working. Every framing screenshot in this session *and* plausibly in the prior session's Task 14/17 sign-offs showed a stuck camera, not what real users see. This also explains §4's white-rectangle artifact adjacent behavior and the 30 s scroll timeouts (smooth scroll waits on frames).
+
+**How to verify framing trustworthily in this environment**: monkey-patch `window.matchMedia` to report `prefers-reduced-motion: reduce`, then force a `BillStage` remount by switching commodity tabs away and back — `reframe()` then snaps the camera with no rAF involved, and screenshots show the true converged framing. This trick was used for everything below. (The `readPixels` check in §2b remains valid, and §2b's sub-pixel analysis was confirmed analytically and empirically.)
+
+### R2. The 15 m framing cap was corrected to 3 m (commit `d57e876`)
+
+The §2b fix was directionally right (framing must decouple from true height) but the 15 m value — sanity-checked only against stuck-camera screenshots — still produced a **~2 px hairline** at the true converged framing (camera ~52 m out, column ~6.6 cm wide). Worse, even the *uncapped pre-existing* framing at 1 BTC (~7 m) was a ~6 px hairline on real browsers, meaning literal mode had plausibly never been seen correctly framed by anyone. Re-verified on the snap path at the 3 m cap: stacks under 3 m frame to their true height (18,014 bills / 6.46 ft renders chunky, fully in frame, correct "1.2x an adult human" line); 1 BTC and 21M BTC hold a ~10.5 m camera with a clearly legible base and the shaft running off-frame. Tiered mode needed no change — its roughly-cubic grids frame correctly (confirmed on the snap path at 1 BTC), because width ≈ height there.
+
+### R3. Closed and still-open items
+
+- **Closed**: §6 item 1 (framing-cap eyeball) — superseded by R2's empirical verification.
+- **Closed**: §4's mystery — root-caused per R1.
+- **Still open**: §6 item 2, the rendered og-image PNG (logic verified; `renderTextOnlyHtml` path is shared verbatim with the shipping cocaine card, so residual risk is accent-color cosmetics only). Also noted: the OG headline for cash is mass-led ("63.3 kg") per plan Task 21's explicit design, though the tab's hero figure is note-count-led — acceptable, possible polish later.
+- **Still open**: §6 item 3, the untracked watermarked source `.glb` — licensing call for a human.
+- **Recommended before/at launch**: one pass on a real browser (or any environment with working rAF) to confirm the dolly *animation* feels right — this environment can verify converged framing but cannot exercise the transition itself.
+
+---
+
 ## Done when (from the original plan, re-confirmed)
 
 - [x] Cash tab renders coherently at all five canonical positions, in both view modes
