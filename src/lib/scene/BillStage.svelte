@@ -94,6 +94,32 @@
 	const PALLET_BUNDLES = 1000; // 1,000 bundles/pallet = 1,000,000 notes/pallet (10x10x10 grid)
 	const PALLET_RENDER_CAP = 60; // receding field caps here; the readout's note-count carries the rest
 
+	// Literal mode's height scales LINEARLY with note count (unlike the metal
+	// cubes, which scale as cube-root of value and so stay metre-scale even at
+	// 21M BTC) — at the site's 21M BTC ceiling the true height reaches
+	// ~1.45e8 m. World-space geometry at that magnitude blows past float32 GPU
+	// precision and silently fails to rasterize (confirmed: the stage goes
+	// blank, no console error). 10 km keeps the ULP well under a millimetre
+	// and comfortably covers every realistic position; only the theoretical
+	// extreme gets capped. Same "cap the render, let the readout carry the
+	// true magnitude" idiom as PALLET_RENDER_CAP above.
+	const LITERAL_HEIGHT_RENDER_CAP_M = 10_000;
+
+	// Separately: the column's WIDTH is always a fixed real-bill footprint
+	// (~6.6 cm) while `framingDistance` dollies the camera back linearly with
+	// height to keep the whole column in frame. Past roughly 35 m of height
+	// the fixed-width column subtends under a pixel and disappears entirely —
+	// confirmed empirically at the 100 BTC canonical position (~700 m tall at
+	// today's price), not just the 21M BTC extreme. There's no width/height
+	// combination that keeps both the full height AND a legible width in
+	// frame at once, so past this cap the camera stops dollying back with
+	// height: it holds close enough that the column's base stays visibly
+	// wide, and the (still fully modelled, up to `LITERAL_HEIGHT_RENDER_CAP_M`)
+	// shaft recedes up out of frame — the same thing a photo of a very tall
+	// real building does. The readout's height/comparison line is unaffected
+	// (computed straight from the true, uncapped height).
+	const LITERAL_FRAMING_CAP_M = 15;
+
 	let tierGroup: THREE.Group | null = null;
 
 	/** Removes the current tier's render group from the scene and frees the
@@ -257,7 +283,14 @@
 	 *  `LITERAL_INSTANCE_CAP`, matching the loose/strap approach in
 	 *  `renderTiered`), and any remaining height above that cap is a single
 	 *  coalesced block sized to make up the rest of `stackHeightMm(count)`
-	 *  exactly, so the column's total height is always physically honest. */
+	 *  exactly, so the modelled geometry's height is always physically honest
+	 *  up to `LITERAL_HEIGHT_RENDER_CAP_M` (a float32-precision safety net,
+	 *  rarely binding). The value returned for camera framing is a SEPARATE,
+	 *  much smaller cap (`LITERAL_FRAMING_CAP_M`) — see that constant's
+	 *  comment for why the two need not (and must not) match. `BillReadout`
+	 *  computes the true, uncapped height straight from `stackHeightMm` for
+	 *  the text readout, so the displayed number never lies even when the
+	 *  scene can't show the whole column. */
 	function renderLiteral(three: typeof THREE, billStackMod: typeof import('../billStack.js'), count: number): number {
 		if (!scene || !bakedBillGeometry || !billMats) return 0;
 		clearTierGroup(three);
@@ -267,6 +300,7 @@
 		const lengthM = billStackMod.BILL_LENGTH_MM / 1000;
 		const thicknessM = billStackMod.BILL_THICKNESS_MM / 1000;
 		const totalHeightM = billStackMod.stackHeightMm(count) / 1000;
+		const renderHeightM = Math.min(totalHeightM, LITERAL_HEIGHT_RENDER_CAP_M);
 
 		const instancedCount = Math.min(count, LITERAL_INSTANCE_CAP);
 		if (instancedCount > 0) {
@@ -282,8 +316,8 @@
 		}
 
 		const remaining = count - instancedCount;
-		if (remaining > 0) {
-			const remainingHeightM = totalHeightM - instancedCount * thicknessM;
+		const remainingHeightM = Math.max(renderHeightM - instancedCount * thicknessM, 0);
+		if (remaining > 0 && remainingHeightM > 0) {
 			const blockGeom = new three.BoxGeometry(widthM, remainingHeightM, lengthM);
 			const edgeMat = billMats.edge.clone();
 			edgeMat.map = edgeMat.map!.clone();
@@ -297,7 +331,7 @@
 		}
 
 		scene.add(tierGroup);
-		return totalHeightM;
+		return Math.min(renderHeightM, LITERAL_FRAMING_CAP_M);
 	}
 
 	let wantPos: THREE.Vector3 | null = null;
