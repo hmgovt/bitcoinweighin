@@ -107,18 +107,29 @@
 
 	// Separately: the column's WIDTH is always a fixed real-bill footprint
 	// (~6.6 cm) while `framingDistance` dollies the camera back linearly with
-	// height to keep the whole column in frame. Past roughly 35 m of height
-	// the fixed-width column subtends under a pixel and disappears entirely —
-	// confirmed empirically at the 100 BTC canonical position (~700 m tall at
-	// today's price), not just the 21M BTC extreme. There's no width/height
-	// combination that keeps both the full height AND a legible width in
-	// frame at once, so past this cap the camera stops dollying back with
-	// height: it holds close enough that the column's base stays visibly
-	// wide, and the (still fully modelled, up to `LITERAL_HEIGHT_RENDER_CAP_M`)
-	// shaft recedes up out of frame — the same thing a photo of a very tall
-	// real building does. The readout's height/comparison line is unaffected
-	// (computed straight from the true, uncapped height).
-	const LITERAL_FRAMING_CAP_M = 15;
+	// the framed height. Frame more than a few metres of column and the
+	// fixed-width column thins toward a hairline: at a 15 m framing the
+	// camera sits ~52 m out and the column subtends ~2 px; at the uncapped
+	// 100 BTC height (~700 m) it is genuinely sub-pixel and the stage looks
+	// empty. There's no width/height combination that keeps the full height
+	// AND a legible width in frame at once, so the camera stops dollying
+	// back at a human-scale framing: 3 m puts it ~10.5 m out, where the
+	// column reads ~2% of frame width (clearly a stack of bills, base
+	// legible) and the (still fully modelled, up to
+	// `LITERAL_HEIGHT_RENDER_CAP_M`) shaft recedes up out of frame — the
+	// same thing a photo of a very tall real building does. Stacks shorter
+	// than the cap still frame to their true height, and the cap is
+	// continuous at the boundary. The readout's height/comparison line is
+	// unaffected (computed straight from the true, uncapped height).
+	//
+	// NOTE for future verification: this pane's damped camera dolly needs a
+	// live requestAnimationFrame loop. Headless/preview environments can
+	// freeze rAF entirely, leaving the camera stuck at whatever position it
+	// last had while everything else (DOM, one-shot renders) looks alive —
+	// screenshots then show a bogus framing. Verify framing changes on the
+	// prefers-reduced-motion path (which snaps with no rAF) or in a real
+	// browser.
+	const LITERAL_FRAMING_CAP_M = 3;
 
 	let tierGroup: THREE.Group | null = null;
 
