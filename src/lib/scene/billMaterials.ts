@@ -84,10 +84,30 @@ export function makeBillEdgeTexture(): THREE.CanvasTexture {
 	canvas.width = 32;
 	canvas.height = 64;
 	const ctx = canvas.getContext('2d')!;
+
+	// Paper base.
 	ctx.fillStyle = '#efe9d8';
 	ctx.fillRect(0, 0, 32, 64);
-	ctx.fillStyle = '#c9c2a4';
-	ctx.fillRect(0, 0, 32, 6); // one note's edge line, top of the repeat unit
+
+	// Faint horizontal tonal variation across the rest of the repeat unit so
+	// a tall coalesced block (hundreds of stacked repeats) doesn't read as a
+	// flat, uniformly-lit slab — bands break up the monolith without
+	// implying any per-note detail beyond the lamination seam itself.
+	ctx.fillStyle = 'rgba(0,0,0,0.035)';
+	ctx.fillRect(0, 26, 32, 16);
+	ctx.fillStyle = 'rgba(255,255,255,0.03)';
+	ctx.fillRect(0, 46, 32, 10);
+
+	// One note's edge seam, top of the repeat unit: a darker seam line
+	// immediately followed by a brighter catch-light line, so the stripe
+	// reads as a physical paper crease (shadow + highlight pair) rather than
+	// a single flat band that mushes to grey under ACES tone mapping at
+	// grazing angles / roughness 0.9. Contrast against the #efe9d8 paper is
+	// deliberately much stronger than a single mid-tone line would give.
+	ctx.fillStyle = '#b09f7a';
+	ctx.fillRect(0, 0, 32, 2);
+	ctx.fillStyle = '#fbf6e8';
+	ctx.fillRect(0, 2, 32, 1);
 
 	const texture = new THREE.CanvasTexture(canvas);
 	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;

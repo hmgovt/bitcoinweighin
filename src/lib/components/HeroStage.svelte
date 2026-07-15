@@ -60,6 +60,8 @@
 	// True when the dog is staged to the foreground — LiveStage binds this and
 	// the readout adds the honesty line. False in poster / fallback / cocaine.
 	let staged = $state(false);
+	// Same, for BillStage's own Shiba (Cash tab).
+	let billStaged = $state(false);
 
 	// Stage element for the Geiger IntersectionObserver gate.
 	let stageEl: HTMLElement | undefined = $state();
@@ -186,7 +188,7 @@
 		</div>
 	{:else if isCash}
 		<div class="bill-frame" bind:this={billStageEl}>
-			<BillStage noteCount={amount} bind:viewMode={billViewMode} />
+			<BillStage noteCount={amount} bind:viewMode={billViewMode} bind:staged={billStaged} />
 		</div>
 	{:else}
 		<LiveStage commodity={active} {amount} bind:staged />
@@ -210,6 +212,14 @@
 	{:else if isCash}
 		<div class="readout-wrap">
 			<BillReadout noteCount={amount} viewMode={billViewMode} />
+			{#if billStaged}
+				<!--
+					Staging honesty line: when the dog walks to the foreground the
+					apparent sizes come from real perspective (dog nearer the camera),
+					not a fudge. Stated, per the methodology's staging-honesty rule.
+				-->
+				<p class="staging-line">Shiba standing nearer the camera — true perspective, not rescaled.</p>
+			{/if}
 		</div>
 	{:else}
 		<div class="readout-wrap">
