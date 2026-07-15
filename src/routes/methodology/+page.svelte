@@ -120,6 +120,18 @@
 				is a constant of the protocol, the column has no API dependency and is unit-tested
 				against known halving block dates.
 			</p>
+			<h3>Cash (derived, no API)</h3>
+			<p>
+				The Cash commodity has no price to fetch: one $1 Federal Reserve Note is worth exactly
+				one dollar, so its "price" is the constant 1, and the note count is simply the live
+				BTC-USD value. The only external data are fixed physical constants from the U.S. Bureau
+				of Engraving and Printing — note length 155.956&nbsp;mm (6.14&nbsp;in), width
+				66.294&nbsp;mm (2.61&nbsp;in), thickness 0.10922&nbsp;mm (0.0043&nbsp;in), mass
+				1&nbsp;g — identical across every denomination and unchanged since the note's current
+				size was adopted in 1929. These live in <code>src/lib/billStack.ts</code> and are
+				cross-checked in that file's tests against the Bureau's own public trivia that a
+				banded strap of 100 notes runs about 0.43&nbsp;inches thick.
+			</p>
 		</section>
 
 		<section id="forward-fill" class="prose-section">
