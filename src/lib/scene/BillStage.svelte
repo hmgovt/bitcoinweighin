@@ -60,10 +60,12 @@
 	let mixer: THREE.AnimationMixer | null = null;
 	let idleAction: THREE.AnimationAction | null = null;
 
-	// Maths + bill-stack modules (dynamic-imported once in hydrate) — held so
-	// reframe()/refreshStage() can reach them without re-importing per call.
+	// Maths / bill-stack / bill-materials modules (dynamic-imported once in
+	// hydrate) — held so reframe()/refreshStage()/renderTiered() can reach
+	// them without re-importing per call.
 	let M: typeof import('./maths.js') | null = null;
 	let BS: typeof import('../billStack.js') | null = null;
+	let BM: typeof import('./billMaterials.js') | null = null;
 	let maxAnisotropy = 1;
 
 	// $state so the tiered-render $effect (which reads it) re-runs once the
@@ -125,39 +127,27 @@
 	// true magnitude" idiom as PALLET_RENDER_CAP above.
 	const LITERAL_HEIGHT_RENDER_CAP_M = 10_000;
 
-	// Separately: the column's WIDTH is always a fixed real-bill footprint
-	// (~6.6 cm) while `framingDistance` dollies the camera back linearly with
-	// the framed height. Frame more than a few metres of column and the
-	// fixed-width column thins toward a hairline: at a 15 m framing the
-	// camera sits ~52 m out and the column subtends ~2 px; at the uncapped
-	// 100 BTC height (~700 m) it is genuinely sub-pixel and the stage looks
-	// empty. There's no width/height combination that keeps the full height
-	// AND a legible width in frame at once, so the camera stops dollying
-	// back at a human-scale framing: 3 m puts it ~10.5 m out, where the
-	// column reads ~2% of frame width (clearly a stack of bills, base
-	// legible) and the (still fully modelled, up to
-	// `LITERAL_HEIGHT_RENDER_CAP_M`) shaft recedes up out of frame — the
-	// same thing a photo of a very tall real building does. Stacks shorter
-	// than the cap still frame to their true height, and the cap is
-	// continuous at the boundary. The readout's height/comparison line is
-	// unaffected (computed straight from the true, uncapped height).
-	//
-	// Now that the Shiba stages in this scene too (via `M.cameraTransform`),
-	// a 3 m dominant is also comfortably past `aimBlend`'s foreground
-	// threshold (wFg smoothsteps 1.2→3.5 m; at 3 m it's already ~0.88), so
-	// monolith-scale literal columns correctly relocate the dog to the
-	// camera foreground instead of leaving it dwarfed beside the column.
-	//
-	// NOTE for future verification: this pane's damped camera dolly needs a
-	// live requestAnimationFrame loop. Headless/preview environments can
-	// freeze rAF entirely, leaving the camera stuck at whatever position it
-	// last had while everything else (DOM, one-shot renders) looks alive —
-	// screenshots then show a bogus framing. Verify framing changes on the
-	// prefers-reduced-motion path (which snaps with no rAF) or in a real
-	// browser.
-	const LITERAL_FRAMING_CAP_M = 3;
+	// Separately: literal mode frames the column's FULL height, and that
+	// forces a deliberate, disclosed departure from physical proportion.
+	// The column's true width is a fixed real-bill footprint (~15.6 cm),
+	// and `framingDistance` dollies back linearly with the framed height —
+	// frame even a 15 m column true-width and it subtends ~2 px; at
+	// monolith heights it is genuinely sub-pixel and the stage looks empty.
+	// So `renderLiteral` widens the whole column (X/Z only — HEIGHT STAYS
+	// EXACTLY TRUE) just enough that the framed tower keeps this
+	// height:width aspect: a ~14:1 slender tower reads clearly at ~2% of
+	// frame width. The widening is disclosed on-stage whenever it kicks in
+	// (the `.width-hint` caption, same staging-honesty idiom as the dog's
+	// foreground line), and the readout's height/comparison numbers are
+	// computed from the true dimensions regardless.
+	const LITERAL_TOWER_ASPECT = 14;
 
 	let tierGroup: THREE.Group | null = null;
+
+	// Literal mode's disclosed width exaggeration (see LITERAL_TOWER_ASPECT).
+	// 1 in tiered mode and for short columns; the template shows the
+	// `.width-hint` disclosure caption whenever it meaningfully exceeds 1.
+	let widthScale = $state(1);
 
 	/** Removes the current tier's render group from the scene and frees the
 	 *  GPU resources it alone owns. `bakedBillGeometry` and `billMats.face`/
@@ -219,6 +209,7 @@
 		const instanced = new three.InstancedMesh(geometry, materials, grid.colsX * grid.colsZ * grid.layersY);
 		instanced.castShadow = true;
 		const m = new three.Matrix4();
+		const color = new three.Color();
 		const pitchX = cellWidthM * spacingFactor;
 		// Vertically the blocks rest on each other (see the doc comment). The
 		// 0.2% epsilon is not a visible gap — it keeps a jittered block's
@@ -243,12 +234,19 @@
 						(z - (grid.colsZ - 1) / 2) * pitchZ + jitterZ
 					);
 					instanced.setMatrixAt(i, m);
+					// Subtle per-instance shade variation (±3% value, grey-white)
+					// so identical blocks don't fuse into one flat-lit monolith.
+					// instanceColor multiplies the material colour independently
+					// of vertexColors — no material flags needed.
+					color.setScalar(0.97 + Math.random() * 0.06);
+					instanced.setColorAt(i, color);
 					i++;
 				}
 			}
 		}
 		instanced.count = i;
 		instanced.instanceMatrix.needsUpdate = true;
+		if (instanced.instanceColor) instanced.instanceColor.needsUpdate = true;
 		tierGroup.add(instanced);
 		scene.add(tierGroup);
 		return Math.max(grid.colsX * pitchX, grid.layersY * pitchY, grid.colsZ * pitchZ);
@@ -258,6 +256,7 @@
 		if (!scene || !bakedBillGeometry || !billMats) return 0;
 		clearTierGroup(three);
 		tierGroup = new three.Group();
+		widthScale = 1; // tiered geometry is always true-proportioned
 
 		const tier = billStackMod.selectBillTier(count);
 		if (!tier) {
@@ -294,17 +293,17 @@
 			return Math.max(count * thicknessM, lengthM);
 		}
 
-		// bundle / cube / pallet: coalesced textured blocks, one per bundle
-		// of NOTES_PER_BUNDLE notes, arranged via cubicGridDims.
-		const bundleGeom = new three.BoxGeometry(widthM, BUNDLE_HEIGHT_MM / 1000, lengthM);
-		const edgeMat = billMats.edge.clone();
-		edgeMat.map = edgeMat.map!.clone();
-		edgeMat.map.anisotropy = maxAnisotropy;
-		edgeMat.map.repeat.set(1, billStackMod.NOTES_PER_BUNDLE);
-		edgeMat.map.needsUpdate = true;
-		const blockMats = [edgeMat, edgeMat, billMats.face, billMats.face, edgeMat, edgeMat]; // BoxGeometry face order: +x -x +y -y +z -z
-
 		if (tier === 'bundle' || tier === 'cube') {
+			// Coalesced textured blocks, one per bundle of NOTES_PER_BUNDLE
+			// notes, arranged via cubicGridDims. Side faces carry the per-note
+			// edge stripes (repeat.y = true note count — physically honest).
+			const bundleGeom = new three.BoxGeometry(widthM, BUNDLE_HEIGHT_MM / 1000, lengthM);
+			const edgeMat = billMats.edge.clone();
+			edgeMat.map = edgeMat.map!.clone();
+			edgeMat.map.anisotropy = maxAnisotropy;
+			edgeMat.map.repeat.set(1, billStackMod.NOTES_PER_BUNDLE);
+			edgeMat.map.needsUpdate = true;
+			const blockMats = [edgeMat, edgeMat, billMats.face, billMats.face, edgeMat, edgeMat]; // BoxGeometry face order: +x -x +y -y +z -z
 			const bundleCount = Math.ceil(count / billStackMod.NOTES_PER_BUNDLE);
 			const grid = billStackMod.cubicGridDims(
 				bundleCount,
@@ -341,13 +340,44 @@
 			palletHeightMm / 1000,
 			palletLengthMm / 1000
 		);
+		// Pallet materials: bundle-scale granularity, not note-scale. Side
+		// faces tile the bundle-unit texture 10x10 (a pallet face is 10x10
+		// bundle edges — see makeBundleUnitTexture's comment for why this is
+		// deliberately impressionistic rather than per-note-honest); the top
+		// face tiles the bill FACE art 10x10 (a pallet top is 10x10 bundle
+		// tops, each one bill face). Both are fresh, tier-group-owned
+		// resources: clearTierGroup disposes any material (and its map) that
+		// isn't the shared billMats.face/edge, which covers these.
+		const bundleUnitMat = new three.MeshStandardMaterial({
+			map: BM!.makeBundleUnitTexture(),
+			roughness: 0.9,
+			metalness: 0,
+		});
+		bundleUnitMat.map!.anisotropy = maxAnisotropy;
+		bundleUnitMat.map!.repeat.set(10, 10);
+		bundleUnitMat.map!.needsUpdate = true;
+		const palletTopMat = billMats.face.clone();
+		palletTopMat.map = palletTopMat.map!.clone();
+		palletTopMat.map.wrapS = palletTopMat.map.wrapT = three.RepeatWrapping;
+		palletTopMat.map.anisotropy = maxAnisotropy;
+		palletTopMat.map.repeat.set(10, 10);
+		palletTopMat.map.needsUpdate = true;
+		const palletMats = [
+			bundleUnitMat,
+			bundleUnitMat,
+			palletTopMat,
+			palletTopMat,
+			bundleUnitMat,
+			bundleUnitMat,
+		]; // BoxGeometry face order: +x -x +y -y +z -z
+
 		const totalPallets = Math.ceil(count / (billStackMod.NOTES_PER_BUNDLE * PALLET_BUNDLES));
 		const renderedPallets = Math.min(totalPallets, PALLET_RENDER_CAP);
 		const grid = billStackMod.cubicGridDims(renderedPallets, palletWidthMm, palletLengthMm, palletHeightMm);
 		return placeGridInstances(
 			three,
 			palletGeom,
-			blockMats,
+			palletMats,
 			grid,
 			palletWidthMm / 1000,
 			palletHeightMm / 1000,
@@ -359,19 +389,21 @@
 
 	const LITERAL_INSTANCE_CAP = 2000; // individually-instanced bills at the base of the column
 
-	/** Literal mode: a single true-height column regardless of tier — the
-	 *  base is individually-instanced real bill geometry (up to
-	 *  `LITERAL_INSTANCE_CAP`, matching the loose/strap approach in
+	/** Literal mode: a single column framed at its FULL height, regardless
+	 *  of tier — the base is individually-instanced real bill geometry (up
+	 *  to `LITERAL_INSTANCE_CAP`, matching the loose/strap approach in
 	 *  `renderTiered`), and any remaining height above that cap is a single
 	 *  coalesced block sized to make up the rest of `stackHeightMm(count)`
-	 *  exactly, so the modelled geometry's height is always physically honest
-	 *  up to `LITERAL_HEIGHT_RENDER_CAP_M` (a float32-precision safety net,
-	 *  rarely binding). The value returned for camera framing is a SEPARATE,
-	 *  much smaller cap (`LITERAL_FRAMING_CAP_M`) — see that constant's
-	 *  comment for why the two need not (and must not) match. `BillReadout`
-	 *  computes the true, uncapped height straight from `stackHeightMm` for
-	 *  the text readout, so the displayed number never lies even when the
-	 *  scene can't show the whole column. */
+	 *  exactly, so the modelled geometry's HEIGHT is always physically
+	 *  honest up to `LITERAL_HEIGHT_RENDER_CAP_M` (a float32-precision
+	 *  safety net; framing the 10 km render-capped column full-height is
+	 *  visually identical to framing the true one). The column's WIDTH is
+	 *  deliberately exaggerated (uniform X/Z group scale) just enough to
+	 *  hold `LITERAL_TOWER_ASPECT` at the framed height — see that
+	 *  constant's comment; `widthScale` exposes the factor so the template
+	 *  can disclose it on-stage. `BillReadout` computes the true, uncapped
+	 *  height straight from `stackHeightMm` for the text readout, so the
+	 *  displayed numbers never lie. */
 	function renderLiteral(three: typeof THREE, billStackMod: typeof import('../billStack.js'), count: number): number {
 		if (!scene || !bakedBillGeometry || !billMats) return 0;
 		clearTierGroup(three);
@@ -413,11 +445,21 @@
 		}
 
 		scene.add(tierGroup);
-		// The framing cap is on HEIGHT only; a squat, wide literal column
-		// (small note counts) still has the fixed ~156 mm bill length as its
-		// true dominant footprint, so floor the returned dominant at lengthM —
-		// same reasoning as the loose/strap branch in renderTiered above.
-		return Math.max(Math.min(renderHeightM, LITERAL_FRAMING_CAP_M), lengthM);
+
+		// Width exaggeration for the full-height tower shot (disclosed via
+		// widthScale — see LITERAL_TOWER_ASPECT). X/Z only; Y stays 1 so the
+		// column's height remains exactly true. Applied at the group level so
+		// the instanced base bills and the coalesced block widen together and
+		// the column stays coherent. s = 1 for columns short enough to read
+		// at true width.
+		const s = Math.max(1, renderHeightM / (LITERAL_TOWER_ASPECT * lengthM));
+		tierGroup.scale.set(s, 1, s);
+		widthScale = s;
+
+		// Dominant = the framed extent: full height for tall columns, or the
+		// (possibly widened) footprint for squat ones — same footprint-floor
+		// reasoning as the loose/strap branch in renderTiered above.
+		return Math.max(renderHeightM, lengthM * s);
 	}
 
 	let wantPos: THREE.Vector3 | null = null;
@@ -485,8 +527,13 @@
 		// into the kilometres at extreme note counts), so the near/far planes
 		// must track the camera distance every reframe — same as LiveStage's
 		// loop() — or a large dominant dollies the camera straight past the
-		// fixed far plane and the object vanishes.
-		camera.near = Math.max(camPos.length() / 100, 1e-4);
+		// fixed far plane and the object vanishes. Unlike LiveStage, near is
+		// ALSO clamped to 2 m: full-height literal framing can dolly the
+		// camera tens of km out, and dist/100 there would near-plane-clip the
+		// foreground-staged dog (3.5–8.5 m from camera, per dogGroundMark's
+		// clamp) into invisibility. LiveStage never hits this because gold at
+		// 21M BTC is only a ~10 m cube.
+		camera.near = Math.min(Math.max(camPos.length() / 100, 1e-4), 2);
 		camera.far = camPos.length() * 60;
 		camera.updateProjectionMatrix();
 	}
@@ -495,7 +542,15 @@
 	const clock = { last: 0 };
 
 	/** Damped dolly loop — matches LiveStage's damping constant so a reframe
-	 *  on toggle/slider-move animates with the same feel. */
+	 *  on toggle/slider-move animates with the same feel.
+	 *
+	 *  NOTE for future verification: this damped dolly needs a live
+	 *  requestAnimationFrame loop. Headless/preview environments can freeze
+	 *  rAF entirely, leaving the camera stuck at whatever position it last
+	 *  had while everything else (DOM, one-shot renders) looks alive —
+	 *  screenshots then show a bogus framing. Verify framing changes on the
+	 *  prefers-reduced-motion path (which snaps with no rAF) or in a real
+	 *  browser. */
 	function loop(): void {
 		if (!running || destroyed || !T || !camera || !camPos || !camAim || !wantPos || !wantAim) return;
 		rafId = requestAnimationFrame(loop);
@@ -508,8 +563,9 @@
 		camera.position.copy(camPos);
 		camera.lookAt(camAim);
 		// See the matching comment in reframe() — near/far must track distance
-		// every frame, not just on reframe, since the dolly moves camPos here.
-		camera.near = Math.max(camPos.length() / 100, 1e-4);
+		// every frame, not just on reframe, since the dolly moves camPos here
+		// (including reframe()'s 2 m near clamp for the foreground dog).
+		camera.near = Math.min(Math.max(camPos.length() / 100, 1e-4), 2);
 		camera.far = camPos.length() * 60;
 		camera.updateProjectionMatrix();
 		mixer?.update(dt); // dog idle animation
@@ -550,6 +606,7 @@
 		T = three;
 		M = maths;
 		BS = billStackMod;
+		BM = billMaterialsMod;
 
 		width = containerEl.clientWidth || 1;
 		height = containerEl.clientHeight || 1;
@@ -586,7 +643,10 @@
 		scene.add(key);
 		scene.add(new three.AmbientLight(0x404048, 0.4));
 
-		groundGeometry = new three.CircleGeometry(4000, 64).rotateX(-Math.PI / 2);
+		// 60 km ground disc (LiveStage's is 4 km): full-height literal framing
+		// can dolly the camera — and with it the foreground-staged dog — tens
+		// of km from origin, and both must still stand on ground, not void.
+		groundGeometry = new three.CircleGeometry(60000, 64).rotateX(-Math.PI / 2);
 		groundMaterial = new three.MeshStandardMaterial({ color: 0x202024, roughness: 0.95, metalness: 0 });
 		const ground = new three.Mesh(groundGeometry, groundMaterial);
 		ground.receiveShadow = true;
@@ -752,6 +812,7 @@
 		envTexture = null;
 		dog = mixer = idleAction = null;
 		staged = false;
+		widthScale = 1;
 		framedOnce = false;
 	}
 
@@ -773,7 +834,7 @@
 	 *  (aspect feeds `M.dogStagePosition`). No-ops until both the bill GLB
 	 *  and the maths/billStack modules are ready. */
 	function refreshStage(count: number, mode: 'tiered' | 'literal'): void {
-		if (!canvasActive || !T || !M || !BS || !bakedBillGeometry) return;
+		if (!canvasActive || !T || !M || !BS || !BM || !bakedBillGeometry) return;
 		const dominant = mode === 'literal' ? renderLiteral(T, BS, count) : renderTiered(T, BS, count);
 		reframe(T, M, dominant);
 		render();
@@ -806,6 +867,19 @@
 	}}
 >
 	<div class="mode-hint">{viewMode === 'tiered' ? 'tap to see it as one column' : 'tap to see it bundled'}</div>
+	{#if viewMode === 'literal' && widthScale > 1.05}
+		<!--
+			Staging honesty: the full-height tower shot deliberately widens the
+			column (height stays true) so it doesn't vanish to a sub-pixel
+			hairline — see LITERAL_TOWER_ASPECT. Disclosed on-stage, same idiom
+			as the dog's foreground perspective line in the readout.
+		-->
+		<div class="width-hint">
+			column widened {widthScale.toLocaleString('en-US', {
+				maximumFractionDigits: widthScale >= 10 ? 0 : 1,
+			})}× to stay visible — height is true
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -829,6 +903,16 @@
 		position: absolute;
 		bottom: 8px;
 		right: 12px;
+		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+		font-size: 11px;
+		color: #71717a;
+		pointer-events: none;
+		z-index: 1;
+	}
+	.width-hint {
+		position: absolute;
+		bottom: 8px;
+		left: 12px;
 		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
 		font-size: 11px;
 		color: #71717a;
