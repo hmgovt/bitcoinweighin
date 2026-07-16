@@ -1,7 +1,7 @@
 {
-  "lastRun": "2026-07-15T04:40:09.460Z",
+  "lastRun": "2026-07-16T04:50:22.925Z",
   "type": "daily",
-  "date": "2026-07-14",
+  "date": "2026-07-15",
   "sources": {
     "btc": {
       "status": "ok",
@@ -24,9 +24,9 @@
     "oil_brent": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 1,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-07-04&observation_end=2026-07-14&api_key=20dc3ceebf17a1c21a98984e2ad9259a&file_type=json",
-      "matchedDate": "2026-07-06"
+      "rowCount": 6,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-07-05&observation_end=2026-07-15&api_key=20dc3ceebf17a1c21a98984e2ad9259a&file_type=json",
+      "matchedDate": "2026-07-13"
     }
   },
   "cross_validation": {
