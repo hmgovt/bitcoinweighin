@@ -41,4 +41,9 @@ export const HOMEPAGE_FAQS: FaqEntry[] = [
 		answer:
 			"The live dataset covers BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee. The visualisation currently renders four — gold, silver, plutonium-238, and cocaine — chosen for the spread of densities and price-per-gram they show. Plutonium-238 and cocaine are illustrative composite prices (no public spot market); their methodology is documented at /methodology.",
 	},
+	{
+		question: 'How tall would a bitcoin\'s worth of $1 bills actually stack?',
+		answer:
+			"It depends on the amount and the date, but the site computes it exactly: stacked to the real 0.10922 mm note thickness (Bureau of Engraving and Printing), then compared to real-world landmarks from a doorway up to the edge of space. See the Cash tab on the homepage, or /btc/cash for the current figure.",
+	},
 ];

@@ -76,6 +76,18 @@ export const OG_COMMODITIES: Record<string, OgCommodity> = {
 		illustrativePricePerUnit: 30,
 		accentColor: '#f4f4f5',
 	},
+	cash: {
+		id: 'cash',
+		displayName: 'cash',
+		unit: 'gram',
+		unitLabel: 'g',
+		unitMassGrams: 1, // one $1 note = 1 g, so amount (note count) already equals grams
+		// No density — cash renders still-mode like cocaine, no cube/volume readout.
+		priceField: 'usd_note', // unused — dataQuality 'illustrative' below bypasses the day[priceField] lookup
+		dataQuality: 'illustrative',
+		illustrativePricePerUnit: 1, // one $1 note is worth exactly one dollar
+		accentColor: '#85bb65',
+	},
 };
 
 // Sprite-canvas geometry, measured directly from the shipped 1600×1600

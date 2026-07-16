@@ -16,7 +16,7 @@
  * gramsPerBtc copies in run.ts and make-short.ts.
  */
 
-export type CommodityId = 'gold' | 'silver' | 'cocaine' | 'pu238';
+export type CommodityId = 'gold' | 'silver' | 'cocaine' | 'pu238' | 'cash';
 
 export interface Rung {
 	g: number;
@@ -38,7 +38,7 @@ export interface DeltaObjectsFile {
 export type DayPrices = { btc: number; [field: string]: number };
 export type PriceData = Record<string, DayPrices>;
 
-export const COMMODITIES: CommodityId[] = ['pu238', 'gold', 'cocaine', 'silver'];
+export const COMMODITIES: CommodityId[] = ['pu238', 'gold', 'cocaine', 'silver', 'cash'];
 
 /** Grams of `commodity` that 1 BTC buys at a given day's prices. */
 export function gramsPerBtc(objs: DeltaObjectsFile, commodity: CommodityId, day: DayPrices): number {

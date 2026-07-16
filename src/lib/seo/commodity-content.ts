@@ -201,4 +201,46 @@ export const COMMODITY_CONTENT: Record<string, CommodityContent> = {
 		],
 		relatedPages: RELATED_DEFAULT,
 	},
+	cash: {
+		title: 'Bitcoin to Cash: How Many $1 Bills Does 1 BTC Buy?',
+		h1: 'Bitcoin to cash: how many $1 bills does 1 BTC buy?',
+		metaDescription:
+			"How many physical $1 bills does 1 bitcoin buy, stacked to their real thickness? Exact by construction (one note is worth one dollar) — no market estimate, priced from the live BTC-USD rate.",
+		intro: [
+			"One bitcoin currently buys roughly {ratio}. Unlike every other commodity on this site, Cash has no market price to estimate — a $1 Federal Reserve Note is worth exactly one dollar, so the figure is simply today's BTC-USD price with no ratio to look up. What the visualisation adds is the physical dimension: stacked to the Bureau of Engraving and Printing's published note thickness (0.10922 mm, 0.0043 in), how tall would that many bills actually stand?",
+			"The 3D stack on the homepage groups notes into the real units cash handlers use — straps of 100, bundles of 1,000, and, past a hundred thousand notes, a roughly cube-shaped stack of bundles (then pallets) — with a Shiba Inu alongside for scale. The single true-height column is reported in words below the stage: its exact height, compared against real-world landmarks up to a fraction of the distance to the Moon.",
+		],
+		context: [
+			'A $1 note measures 156.6 x 66.3 mm and weighs about 1 gram, identical across every US denomination. A strap of 100 notes is 10.922 mm thick — the Bureau of Engraving and Printing\'s own public trivia cites this as roughly 0.43 inches, a useful cross-check on the dimensions this page uses throughout.',
+			"Because the price is exact rather than estimated, Cash carries none of the uncertainty bands that accompany the site's illustrative commodities (Cocaine, Plutonium-238). The only thing that moves the figure day to day is the live BTC-USD rate itself.",
+		],
+		faqs: [
+			{
+				question: 'How many $1 bills does 1 bitcoin buy today?',
+				answer:
+					"About {ratio} — exactly today's BTC-USD price, since one $1 note is worth one dollar by definition.",
+			},
+			{
+				question: 'How tall would that stack of bills actually be?',
+				answer:
+					"Stacked to the real note thickness of 0.10922 mm each (per the Bureau of Engraving and Printing), the homepage readout computes the exact height and compares it to real-world landmarks — a doorway, the Burj Khalifa, the edge of space, and at extreme bitcoin amounts a meaningful fraction of the distance to the Moon.",
+			},
+			{
+				question: 'Why is this priced differently from Gold, Silver, or Cocaine?',
+				answer:
+					"Every other commodity on the site is converted through a market price (gold spot, an illustrative cocaine estimate, and so on). A dollar bill has no such conversion to make — it is worth exactly one dollar — so Cash is the one commodity on the site with zero pricing uncertainty.",
+			},
+			{
+				question: 'What do the "bundle" and "cube" views mean?',
+				answer:
+					'They mirror how cash is actually handled: straps of 100 notes, bundles of 1,000 (10 straps), and past about a hundred thousand notes, bundles arranged into a roughly cube-shaped stack rather than one impractically tall column. The readout below the stack still reports what that single true-height column would measure, compared to real-world landmarks.',
+			},
+			{
+				question: 'Is this in the downloadable dataset?',
+				answer:
+					'The BTC-USD price that drives this page is in the /data archive; the note-dimension constants are documented at /methodology but are not a separate data series, since they never change.',
+			},
+		],
+		relatedPages: RELATED_DEFAULT,
+	},
 };

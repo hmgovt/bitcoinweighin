@@ -36,8 +36,8 @@ const CARD_HEIGHT = 675;
 // Launch commodities the bot can render. All four now live in the hero stage
 // tabs (one-stage layout); ?commodity= deep-links select the tab, and the
 // stage advertises data-commodity once the active tab has rendered.
-const KNOWN_COMMODITIES = new Set(['gold', 'silver', 'pu238', 'cocaine']);
-const HERO_COMMODITIES = new Set(['gold', 'silver', 'pu238', 'cocaine']);
+const KNOWN_COMMODITIES = new Set(['gold', 'silver', 'pu238', 'cocaine', 'cash']);
+const HERO_COMMODITIES = new Set(['gold', 'silver', 'pu238', 'cocaine', 'cash']);
 
 interface Args {
 	btc: number;
@@ -94,6 +94,17 @@ async function waitForReady(page: Page, expectedDate: string, commodity: string)
 			timeout: 20_000,
 		});
 		await page.waitForTimeout(300); // let the brick layout settle
+	} else if (commodity === 'cash') {
+		// Cash runs its own WebGL stage (BillStage). data-commodity="cash" is
+		// only advertised once the bill mesh has rendered AND the Shiba has
+		// resolved (loaded or failed) — see HeroStage's billReady — so by the
+		// time the selector above matched, the scene content exists. The extra
+		// wait below lets the damped camera dolly settle on the framed shot.
+		await page.waitForSelector('.hero-stage .bill-frame canvas.stage-canvas', {
+			state: 'visible',
+			timeout: 20_000,
+		});
+		await page.waitForTimeout(900);
 	} else {
 		// Metals: the stage shows either the live WebGL canvas or the poster
 		// fallback — both are valid card frames.

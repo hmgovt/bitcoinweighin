@@ -1,16 +1,17 @@
 <script lang="ts">
 	/**
-	 * HeroStage — the one-stage hero: Au / Ag / Pu / Cocaine tabs over a single
-	 * stage frame, with the active commodity's readout and context cards.
+	 * HeroStage — the one-stage hero: Au / Ag / Pu / Cocaine / Cash tabs over a
+	 * single stage frame, with the active commodity's readout and context cards.
 	 *
 	 * The three cube metals share one live `LiveStage` (WebGL cube + Shiba,
-	 * poster-first). Cocaine is the 4th tab: selecting it unmounts LiveStage
-	 * (tearing down the single WebGL context — we never run two) and renders the
-	 * inline-SVG `CocaineBrickStack` in the same frame, with the cocaine pricing
-	 * readout below. Switching back re-mounts LiveStage, which re-hydrates on the
+	 * poster-first). Cocaine and Cash are custom tabs: selecting either unmounts
+	 * LiveStage (tearing down the single WebGL context — we never run two) and
+	 * renders a bespoke visual (`CocaineBrickStack` SVG, or `BillStage`'s own
+	 * WebGL scene) in the same frame, with a matching custom readout below.
+	 * Switching back to a metal re-mounts LiveStage, which re-hydrates on the
 	 * next interaction/idle.
 	 *
-	 * Tab order is locked: gold, silver, pu238, cocaine.
+	 * Tab order is locked: gold, silver, pu238, cocaine, cash.
 	 */
 	import type { Snippet } from 'svelte';
 	import type { Commodity } from '$lib/commodities.js';
@@ -27,6 +28,8 @@
 	import CocaineBrickStack from './CocaineBrickStack.svelte';
 	import CocaineReadout from './CocaineReadout.svelte';
 	import QualityBadge from './QualityBadge.svelte';
+	import BillStage from '$lib/scene/BillStage.svelte';
+	import BillReadout from './BillReadout.svelte';
 
 	const deltaObjects = deltaObjectsJson as unknown as DeltaObjectsFile;
 
@@ -65,10 +68,13 @@
 	const amount = $derived(amounts[active.id] ?? 0);
 
 	const isCocaine = $derived(active.id === 'cocaine');
+	const isCash = $derived(active.id === 'cash');
 
 	// True when the dog is staged to the foreground — LiveStage binds this and
 	// the readout adds the honesty line. False in poster / fallback / cocaine.
 	let staged = $state(false);
+	// Same, for BillStage's own Shiba (Cash tab).
+	let billStaged = $state(false);
 
 	// Stage element for the Geiger IntersectionObserver gate.
 	let stageEl: HTMLElement | undefined = $state();
@@ -95,6 +101,8 @@
 				return '#7ed4ff';
 			case 'cocaine':
 				return '#e8e0d2';
+			case 'cash':
+				return '#85bb65';
 			default:
 				return '#d4a14a';
 		}
@@ -178,7 +186,15 @@
 	// frame mid-swap.
 	let brickEl: HTMLElement | undefined = $state();
 	const brickReady = $derived(isCocaine && !!brickEl);
-	const dataCommodity = $derived(isCocaine ? (brickReady ? 'cocaine' : '') : selectedId);
+	// BillStage reports readiness itself (first frame rendered + Shiba
+	// resolved) — gating on the frame div alone would advertise
+	// data-commodity before the WebGL scene exists, and the bot's card
+	// could capture a blank stage.
+	let billRendered = $state(false);
+	const billReady = $derived(isCash && billRendered);
+	const dataCommodity = $derived(
+		isCocaine ? (brickReady ? 'cocaine' : '') : isCash ? (billReady ? 'cash' : '') : selectedId
+	);
 
 	// Pu-238 readout extras (mirrors CommoditySection's derivations).
 	const meltWarning = $derived(isPu && massGrams >= 1000);
@@ -261,6 +277,10 @@
 		<div class="brick-frame" bind:this={brickEl}>
 			<CocaineBrickStack {massGrams} />
 		</div>
+	{:else if isCash}
+		<div class="bill-frame">
+			<BillStage noteCount={amount} bind:staged={billStaged} bind:ready={billRendered} />
+		</div>
 	{:else}
 		<LiveStage commodity={active} {amount} bind:staged bind:this={liveStageEl} />
 	{/if}
@@ -279,6 +299,28 @@
 	{#if isCocaine}
 		<div class="readout-wrap">
 			<CocaineReadout {massGrams} {btcAmount} {btcUsdPrice} {accent} />
+		</div>
+	{:else if isCash}
+		<div class="readout-wrap">
+			<BillReadout noteCount={amount} />
+			<!--
+				Daily Delta line — always in the DOM (reserves its line height) so
+				the archive's async load-in doesn't shift layout; content fills in
+				once >=2 dataset days are loaded. See src/lib/deltas.ts.
+			-->
+			<p class="delta-line">
+				{#if deltaCaptionParts}
+					{deltaCaptionParts.main}<span class="delta-figure">{deltaCaptionParts.figure}</span>{deltaCaptionParts.tail}
+				{/if}
+			</p>
+			{#if billStaged}
+				<!--
+					Staging honesty line: when the dog walks to the foreground the
+					apparent sizes come from real perspective (dog nearer the camera),
+					not a fudge. Stated, per the methodology's staging-honesty rule.
+				-->
+				<p class="staging-line">Sat is standing nearer the camera — true perspective, not rescaled.</p>
+			{/if}
 		</div>
 	{:else}
 		<div class="readout-wrap">
@@ -398,6 +440,10 @@
 	}
 
 	.brick-frame {
+		width: 100%;
+	}
+
+	.bill-frame {
 		width: 100%;
 	}
 

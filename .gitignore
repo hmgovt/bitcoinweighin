@@ -42,6 +42,9 @@ coverage/
 *.tmp
 tmp/
 
+# Local git worktrees (superpowers:using-git-worktrees)
+.worktrees/
+
 # Blender — track .blend source files and Python pipeline, exclude backups and large binary inputs
 # .blend files ARE tracked (intentionally allowed through). Blender numbered backups (.blend1 etc.) and autosaves are not.
 *.blend1

@@ -222,6 +222,28 @@ export function formatBtc(btc: number): string {
 	return btc.toExponential(2) + ' BTC';
 }
 
+// ── Note count formatting (Cash commodity) ─────────────────────
+
+/**
+ * Format a bill count. Exact grouped digits stay legible up to 999,999;
+ * above that the M/B/T ladder matches formatUsd's convention elsewhere on
+ * the site rather than printing an unreadable run of digits.
+ */
+export function formatNoteCount(count: number): string {
+	if (count <= 0) return '0 bills';
+	if (count === 1) return '1 bill';
+	if (count >= 1_000_000_000_000) {
+		return `${(count / 1_000_000_000_000).toFixed(2)} trillion bills`;
+	}
+	if (count >= 1_000_000_000) {
+		return `${(count / 1_000_000_000).toFixed(2)} billion bills`;
+	}
+	if (count >= 1_000_000) {
+		return `${(count / 1_000_000).toFixed(2)} million bills`;
+	}
+	return `${Math.round(count).toLocaleString('en-US')} bills`;
+}
+
 // ── Impossibility-band formatting ───────────────────────────────
 //
 // Shared by the gold/silver quantity-anchor terminal band and the cocaine

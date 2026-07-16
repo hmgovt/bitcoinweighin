@@ -72,7 +72,9 @@ describe('computeIntrinsicVolumeCm3', () => {
 
 	it('works for all volume-computable commodities without throwing', () => {
 		for (const c of ALL_COMMODITIES) {
-			if (c.renderStyle === 'still_with_readout') continue;
+			// still_with_readout (cocaine) and bill_stack (cash) render without a
+			// cube/volume readout and intentionally carry no density data.
+			if (c.renderStyle === 'still_with_readout' || c.renderStyle === 'bill_stack') continue;
 			expect(() => computeIntrinsicVolumeCm3(1, c)).not.toThrow();
 		}
 	});

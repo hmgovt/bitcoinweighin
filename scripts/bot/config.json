@@ -1,25 +1,87 @@
 {
-	"_doc": "Runtime config for the X bot. Five scheduled slots/day (4 commodities + a Hashweight network-mass post), with varied format so it doesn't read as a ticker. run.ts maps the current UTC hour to a slot (or takes --slot explicitly). Budget guard tracks spend against the prepaid X credit balance.",
+	"_doc": "Runtime config for the X bot. Six scheduled slots/day (5 commodities + a Hashweight network-mass post), with varied format so it doesn't read as a ticker. run.ts maps the current UTC hour to a slot (or takes --slot explicitly). Budget guard tracks spend against the prepaid X credit balance.",
 	"siteBase": "https://bitcoinweighin.com",
 	"handle": "bitcoinweighin",
 	"budget": {
 		"balanceCents": 500,
 		"centsPerPost": 2,
-		"monthlyCap": 155,
-		"_note": "balanceCents is the prepaid X credit pool (authoritative balance lives at X; this is a local guard). At 2c/post, 500c ~= 250 posts. monthlyCap caps posts per calendar month regardless of remaining balance (5 slots/day x 31 = 155)."
+		"monthlyCap": 186,
+		"_note": "balanceCents is the prepaid X credit pool (authoritative balance lives at X; this is a local guard). At 2c/post, 500c ~= 250 posts. monthlyCap caps posts per calendar month regardless of remaining balance (6 slots/day x 31 = 186)."
 	},
 	"physical": {
-		"gold": { "display": "Gold", "noun": "gold", "shape": "cube", "densityGPerCm3": 19.3 },
-		"silver": { "display": "Silver", "noun": "silver", "shape": "cube", "densityGPerCm3": 10.49 },
-		"cocaine": { "display": "Cocaine", "noun": "cocaine", "shape": "mass" },
-		"pu238": { "display": "Plutonium-238", "noun": "plutonium-238", "shape": "cube", "densityGPerCm3": 11.46, "novelty": true }
+		"gold": {
+			"display": "Gold",
+			"noun": "gold",
+			"shape": "cube",
+			"densityGPerCm3": 19.3
+		},
+		"silver": {
+			"display": "Silver",
+			"noun": "silver",
+			"shape": "cube",
+			"densityGPerCm3": 10.49
+		},
+		"cocaine": {
+			"display": "Cocaine",
+			"noun": "cocaine",
+			"shape": "mass"
+		},
+		"pu238": {
+			"display": "Plutonium-238",
+			"noun": "plutonium-238",
+			"shape": "cube",
+			"densityGPerCm3": 11.46,
+			"novelty": true
+		},
+		"cash": {
+			"display": "Cash",
+			"noun": "$1 bills",
+			"shape": "mass"
+		}
 	},
 	"slots": [
-		{ "id": "gold-am", "utcHour": 13, "commodity": "gold", "format": "absolute", "btc": 1 },
-		{ "id": "hashweight-mid", "utcHour": 15, "commodity": "hashweight", "format": "hashweight", "btc": 1 },
-		{ "id": "silver-mid", "utcHour": 17, "commodity": "silver", "format": "delta", "btc": 1 },
-		{ "id": "cocaine-eve", "utcHour": 21, "commodity": "cocaine", "format": "absolute", "btc": 1 },
-		{ "id": "pu238-night", "utcHour": 1, "commodity": "pu238", "format": "absolute", "btc": 1 }
+		{
+			"id": "gold-am",
+			"utcHour": 13,
+			"commodity": "gold",
+			"format": "absolute",
+			"btc": 1
+		},
+		{
+			"id": "hashweight-mid",
+			"utcHour": 15,
+			"commodity": "hashweight",
+			"format": "hashweight",
+			"btc": 1
+		},
+		{
+			"id": "silver-mid",
+			"utcHour": 17,
+			"commodity": "silver",
+			"format": "delta",
+			"btc": 1
+		},
+		{
+			"id": "cash-early-eve",
+			"utcHour": 19,
+			"commodity": "cash",
+			"format": "delta",
+			"btc": 1
+		},
+		{
+			"id": "cocaine-eve",
+			"utcHour": 21,
+			"commodity": "cocaine",
+			"format": "absolute",
+			"btc": 1
+		},
+		{
+			"id": "pu238-night",
+			"utcHour": 1,
+			"commodity": "pu238",
+			"format": "absolute",
+			"btc": 1
+		}
 	],
 	"slotCatchupHours": 6
 }
