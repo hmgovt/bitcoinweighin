@@ -19,10 +19,7 @@
 	import { formatNoteCount, formatMassConsumer, formatLength } from '$lib/format.js';
 	import { system, toggleSystem } from '$lib/stores/system.js';
 
-	let {
-		noteCount = 0,
-		viewMode = 'tiered',
-	}: { noteCount?: number; viewMode?: 'tiered' | 'literal' } = $props();
+	let { noteCount = 0 }: { noteCount?: number } = $props();
 
 	const massGrams = $derived(noteCount * BILL_MASS_G);
 	const tier = $derived(selectBillTier(noteCount));
@@ -79,14 +76,13 @@
 		</div>
 
 		<div class="bill-secondary-row">
-			{#if viewMode === 'literal'}
-				{formatLength(heightM, $system)}
-				{#if comparison}
-					· about {comparison.multiple < 10 ? comparison.multiple.toFixed(1) : Math.round(comparison.multiple).toLocaleString('en-US')}x {comparison.label}
-				{/if}
-			{:else if tier}
+			{#if tier}
 				{tierLabel[tier]}{bundleGridLabel ? ` · ${bundleGridLabel}` : ''}
 			{/if}
+		</div>
+
+		<div class="bill-stack-row">
+			As one stack: {formatLength(heightM, $system)}{comparison ? ` · ${comparison.text}` : ''}
 		</div>
 	{:else}
 		<div class="bill-count-row bill-count-empty">—</div>
@@ -147,6 +143,12 @@
 		font-size: 13px;
 		color: #71717a;
 		margin-top: 10px;
+	}
+	.bill-stack-row {
+		font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+		font-size: 13px;
+		color: #71717a;
+		margin-top: 4px;
 	}
 	.bill-exactness-note {
 		font-size: 12px;

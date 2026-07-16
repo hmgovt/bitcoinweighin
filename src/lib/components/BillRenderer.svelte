@@ -57,7 +57,7 @@
 		height: 72px;
 		border-radius: 50%;
 		background: #2f5d3a;
-		color: #e9e4d3;
+		color: #cdd6b8;
 		display: flex;
 		align-items: center;
 		justify-content: center;

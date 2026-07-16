@@ -8,12 +8,36 @@
  */
 import * as THREE from 'three';
 
-const PAPER = '#e9e4d3';
+// Palette note: these bases look noticeably deeper/greener than a scanned
+// note would, ON PURPOSE. The stage renders through ACES tone mapping at
+// exposure 1.3 with a full softbox env as diffuse irradiance — anything in
+// the near-white #e6+ range washes out to plain white paper on screen. The
+// sage/olive family below is what actually survives that pipeline and
+// reads as "dollar green" at the camera.
+// These bases sit MUCH deeper than a scanned note's actual paper color:
+// the stage's key light + environment + ACES tone mapping at exposure 1.3
+// lift albedos hard, and anything above ~0.6 luminance renders as plain
+// white on screen. Screen-calibrated (not swatch-calibrated) so the
+// stacks read as worn grey-green currency under the shared lighting rig.
+const PAPER = '#aeb992'; // face background wash — worn-note grey-green
+const PAPER_EDGE = '#a2ad87'; // side-face paper: desaturated sage
+const PAPER_BUNDLE = '#98a37d'; // bundle-unit paper: a step deeper again (pallet-distance legibility)
 const INK = '#2f5d3a';
-const MEDALLION_FILL = '#cfc9b0';
-const SILHOUETTE = '#8f8a72';
+const SEAM = '#6b7551'; // grey-olive lamination seam
+const SEAM_DARK = '#5c6545'; // deeper olive seam variant for bundle-unit texture
+const CATCH_LIGHT = '#bcc7a0'; // seam catch-light — green-tinted, deliberately NOT white
+const MEDALLION_FILL = '#8e9873'; // desaturated moss
+const SILHOUETTE = '#59613f';
+const STRAP_BLUE = '#4a6fa5'; // ABA standard blue strap for $100-of-$1s (per reference imagery)
+const STRAP_BLUE_LIGHT = '#7d9cc4'; // the strap's paler woven center stripe
 
-/** The bill's face — top/bottom of a bundle or literal-stack block. */
+/** The bill's face — top/bottom of a bundle or block, and the up-close
+ *  view for loose/strap tiers and the stray notes scattered around the
+ *  stack (see BillStage's addStrayNotes). Nested border, circled corner
+ *  numerals, a central oval with an abstract bust, guilloche-suggestion
+ *  ellipses, a faint background grid, and two flanking seals — enough
+ *  structure to read unmistakably as a stylized dollar bill up close
+ *  while staying clearly abstract (see the file header). */
 export function makeBillFaceTexture(): THREE.CanvasTexture {
 	const canvas = document.createElement('canvas');
 	canvas.width = 1024;
@@ -21,51 +45,141 @@ export function makeBillFaceTexture(): THREE.CanvasTexture {
 	const ctx = canvas.getContext('2d')!;
 	const W = canvas.width;
 	const H = canvas.height;
+	const cx = W / 2;
+	const cy = H / 2;
 
 	ctx.fillStyle = PAPER;
 	ctx.fillRect(0, 0, W, H);
 
+	// Fine-grid background tint — a guilloche-adjacent texture cue under
+	// everything else, low-contrast enough to read as engraved paper
+	// texture rather than a pattern in its own right (but strong enough to
+	// survive the tone-mapping wash — see the palette note above).
+	ctx.strokeStyle = 'rgba(47, 93, 58, 0.09)';
+	ctx.lineWidth = 1;
+	for (let gx = 0; gx <= W; gx += 16) {
+		ctx.beginPath();
+		ctx.moveTo(gx, 0);
+		ctx.lineTo(gx, H);
+		ctx.stroke();
+	}
+	for (let gy = 0; gy <= H; gy += 16) {
+		ctx.beginPath();
+		ctx.moveTo(0, gy);
+		ctx.lineTo(W, gy);
+		ctx.stroke();
+	}
+
+	// Nested double border — weights sized to stay legible at mid-distance
+	// framings (a bundle top a few metres from camera), not just up close.
 	ctx.strokeStyle = INK;
-	ctx.lineWidth = 6;
+	ctx.lineWidth = 8;
 	ctx.strokeRect(14, 14, W - 28, H - 28);
-	ctx.lineWidth = 2;
-	ctx.strokeRect(24, 24, W - 48, H - 48);
-
-	ctx.fillStyle = INK;
-	ctx.font = 'bold 46px Georgia, serif';
-	ctx.textBaseline = 'middle';
-	ctx.textAlign = 'left';
-	ctx.fillText('$1', 40, 70);
-	ctx.textAlign = 'right';
-	ctx.fillText('$1', W - 40, 70);
-	ctx.textAlign = 'left';
-	ctx.fillText('$1', 40, H - 60);
-	ctx.textAlign = 'right';
-	ctx.fillText('$1', W - 40, H - 60);
-
-	// Abstract portrait medallion — a plain circle + simple silhouette, not
-	// a likeness of any real person or engraving.
-	ctx.beginPath();
-	ctx.arc(W / 2, H / 2, 90, 0, Math.PI * 2);
-	ctx.strokeStyle = INK;
 	ctx.lineWidth = 3;
+	ctx.strokeRect(26, 26, W - 52, H - 52);
+
+	// Simple corner ornaments — small diamonds at the outer border's corners.
+	ctx.fillStyle = INK;
+	for (const [ox, oy] of [
+		[14, 14],
+		[W - 14, 14],
+		[14, H - 14],
+		[W - 14, H - 14],
+	] as const) {
+		ctx.save();
+		ctx.translate(ox, oy);
+		ctx.rotate(Math.PI / 4);
+		ctx.fillRect(-6, -6, 12, 12);
+		ctx.restore();
+	}
+
+	// Ornate-circled "1" numerals in all four corners.
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	for (const [nx, ny] of [
+		[70, 70],
+		[W - 70, 70],
+		[70, H - 70],
+		[W - 70, H - 70],
+	] as const) {
+		ctx.strokeStyle = INK;
+		ctx.lineWidth = 3.5;
+		ctx.beginPath();
+		ctx.arc(nx, ny, 32, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		ctx.arc(nx, ny, 26, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.fillStyle = INK;
+		ctx.font = 'bold 34px Georgia, serif';
+		ctx.fillText('1', nx, ny + 1);
+	}
+
+	// Central double-ellipse oval frame around the abstract bust — a plain
+	// shape + simple silhouette, not a likeness of any real person or
+	// engraving.
+	ctx.strokeStyle = INK;
+	ctx.lineWidth = 4;
+	ctx.beginPath();
+	ctx.ellipse(cx, cy, 108, 128, 0, 0, Math.PI * 2);
 	ctx.stroke();
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.ellipse(cx, cy, 96, 116, 0, 0, Math.PI * 2);
+	ctx.stroke();
+
+	// A few concentric thin ellipses suggesting guilloche engraving.
+	ctx.lineWidth = 1.5;
+	ctx.strokeStyle = 'rgba(47, 93, 58, 0.45)';
+	for (let i = 1; i <= 3; i++) {
+		ctx.beginPath();
+		ctx.ellipse(cx, cy, 96 - i * 14, 116 - i * 14, 0, 0, Math.PI * 2);
+		ctx.stroke();
+	}
+
+	ctx.beginPath();
+	ctx.ellipse(cx, cy, 90, 110, 0, 0, Math.PI * 2);
 	ctx.fillStyle = MEDALLION_FILL;
 	ctx.fill();
 	ctx.beginPath();
-	ctx.arc(W / 2, H / 2 - 10, 34, 0, Math.PI * 2); // head
+	ctx.arc(cx, cy - 20, 34, 0, Math.PI * 2); // head
 	ctx.fillStyle = SILHOUETTE;
 	ctx.fill();
 	ctx.beginPath();
-	ctx.ellipse(W / 2, H / 2 + 55, 46, 34, 0, Math.PI, 0); // shoulders
+	ctx.ellipse(cx, cy + 55, 46, 34, 0, Math.PI, 0); // shoulders
 	ctx.fill();
+
+	// Two small circular seals (plain abstract rosettes) flanking the
+	// portrait.
+	for (const [sx, sy] of [
+		[cx - 210, cy],
+		[cx + 210, cy],
+	] as const) {
+		ctx.strokeStyle = INK;
+		ctx.lineWidth = 3;
+		ctx.beginPath();
+		ctx.arc(sx, sy, 44, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.lineWidth = 1.5;
+		for (let i = 0; i < 12; i++) {
+			const a = (i / 12) * Math.PI * 2;
+			ctx.beginPath();
+			ctx.moveTo(sx + Math.cos(a) * 30, sy + Math.sin(a) * 30);
+			ctx.lineTo(sx + Math.cos(a) * 44, sy + Math.sin(a) * 44);
+			ctx.stroke();
+		}
+		ctx.beginPath();
+		ctx.arc(sx, sy, 18, 0, Math.PI * 2);
+		ctx.fillStyle = INK;
+		ctx.fill();
+	}
 
 	ctx.fillStyle = INK;
 	ctx.font = 'bold 30px Georgia, serif';
-	ctx.textAlign = 'center';
-	ctx.fillText('ONE', W / 2, 40);
+	ctx.fillText('THE UNITED STATES', cx, 40);
 	ctx.font = '16px Georgia, serif';
-	ctx.fillText('UNITED STATES', W / 2, H - 28);
+	ctx.fillText('ONE DOLLAR', cx, H - 28);
 
 	const texture = new THREE.CanvasTexture(canvas);
 	texture.colorSpace = THREE.SRGBColorSpace;
@@ -86,7 +200,7 @@ export function makeBillEdgeTexture(): THREE.CanvasTexture {
 	const ctx = canvas.getContext('2d')!;
 
 	// Paper base.
-	ctx.fillStyle = '#efe9d8';
+	ctx.fillStyle = PAPER_EDGE;
 	ctx.fillRect(0, 0, 32, 64);
 
 	// Faint horizontal tonal variation across the rest of the repeat unit so
@@ -102,11 +216,11 @@ export function makeBillEdgeTexture(): THREE.CanvasTexture {
 	// immediately followed by a brighter catch-light line, so the stripe
 	// reads as a physical paper crease (shadow + highlight pair) rather than
 	// a single flat band that mushes to grey under ACES tone mapping at
-	// grazing angles / roughness 0.9. Contrast against the #efe9d8 paper is
+	// grazing angles / roughness 0.9. Contrast against the paper base is
 	// deliberately much stronger than a single mid-tone line would give.
-	ctx.fillStyle = '#b09f7a';
+	ctx.fillStyle = SEAM;
 	ctx.fillRect(0, 0, 32, 2);
-	ctx.fillStyle = '#fbf6e8';
+	ctx.fillStyle = CATCH_LIGHT;
 	ctx.fillRect(0, 2, 32, 1);
 
 	const texture = new THREE.CanvasTexture(canvas);
@@ -132,28 +246,33 @@ export function makeBundleUnitTexture(): THREE.CanvasTexture {
 	canvas.height = 64;
 	const ctx = canvas.getContext('2d')!;
 
-	// Paper base — same family as the edge texture.
-	ctx.fillStyle = '#efe9d8';
+	// Paper base — same family as the edge texture, a step deeper so the
+	// pallet field holds its green at long framing distances.
+	ctx.fillStyle = PAPER_BUNDLE;
 	ctx.fillRect(0, 0, 64, 64);
 
 	// Strong inter-bundle seam at the top of the unit (shadow + catch-light
 	// pair, matching makeBillEdgeTexture's lamination treatment).
-	ctx.fillStyle = '#a8976f';
+	ctx.fillStyle = SEAM_DARK;
 	ctx.fillRect(0, 0, 64, 3);
-	ctx.fillStyle = '#fbf6e8';
+	ctx.fillStyle = CATCH_LIGHT;
 	ctx.fillRect(0, 3, 64, 1);
 
-	// ~8 faint inner lines suggesting the notes laminated inside the bundle.
-	ctx.fillStyle = 'rgba(120, 104, 70, 0.18)';
+	// ~8 inner lines suggesting the notes laminated inside the bundle —
+	// strong enough to stay visible against the deeper sage base.
+	ctx.fillStyle = 'rgba(90, 98, 68, 0.32)';
 	for (let i = 1; i <= 8; i++) {
 		ctx.fillRect(0, 4 + i * 7, 64, 1);
 	}
 
-	// Vertical strap band — the paper currency strap around each bundle.
-	ctx.fillStyle = 'rgba(0, 0, 0, 0.07)';
+	// Vertical strap band — the ABA standard BLUE currency strap that bands
+	// $100 of $1 notes (per the owner's reference imagery): the single
+	// strongest "real cash" cue at pallet distance. Solid desaturated
+	// banknote blue with the strap's paler woven center stripe.
+	ctx.fillStyle = STRAP_BLUE;
 	ctx.fillRect(24, 0, 14, 64);
-	ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-	ctx.fillRect(26, 0, 10, 64);
+	ctx.fillStyle = STRAP_BLUE_LIGHT;
+	ctx.fillRect(28, 0, 6, 64);
 
 	const texture = new THREE.CanvasTexture(canvas);
 	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;

@@ -7,24 +7,22 @@
 	 * fundamentally different: instanced real bill geometry + coalesced
 	 * textured blocks, not a single scaled cube.
 	 *
-	 * Task 11 proved the pipeline: load the bill glb, normalize its scale,
-	 * bake its transform into a reusable geometry, and render one bill so
-	 * the load->normalize->material chain is verified working. Task 12
-	 * (this) adds tiered-mode rendering: `noteCount` now selects one of
-	 * three visual branches — individually-instanced bills (loose/strap),
-	 * coalesced textured blocks in a roughly-cubic grid (bundle/cube), or a
-	 * capped receding field of pallet-scale blocks (pallet) — via
-	 * `billStack.ts`'s tier/grid maths. Task 13 adds literal-mode rendering:
-	 * a `viewMode` prop that, when `'literal'`, always renders a single
-	 * true-height column instead of the tiered view. Task 14 wires the
-	 * camera to `renderTiered`/`renderLiteral`'s returned dominant extent,
-	 * adds the damped dolly loop, and makes clicking/tapping (or Enter/Space
-	 * when focused) toggle `viewMode`. A later revision reverses the
-	 * earlier "no Shiba on this tab" call (see docs/handoff/14-cash.md) —
-	 * the dog now stages beside the stack (or relocates to the camera
-	 * foreground at monolith scale) using the SAME tested rig LiveStage
-	 * drives its cube from (`M.cameraTransform` + `M.dogStagePosition` in
-	 * `./maths.js`), not a bespoke reimplementation.
+	 * `noteCount` selects one of three visual branches — individually-
+	 * instanced bills (loose/strap), coalesced textured blocks in a
+	 * roughly-cubic grid (bundle/cube), or a capped receding field of
+	 * pallet-scale blocks (pallet) — via `billStack.ts`'s tier/grid maths.
+	 * A handful of loose notes (flat, curved, folded) are scattered on the
+	 * ground around the stack's footprint — once the count reaches 10, so
+	 * the set dressing never rivals the actual holdings — keeping the
+	 * up-close face art in frame even at pallet-field framing distances
+	 * (see `addStrayNotes`). An earlier revision offered a second 'literal' view
+	 * mode (a single true-height column, toggled by tap/click) — it was
+	 * removed after visual review; the single-stack height is now told in
+	 * words instead, as a line in BillReadout. The dog stages beside the
+	 * stack (or relocates to the camera foreground at monolith scale) using
+	 * the SAME tested rig LiveStage drives its cube from
+	 * (`M.cameraTransform` + `M.dogStagePosition` in `./maths.js`), not a
+	 * bespoke reimplementation.
 	 */
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
@@ -33,11 +31,9 @@
 
 	let {
 		noteCount = 0,
-		viewMode = $bindable<'tiered' | 'literal'>('tiered'),
 		staged = $bindable(false),
 	}: {
 		noteCount?: number;
-		viewMode?: 'tiered' | 'literal';
 		/** True when the dog has walked to the foreground (readout honesty line). */
 		staged?: boolean;
 	} = $props();
@@ -116,38 +112,7 @@
 	const PALLET_BUNDLES = 1000; // 1,000 bundles/pallet = 1,000,000 notes/pallet (10x10x10 grid)
 	const PALLET_RENDER_CAP = 60; // receding field caps here; the readout's note-count carries the rest
 
-	// Literal mode's height scales LINEARLY with note count (unlike the metal
-	// cubes, which scale as cube-root of value and so stay metre-scale even at
-	// 21M BTC) — at the site's 21M BTC ceiling the true height reaches
-	// ~1.45e8 m. World-space geometry at that magnitude blows past float32 GPU
-	// precision and silently fails to rasterize (confirmed: the stage goes
-	// blank, no console error). 10 km keeps the ULP well under a millimetre
-	// and comfortably covers every realistic position; only the theoretical
-	// extreme gets capped. Same "cap the render, let the readout carry the
-	// true magnitude" idiom as PALLET_RENDER_CAP above.
-	const LITERAL_HEIGHT_RENDER_CAP_M = 10_000;
-
-	// Separately: literal mode frames the column's FULL height, and that
-	// forces a deliberate, disclosed departure from physical proportion.
-	// The column's true width is a fixed real-bill footprint (~15.6 cm),
-	// and `framingDistance` dollies back linearly with the framed height —
-	// frame even a 15 m column true-width and it subtends ~2 px; at
-	// monolith heights it is genuinely sub-pixel and the stage looks empty.
-	// So `renderLiteral` widens the whole column (X/Z only — HEIGHT STAYS
-	// EXACTLY TRUE) just enough that the framed tower keeps this
-	// height:width aspect: a ~14:1 slender tower reads clearly at ~2% of
-	// frame width. The widening is disclosed on-stage whenever it kicks in
-	// (the `.width-hint` caption, same staging-honesty idiom as the dog's
-	// foreground line), and the readout's height/comparison numbers are
-	// computed from the true dimensions regardless.
-	const LITERAL_TOWER_ASPECT = 14;
-
 	let tierGroup: THREE.Group | null = null;
-
-	// Literal mode's disclosed width exaggeration (see LITERAL_TOWER_ASPECT).
-	// 1 in tiered mode and for short columns; the template shows the
-	// `.width-hint` disclosure caption whenever it meaningfully exceeds 1.
-	let widthScale = $state(1);
 
 	/** Removes the current tier's render group from the scene and frees the
 	 *  GPU resources it alone owns. `bakedBillGeometry` and `billMats.face`/
@@ -156,8 +121,9 @@
 	 *  — and are owned/disposed by `teardown()` instead; disposing them here
 	 *  would free a resource the next render still needs. Only resources
 	 *  built fresh inside `renderTiered` on each call (the bundle/pallet box
-	 *  geometry, and the cloned edge material + its cloned texture) are
-	 *  disposed here. */
+	 *  geometry, the cloned edge material + its cloned texture, and the
+	 *  stray notes' plane geometries + their one shared cloned face
+	 *  material/map — see `addStrayNotes`) are disposed here. */
 	function clearTierGroup(three: typeof THREE): void {
 		if (!scene || !tierGroup) return;
 		scene.remove(tierGroup);
@@ -252,11 +218,92 @@
 		return Math.max(grid.colsX * pitchX, grid.layersY * pitchY, grid.colsZ * pitchZ);
 	}
 
+	/** A handful of loose bills scattered on the ground in a ring around the
+	 *  stack's footprint, so the up-close face art (the thing that most
+	 *  reads as "this is money") stays in frame even when the main render is
+	 *  a distant grid of blocks. Built fresh per `renderTiered` call and
+	 *  added to `tierGroup`, so `clearTierGroup` owns their geometries and
+	 *  the one shared, cloned stray-note material exactly like the
+	 *  bundle/pallet resources above.
+	 *
+	 *  `noteLen`/`noteWid` are the TRUE bill dimensions (used for the ring
+	 *  radius and the curl/fold profiles, which are physical paper
+	 *  behaviour); `scale` uniformly resizes the finished note meshes only
+	 *  — at cube/pallet framing distances a true-size note is sub-pixel, so
+	 *  the caller passes a size boosted the same impressionistic way
+	 *  `makeBundleUnitTexture` trades per-note honesty for legibility at
+	 *  that scale. */
+	function addStrayNotes(
+		three: typeof THREE,
+		noteLen: number,
+		noteWid: number,
+		footprintHalfExtent: number,
+		scale: number
+	): void {
+		if (!tierGroup || !billMats) return;
+
+		// One shared material for every stray note: a clone of the shared
+		// face material (never the shared instance itself — clearTierGroup
+		// must be free to dispose this one) with its map ALSO cloned, so
+		// disposing this clone's map never touches the shared face texture
+		// every other tier/branch still depends on. DoubleSide because a
+		// curled/folded plane's underside is visible from some angles.
+		const strayMat = billMats.face.clone();
+		strayMat.side = three.DoubleSide;
+		strayMat.map = strayMat.map!.clone();
+		strayMat.map.anisotropy = maxAnisotropy;
+		strayMat.map.needsUpdate = true;
+
+		// ≈2 flat, 3 curved, 2 folded — a legible mix without the loop
+		// needing its own random note-count roll.
+		const kinds: Array<'flat' | 'curved' | 'folded'> = [
+			'flat',
+			'flat',
+			'curved',
+			'curved',
+			'curved',
+			'folded',
+			'folded',
+		];
+
+		for (const kind of kinds) {
+			// Plane in local XY (length along X), profile-displaced along Z,
+			// then laid flat with curl pointing up.
+			const geom = new three.PlaneGeometry(noteLen, noteWid, 24, 1);
+			if (kind !== 'flat') {
+				const pos = geom.attributes.position;
+				for (let i = 0; i < pos.count; i++) {
+					const x = pos.getX(i);
+					const z =
+						kind === 'curved'
+							? 0.08 * noteLen * Math.sin(Math.PI * (x / noteLen + 0.5)) // gentle upward arc
+							: Math.max(0, 0.22 * noteLen * (1 - Math.abs(x) / (noteLen * 0.5))); // folded-once tent
+					pos.setZ(i, z);
+				}
+				pos.needsUpdate = true;
+				geom.computeVertexNormals();
+			}
+			geom.rotateX(-Math.PI / 2);
+
+			const mesh = new three.Mesh(geom, strayMat);
+			mesh.castShadow = true;
+			mesh.scale.setScalar(scale);
+			const radius = footprintHalfExtent + noteLen * (0.5 + Math.random() * 2);
+			const angle = Math.random() * Math.PI * 2;
+			mesh.position.set(
+				Math.cos(angle) * radius,
+				kind === 'flat' ? 0.0004 : 0, // curved/folded profiles already lift off the ground
+				Math.sin(angle) * radius
+			);
+			mesh.rotation.y = Math.random() * Math.PI * 2;
+			tierGroup.add(mesh);
+		}
+	}
+
 	function renderTiered(three: typeof THREE, billStackMod: typeof import('../billStack.js'), count: number): number {
 		if (!scene || !bakedBillGeometry || !billMats) return 0;
 		clearTierGroup(three);
 		tierGroup = new three.Group();
-		widthScale = 1; // tiered geometry is always true-proportioned
 
 		const tier = billStackMod.selectBillTier(count);
 		if (!tier) {
@@ -267,6 +314,9 @@
 		const widthM = billStackMod.BILL_WIDTH_MM / 1000;
 		const lengthM = billStackMod.BILL_LENGTH_MM / 1000;
 		const thicknessM = billStackMod.BILL_THICKNESS_MM / 1000;
+
+		let dominant: number;
+		let footprintHalfExtent: number;
 
 		if (tier === 'loose' || tier === 'strap') {
 			// Individually-instanced real bill geometry — cheap up to ~1,000
@@ -289,11 +339,10 @@
 			// Dominant extent, metres — a flat loose/strap stack is only a few
 			// mm tall but a full 156 mm long, so the taller of height/footprint
 			// keeps the camera from dollying in absurdly close on a wide, short
-			// pile (see the matching max() in renderLiteral below).
-			return Math.max(count * thicknessM, lengthM);
-		}
-
-		if (tier === 'bundle' || tier === 'cube') {
+			// pile.
+			dominant = Math.max(count * thicknessM, lengthM);
+			footprintHalfExtent = Math.max(widthM, lengthM) / 2;
+		} else if (tier === 'bundle' || tier === 'cube') {
 			// Coalesced textured blocks, one per bundle of NOTES_PER_BUNDLE
 			// notes, arranged via cubicGridDims. Side faces carry the per-note
 			// edge stripes (repeat.y = true note count — physically honest).
@@ -311,7 +360,7 @@
 				billStackMod.BILL_LENGTH_MM,
 				BUNDLE_HEIGHT_MM
 			);
-			return placeGridInstances(
+			dominant = placeGridInstances(
 				three,
 				bundleGeom,
 				blockMats,
@@ -322,144 +371,88 @@
 				bundleCount,
 				1.06
 			);
+			footprintHalfExtent = Math.max(grid.colsX * widthM * 1.06, grid.colsZ * lengthM * 1.06) / 2;
+		} else {
+			// pallet: a receding field of pallet-scale blocks (10x10x10 bundles
+			// each — a non-cubic ~0.66 x 1.09 x 1.56 m box, since a bundle isn't
+			// a cube), capped for renderability — the readout's note count
+			// carries the true magnitude past the cap, same principle as
+			// Cocaine's `production` tier. Cell sizes are per-axis, exactly like
+			// the bundle/cube branch above: a uniform max-extent cell would bake
+			// ~0.47 m of vertical air under every layer (floating slabs) and
+			// over-wide x-aisles.
+			const palletWidthMm = 10 * billStackMod.BILL_WIDTH_MM;
+			const palletLengthMm = 10 * billStackMod.BILL_LENGTH_MM;
+			const palletHeightMm = 10 * BUNDLE_HEIGHT_MM;
+			const palletGeom = new three.BoxGeometry(
+				palletWidthMm / 1000,
+				palletHeightMm / 1000,
+				palletLengthMm / 1000
+			);
+			// Pallet materials: bundle-scale granularity, not note-scale. Side
+			// faces tile the bundle-unit texture 10x10 (a pallet face is 10x10
+			// bundle edges — see makeBundleUnitTexture's comment for why this is
+			// deliberately impressionistic rather than per-note-honest); the top
+			// face tiles the bill FACE art 10x10 (a pallet top is 10x10 bundle
+			// tops, each one bill face). Both are fresh, tier-group-owned
+			// resources: clearTierGroup disposes any material (and its map) that
+			// isn't the shared billMats.face/edge, which covers these.
+			const bundleUnitMat = new three.MeshStandardMaterial({
+				map: BM!.makeBundleUnitTexture(),
+				roughness: 0.9,
+				metalness: 0,
+			});
+			bundleUnitMat.map!.anisotropy = maxAnisotropy;
+			bundleUnitMat.map!.repeat.set(10, 10);
+			bundleUnitMat.map!.needsUpdate = true;
+			const palletTopMat = billMats.face.clone();
+			palletTopMat.map = palletTopMat.map!.clone();
+			palletTopMat.map.wrapS = palletTopMat.map.wrapT = three.RepeatWrapping;
+			palletTopMat.map.anisotropy = maxAnisotropy;
+			palletTopMat.map.repeat.set(10, 10);
+			palletTopMat.map.needsUpdate = true;
+			const palletMats = [
+				bundleUnitMat,
+				bundleUnitMat,
+				palletTopMat,
+				palletTopMat,
+				bundleUnitMat,
+				bundleUnitMat,
+			]; // BoxGeometry face order: +x -x +y -y +z -z
+
+			const totalPallets = Math.ceil(count / (billStackMod.NOTES_PER_BUNDLE * PALLET_BUNDLES));
+			const renderedPallets = Math.min(totalPallets, PALLET_RENDER_CAP);
+			const grid = billStackMod.cubicGridDims(renderedPallets, palletWidthMm, palletLengthMm, palletHeightMm);
+			const palletWidthM = palletWidthMm / 1000;
+			const palletLengthM = palletLengthMm / 1000;
+			dominant = placeGridInstances(
+				three,
+				palletGeom,
+				palletMats,
+				grid,
+				palletWidthM,
+				palletHeightMm / 1000,
+				palletLengthM,
+				renderedPallets,
+				1.12
+			);
+			footprintHalfExtent = Math.max(grid.colsX * palletWidthM * 1.12, grid.colsZ * palletLengthM * 1.12) / 2;
 		}
 
-		// pallet: a receding field of pallet-scale blocks (10x10x10 bundles
-		// each — a non-cubic ~0.66 x 1.09 x 1.56 m box, since a bundle isn't
-		// a cube), capped for renderability — the readout's note count
-		// carries the true magnitude past the cap, same principle as
-		// Cocaine's `production` tier. Cell sizes are per-axis, exactly like
-		// the bundle/cube branch above: a uniform max-extent cell would bake
-		// ~0.47 m of vertical air under every layer (floating slabs) and
-		// over-wide x-aisles.
-		const palletWidthMm = 10 * billStackMod.BILL_WIDTH_MM;
-		const palletLengthMm = 10 * billStackMod.BILL_LENGTH_MM;
-		const palletHeightMm = 10 * BUNDLE_HEIGHT_MM;
-		const palletGeom = new three.BoxGeometry(
-			palletWidthMm / 1000,
-			palletHeightMm / 1000,
-			palletLengthMm / 1000
-		);
-		// Pallet materials: bundle-scale granularity, not note-scale. Side
-		// faces tile the bundle-unit texture 10x10 (a pallet face is 10x10
-		// bundle edges — see makeBundleUnitTexture's comment for why this is
-		// deliberately impressionistic rather than per-note-honest); the top
-		// face tiles the bill FACE art 10x10 (a pallet top is 10x10 bundle
-		// tops, each one bill face). Both are fresh, tier-group-owned
-		// resources: clearTierGroup disposes any material (and its map) that
-		// isn't the shared billMats.face/edge, which covers these.
-		const bundleUnitMat = new three.MeshStandardMaterial({
-			map: BM!.makeBundleUnitTexture(),
-			roughness: 0.9,
-			metalness: 0,
-		});
-		bundleUnitMat.map!.anisotropy = maxAnisotropy;
-		bundleUnitMat.map!.repeat.set(10, 10);
-		bundleUnitMat.map!.needsUpdate = true;
-		const palletTopMat = billMats.face.clone();
-		palletTopMat.map = palletTopMat.map!.clone();
-		palletTopMat.map.wrapS = palletTopMat.map.wrapT = three.RepeatWrapping;
-		palletTopMat.map.anisotropy = maxAnisotropy;
-		palletTopMat.map.repeat.set(10, 10);
-		palletTopMat.map.needsUpdate = true;
-		const palletMats = [
-			bundleUnitMat,
-			bundleUnitMat,
-			palletTopMat,
-			palletTopMat,
-			bundleUnitMat,
-			bundleUnitMat,
-		]; // BoxGeometry face order: +x -x +y -y +z -z
-
-		const totalPallets = Math.ceil(count / (billStackMod.NOTES_PER_BUNDLE * PALLET_BUNDLES));
-		const renderedPallets = Math.min(totalPallets, PALLET_RENDER_CAP);
-		const grid = billStackMod.cubicGridDims(renderedPallets, palletWidthMm, palletLengthMm, palletHeightMm);
-		return placeGridInstances(
-			three,
-			palletGeom,
-			palletMats,
-			grid,
-			palletWidthMm / 1000,
-			palletHeightMm / 1000,
-			palletLengthMm / 1000,
-			renderedPallets,
-			1.12
-		);
-	}
-
-	const LITERAL_INSTANCE_CAP = 2000; // individually-instanced bills at the base of the column
-
-	/** Literal mode: a single column framed at its FULL height, regardless
-	 *  of tier — the base is individually-instanced real bill geometry (up
-	 *  to `LITERAL_INSTANCE_CAP`, matching the loose/strap approach in
-	 *  `renderTiered`), and any remaining height above that cap is a single
-	 *  coalesced block sized to make up the rest of `stackHeightMm(count)`
-	 *  exactly, so the modelled geometry's HEIGHT is always physically
-	 *  honest up to `LITERAL_HEIGHT_RENDER_CAP_M` (a float32-precision
-	 *  safety net; framing the 10 km render-capped column full-height is
-	 *  visually identical to framing the true one). The column's WIDTH is
-	 *  deliberately exaggerated (uniform X/Z group scale) just enough to
-	 *  hold `LITERAL_TOWER_ASPECT` at the framed height — see that
-	 *  constant's comment; `widthScale` exposes the factor so the template
-	 *  can disclose it on-stage. `BillReadout` computes the true, uncapped
-	 *  height straight from `stackHeightMm` for the text readout, so the
-	 *  displayed numbers never lie. */
-	function renderLiteral(three: typeof THREE, billStackMod: typeof import('../billStack.js'), count: number): number {
-		if (!scene || !bakedBillGeometry || !billMats) return 0;
-		clearTierGroup(three);
-		tierGroup = new three.Group();
-
-		const widthM = billStackMod.BILL_WIDTH_MM / 1000;
-		const lengthM = billStackMod.BILL_LENGTH_MM / 1000;
-		const thicknessM = billStackMod.BILL_THICKNESS_MM / 1000;
-		const totalHeightM = billStackMod.stackHeightMm(count) / 1000;
-		const renderHeightM = Math.min(totalHeightM, LITERAL_HEIGHT_RENDER_CAP_M);
-
-		const instancedCount = Math.min(count, LITERAL_INSTANCE_CAP);
-		if (instancedCount > 0) {
-			const instanced = new three.InstancedMesh(bakedBillGeometry, billMats.face, instancedCount);
-			instanced.castShadow = true;
-			const m = new three.Matrix4();
-			for (let i = 0; i < instancedCount; i++) {
-				m.makeTranslation(0, thicknessM * (i + 0.5), 0);
-				instanced.setMatrixAt(i, m);
-			}
-			instanced.instanceMatrix.needsUpdate = true;
-			tierGroup.add(instanced);
+		// Strays are set dressing and must never exceed the real amount's own
+		// order of magnitude — at fewer than 10 notes the 7 scattered
+		// decorations would rival or outnumber the actual holdings, so they
+		// are skipped entirely.
+		if (count >= 10) {
+			// True bill size at loose/strap/bundle tiers; at cube/pallet framing
+			// distances a true-size note is sub-pixel, so scale it up — same
+			// impressionistic license `makeBundleUnitTexture` takes at that scale.
+			const strayScale =
+				tier === 'cube' || tier === 'pallet' ? Math.max(1, (dominant * 0.1) / lengthM) : 1;
+			addStrayNotes(three, lengthM, widthM, footprintHalfExtent, strayScale);
 		}
 
-		const remaining = count - instancedCount;
-		const remainingHeightM = Math.max(renderHeightM - instancedCount * thicknessM, 0);
-		if (remaining > 0 && remainingHeightM > 0) {
-			const blockGeom = new three.BoxGeometry(widthM, remainingHeightM, lengthM);
-			const edgeMat = billMats.edge.clone();
-			edgeMat.map = edgeMat.map!.clone();
-			edgeMat.map.anisotropy = maxAnisotropy;
-			edgeMat.map.repeat.set(1, remaining); // physically-honest stripe density (Task 10)
-			edgeMat.map.needsUpdate = true;
-			const blockMats = [edgeMat, edgeMat, billMats.face, billMats.face, edgeMat, edgeMat];
-			const block = new three.Mesh(blockGeom, blockMats);
-			block.castShadow = true;
-			block.position.y = instancedCount * thicknessM + remainingHeightM / 2;
-			tierGroup.add(block);
-		}
-
-		scene.add(tierGroup);
-
-		// Width exaggeration for the full-height tower shot (disclosed via
-		// widthScale — see LITERAL_TOWER_ASPECT). X/Z only; Y stays 1 so the
-		// column's height remains exactly true. Applied at the group level so
-		// the instanced base bills and the coalesced block widen together and
-		// the column stays coherent. s = 1 for columns short enough to read
-		// at true width.
-		const s = Math.max(1, renderHeightM / (LITERAL_TOWER_ASPECT * lengthM));
-		tierGroup.scale.set(s, 1, s);
-		widthScale = s;
-
-		// Dominant = the framed extent: full height for tall columns, or the
-		// (possibly widened) footprint for squat ones — same footprint-floor
-		// reasoning as the loose/strap branch in renderTiered above.
-		return Math.max(renderHeightM, lengthM * s);
+		return dominant;
 	}
 
 	let wantPos: THREE.Vector3 | null = null;
@@ -472,8 +465,8 @@
 	let framedOnce = false;
 
 	/** Reframes the camera (and the dog's staging position, key light,
-	 *  shadow frustum, and fog) to whatever `renderTiered`/`renderLiteral`
-	 *  reports as the dominant extent — using the exact same tested rig
+	 *  shadow frustum, and fog) to whatever `renderTiered` reports as the
+	 *  dominant extent — using the exact same tested rig
 	 *  LiveStage drives its cube from: `M.cameraTransform()` for
 	 *  position/aim, and `M.dogStagePosition()` for where the Shiba stands.
 	 *  An earlier revision of this function deliberately avoided
@@ -523,16 +516,13 @@
 
 		camera.position.copy(camPos);
 		camera.lookAt(camAim);
-		// Literal-mode height is uncapped (a single true-height column can run
-		// into the kilometres at extreme note counts), so the near/far planes
-		// must track the camera distance every reframe — same as LiveStage's
-		// loop() — or a large dominant dollies the camera straight past the
-		// fixed far plane and the object vanishes. Unlike LiveStage, near is
-		// ALSO clamped to 2 m: full-height literal framing can dolly the
-		// camera tens of km out, and dist/100 there would near-plane-clip the
-		// foreground-staged dog (3.5–8.5 m from camera, per dogGroundMark's
-		// clamp) into invisibility. LiveStage never hits this because gold at
-		// 21M BTC is only a ~10 m cube.
+		// Near/far planes track the camera distance every reframe — same as
+		// LiveStage's loop() — so a scale change dollies the camera without
+		// clipping. Unlike LiveStage, near is ALSO clamped to 2 m: at pallet
+		// framing distances (tens of metres) dist/100 would near-plane-clip
+		// the foreground-staged dog (3.5–8.5 m from camera, per
+		// dogGroundMark's clamp) into invisibility. LiveStage never hits this
+		// because gold at 21M BTC is only a ~10 m cube.
 		camera.near = Math.min(Math.max(camPos.length() / 100, 1e-4), 2);
 		camera.far = camPos.length() * 60;
 		camera.updateProjectionMatrix();
@@ -643,9 +633,10 @@
 		scene.add(key);
 		scene.add(new three.AmbientLight(0x404048, 0.4));
 
-		// 60 km ground disc (LiveStage's is 4 km): full-height literal framing
-		// can dolly the camera — and with it the foreground-staged dog — tens
-		// of km from origin, and both must still stand on ground, not void.
+		// 60 km ground disc (LiveStage's is 4 km): the pallet field's receding
+		// grid and the dog's foreground relocation can both push well past
+		// LiveStage's radius, and everything staged must still stand on
+		// ground, not void.
 		groundGeometry = new three.CircleGeometry(60000, 64).rotateX(-Math.PI / 2);
 		groundMaterial = new three.MeshStandardMaterial({ color: 0x202024, roughness: 0.95, metalness: 0 });
 		const ground = new three.Mesh(groundGeometry, groundMaterial);
@@ -674,11 +665,19 @@
 			'x',
 			(object) => {
 				if (destroyed || !scene || !billMats) return;
+				const geom = extractBakedGeometry(three, object);
+				// Footprint-orientation contract: loadNormalizedModel (above)
+				// normalizes the raw model's long axis onto X, but every
+				// bundle/pallet BoxGeometry block puts its long dimension on Z —
+				// rotate the baked per-bill geometry to match, or loose/strap
+				// piles render 90° twisted relative to the blocks at the
+				// strap->bundle tier boundary.
+				geom?.rotateY(Math.PI / 2);
 				// Assigning bakedBillGeometry (now $state) triggers the tiered
 				// $effect below to run renderTiered() with the current noteCount —
 				// no preview mesh here, so a static-noteCount mount goes straight
 				// to the correct tiered view instead of a lingering single bill.
-				bakedBillGeometry = extractBakedGeometry(three, object);
+				bakedBillGeometry = geom;
 			},
 			() => {
 				/* Model failed to load — the poster (BillRenderer, Task 15) covers
@@ -739,8 +738,8 @@
 				}
 
 				// Re-run the current framing so the dog is positioned immediately
-				// instead of waiting for the next noteCount/viewMode change.
-				refreshStage(noteCount, viewMode);
+				// instead of waiting for the next noteCount change.
+				refreshStage(noteCount);
 			},
 			() => {
 				/* Dog failed to load — the scene continues without it, same
@@ -761,7 +760,7 @@
 		camera.aspect = width / height;
 		camera.updateProjectionMatrix();
 		renderer.setSize(width, height);
-		refreshStage(noteCount, viewMode); // aspect feeds dog staging
+		refreshStage(noteCount); // aspect feeds dog staging
 		render();
 	}
 
@@ -770,7 +769,8 @@
 		if (resizeObs) resizeObs.disconnect();
 
 		// Tier-group resources (bundle/pallet box geometry, cloned edge
-		// material + its cloned texture) are owned by whichever renderTiered()
+		// material + its cloned texture, stray-note plane geometries + their
+		// shared cloned face material) are owned by whichever renderTiered()
 		// call created them, not by this function — free them the same way a
 		// tier switch would, before the shared resources below and before
 		// renderer.dispose() resets WebGLProperties' tracking (see the note
@@ -812,7 +812,6 @@
 		envTexture = null;
 		dog = mixer = idleAction = null;
 		staged = false;
-		widthScale = 1;
 		framedOnce = false;
 	}
 
@@ -827,60 +826,27 @@
 		};
 	});
 
-	/** Recomputes the tiered/literal render for `count`/`mode` and reframes
-	 *  the camera + dog around whatever dominant extent that produced. Called
-	 *  from the reactive effect below on every noteCount/viewMode change,
-	 *  and again once the dog finishes loading (see `loadDog`) and on resize
-	 *  (aspect feeds `M.dogStagePosition`). No-ops until both the bill GLB
-	 *  and the maths/billStack modules are ready. */
-	function refreshStage(count: number, mode: 'tiered' | 'literal'): void {
+	/** Recomputes the tiered render for `count` and reframes the camera + dog
+	 *  around whatever dominant extent that produced. Called from the
+	 *  reactive effect below on every noteCount change, and again once the
+	 *  dog finishes loading (see `loadDog`) and on resize (aspect feeds
+	 *  `M.dogStagePosition`). No-ops until both the bill GLB and the
+	 *  maths/billStack modules are ready. */
+	function refreshStage(count: number): void {
 		if (!canvasActive || !T || !M || !BS || !BM || !bakedBillGeometry) return;
-		const dominant = mode === 'literal' ? renderLiteral(T, BS, count) : renderTiered(T, BS, count);
+		const dominant = renderTiered(T, BS, count);
 		reframe(T, M, dominant);
 		render();
 	}
 
 	$effect(() => {
 		const count = noteCount;
-		const mode = viewMode;
 		if (!canvasActive) return;
-		refreshStage(count, mode);
+		refreshStage(count);
 	});
-
-	function toggleViewMode(): void {
-		viewMode = viewMode === 'tiered' ? 'literal' : 'tiered';
-	}
 </script>
 
-<div
-	class="bill-stage"
-	bind:this={containerEl}
-	role="button"
-	tabindex="0"
-	aria-label={`Dollar bill stack, ${viewMode === 'tiered' ? 'bundled view — tap for the literal true-height stack' : 'literal true-height stack — tap for the bundled view'}`}
-	onclick={toggleViewMode}
-	onkeydown={(e) => {
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			toggleViewMode();
-		}
-	}}
->
-	<div class="mode-hint">{viewMode === 'tiered' ? 'tap to see it as one column' : 'tap to see it bundled'}</div>
-	{#if viewMode === 'literal' && widthScale > 1.05}
-		<!--
-			Staging honesty: the full-height tower shot deliberately widens the
-			column (height stays true) so it doesn't vanish to a sub-pixel
-			hairline — see LITERAL_TOWER_ASPECT. Disclosed on-stage, same idiom
-			as the dog's foreground perspective line in the readout.
-		-->
-		<div class="width-hint">
-			column widened {widthScale.toLocaleString('en-US', {
-				maximumFractionDigits: widthScale >= 10 ? 0 : 1,
-			})}× to stay visible — height is true
-		</div>
-	{/if}
-</div>
+<div class="bill-stage" bind:this={containerEl}></div>
 
 <style>
 	.bill-stage {
@@ -890,7 +856,6 @@
 		overflow: hidden;
 		border-radius: 8px;
 		background: #18181b;
-		cursor: pointer;
 	}
 	.bill-stage :global(canvas.stage-canvas) {
 		position: absolute;
@@ -898,25 +863,5 @@
 		width: 100%;
 		height: 100%;
 		display: block;
-	}
-	.mode-hint {
-		position: absolute;
-		bottom: 8px;
-		right: 12px;
-		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
-		font-size: 11px;
-		color: #71717a;
-		pointer-events: none;
-		z-index: 1;
-	}
-	.width-hint {
-		position: absolute;
-		bottom: 8px;
-		left: 12px;
-		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
-		font-size: 11px;
-		color: #71717a;
-		pointer-events: none;
-		z-index: 1;
 	}
 </style>

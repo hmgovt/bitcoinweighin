@@ -100,7 +100,6 @@
 	const brickReady = $derived(isCocaine && !!brickEl);
 	let billStageEl: HTMLElement | undefined = $state();
 	const billReady = $derived(isCash && !!billStageEl);
-	let billViewMode: 'tiered' | 'literal' = $state('tiered');
 	const dataCommodity = $derived(
 		isCocaine ? (brickReady ? 'cocaine' : '') : isCash ? (billReady ? 'cash' : '') : selectedId
 	);
@@ -188,7 +187,7 @@
 		</div>
 	{:else if isCash}
 		<div class="bill-frame" bind:this={billStageEl}>
-			<BillStage noteCount={amount} bind:viewMode={billViewMode} bind:staged={billStaged} />
+			<BillStage noteCount={amount} bind:staged={billStaged} />
 		</div>
 	{:else}
 		<LiveStage commodity={active} {amount} bind:staged />
@@ -211,7 +210,7 @@
 		</div>
 	{:else if isCash}
 		<div class="readout-wrap">
-			<BillReadout noteCount={amount} viewMode={billViewMode} />
+			<BillReadout noteCount={amount} />
 			{#if billStaged}
 				<!--
 					Staging honesty line: when the dog walks to the foreground the

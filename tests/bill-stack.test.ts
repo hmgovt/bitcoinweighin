@@ -4,6 +4,7 @@ import {
 	BILL_WIDTH_MM,
 	BILL_THICKNESS_MM,
 	BILL_MASS_G,
+	DISTANCE_TO_MOON_KM,
 	stackHeightMm,
 	selectBillTier,
 	cubicGridDims,
@@ -107,31 +108,74 @@ describe('cubicGridDims', () => {
 });
 
 describe('nearestHeightComparison', () => {
+	it('the Moon distance constant matches the published average Earth-Moon distance', () => {
+		expect(DISTANCE_TO_MOON_KM).toBe(384_400);
+	});
+
 	it('returns null below the shortest rung (an adult human, 1.7 m)', () => {
 		expect(nearestHeightComparison(0.5)).toBeNull();
 	});
 
 	it('matches the shortest rung exactly at 1.7 m', () => {
 		const c = nearestHeightComparison(1.7)!;
+		expect(c.kind).toBe('ladder');
+		if (c.kind !== 'ladder') throw new Error('expected ladder');
 		expect(c.label).toBe('an adult human');
 		expect(c.multiple).toBeCloseTo(1, 5);
+		expect(c.text).toBe('about 1.0x an adult human');
 	});
 
 	it('1 BTC stack height (~12.01 m) -> ~5.9x a doorway', () => {
 		const c = nearestHeightComparison(12.0142)!;
+		expect(c.kind).toBe('ladder');
+		if (c.kind !== 'ladder') throw new Error('expected ladder');
 		expect(c.label).toBe('a doorway');
 		expect(c.multiple).toBeCloseTo(5.918, 2);
 	});
 
 	it('100 BTC stack height (~1201.4 m) -> ~1.45x the Burj Khalifa', () => {
 		const c = nearestHeightComparison(1201.42)!;
+		expect(c.kind).toBe('ladder');
+		if (c.kind !== 'ladder') throw new Error('expected ladder');
 		expect(c.label).toBe('the Burj Khalifa');
 		expect(c.multiple).toBeCloseTo(1.451, 2);
 	});
 
-	it('21M BTC stack height (~252,298 km) -> ~2523x the Karman line', () => {
-		const c = nearestHeightComparison(252_298_200)!;
+	it('ladder still applies just below 1% of the way to the Moon (~3,844 km)', () => {
+		const c = nearestHeightComparison(3_843_000)!;
+		expect(c.kind).toBe('ladder');
+		if (c.kind !== 'ladder') throw new Error('expected ladder');
 		expect(c.label).toBe('the Karman line (edge of space)');
-		expect(c.multiple).toBeCloseTo(2522.98, 1);
+	});
+
+	it('~145,264 km (38% of the way to the Moon) -> percent phrasing', () => {
+		const c = nearestHeightComparison(145_264_000)!;
+		expect(c.kind).toBe('moonPercent');
+		if (c.kind !== 'moonPercent') throw new Error('expected moonPercent');
+		expect(c.percent).toBe(38);
+		expect(c.text).toBe('38% of the way to the Moon');
+	});
+
+	it('21M BTC stack height (~252,298 km) -> ~66% of the way to the Moon', () => {
+		const c = nearestHeightComparison(252_298_200)!;
+		expect(c.kind).toBe('moonPercent');
+		if (c.kind !== 'moonPercent') throw new Error('expected moonPercent');
+		expect(c.percent).toBe(66);
+	});
+
+	it('exactly the Moon distance -> 1x multiple', () => {
+		const c = nearestHeightComparison(384_400_000)!;
+		expect(c.kind).toBe('moonMultiple');
+		if (c.kind !== 'moonMultiple') throw new Error('expected moonMultiple');
+		expect(c.multiple).toBeCloseTo(1, 5);
+		expect(c.text).toBe('about 1.0x the distance to the Moon');
+	});
+
+	it('past the Moon distance -> multiple of it, not a percentage', () => {
+		const c = nearestHeightComparison(384_400_000 * 2.5)!;
+		expect(c.kind).toBe('moonMultiple');
+		if (c.kind !== 'moonMultiple') throw new Error('expected moonMultiple');
+		expect(c.multiple).toBeCloseTo(2.5, 5);
+		expect(c.text).toBe('about 2.5x the distance to the Moon');
 	});
 });
