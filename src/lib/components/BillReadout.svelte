@@ -46,6 +46,16 @@
 		return `${grid.colsX} x ${grid.colsZ} x ${grid.layersY} bundles`;
 	});
 
+	// 1 pallet = 1,000 bundles = 1,000,000 notes (PALLET_BUNDLES x NOTES_PER_BUNDLE
+	// in src/lib/scene/BillStage.svelte — mirrored here rather than imported since
+	// that constant lives with the scene's pallet-block geometry, not billStack.ts).
+	const NOTES_PER_PALLET = 1_000_000;
+	const palletCountLabel = $derived.by(() => {
+		if (tier !== 'pallet') return null;
+		const pallets = Math.ceil(noteCount / NOTES_PER_PALLET);
+		return `${pallets.toLocaleString('en-US')} pallets`;
+	});
+
 	function onSwap(e: Event) {
 		e.preventDefault();
 		toggleSystem();
@@ -77,7 +87,9 @@
 
 		<div class="bill-secondary-row">
 			{#if tier}
-				{tierLabel[tier]}{bundleGridLabel ? ` · ${bundleGridLabel}` : ''}
+				{tierLabel[tier]}{bundleGridLabel ? ` · ${bundleGridLabel}` : ''}{palletCountLabel
+					? ` · ${palletCountLabel}`
+					: ''}
 			{/if}
 		</div>
 

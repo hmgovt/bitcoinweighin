@@ -105,6 +105,27 @@ describe('cubicGridDims', () => {
 		expect(g).toMatchObject({ colsX: 8, colsZ: 3, layersY: 5 });
 		expect(g.colsX * g.colsZ * g.layersY).toBeGreaterThanOrEqual(110);
 	});
+
+	// Pins the mega-block fix (BillStage.svelte's pallet branch, above
+	// PALLET_RENDER_CAP): cubicGridDims must stay closed-form-cheap and
+	// roughly-cubic even at pallet counts far past the old 60-pallet render
+	// cap (n = 1,330,000 pallets is ~21M BTC's worth), since it now feeds the
+	// coalesced mega-block's true size instead of a clamped instanced field.
+	it('stays cheap and roughly cubic at mega (pallet-field) scale', () => {
+		const palletWidthMm = 10 * 66.294;
+		const palletLengthMm = 10 * 155.956;
+		const palletHeightMm = 10 * 1000 * 0.10922;
+		const n = 1_330_000;
+
+		const start = performance.now();
+		const g = cubicGridDims(n, palletWidthMm, palletLengthMm, palletHeightMm);
+		expect(performance.now() - start).toBeLessThan(50); // closed-form, not brute force
+
+		expect(g.colsX * g.colsZ * g.layersY).toBeGreaterThanOrEqual(n);
+		const extents = [g.extentXMm, g.extentZMm, g.extentYMm];
+		const ratio = Math.max(...extents) / Math.min(...extents);
+		expect(ratio).toBeLessThan(1.5); // "roughly cubic" — no side wildly off the others
+	});
 });
 
 describe('nearestHeightComparison', () => {

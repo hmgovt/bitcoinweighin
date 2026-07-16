@@ -116,7 +116,18 @@
 
 	const BUNDLE_HEIGHT_MM = 1000 * 0.10922; // NOTES_PER_BUNDLE x BILL_THICKNESS_MM, see billStack.ts
 	const PALLET_BUNDLES = 1000; // 1,000 bundles/pallet = 1,000,000 notes/pallet (10x10x10 grid)
-	const PALLET_RENDER_CAP = 60; // receding field caps here; the readout's note-count carries the rest
+	// Individual-pallet instancing (see placeGridInstances) is only affordable
+	// up to this many instances — past it renderTiered's pallet branch switches
+	// to one true-size, true-density "mega-block" (see the branch below) rather
+	// than continuing to clamp the rendered grid, which used to freeze the
+	// scene/camera dead from here to 21M BTC. So this is the instancing ↔
+	// coalescing switchover point, not the end of visual growth.
+	const PALLET_RENDER_CAP = 60;
+	// Horizontal gap factor shared by the individual-pallet field
+	// (placeGridInstances' spacingFactor arg) and the mega-block sizing below —
+	// using the same pitch on both sides of the PALLET_RENDER_CAP boundary
+	// keeps the rendered size continuous (no pop) at the 60-pallet crossover.
+	const PALLET_SPACING = 1.12;
 
 	let tierGroup: THREE.Group | null = null;
 
@@ -379,70 +390,130 @@
 			);
 			footprintHalfExtent = Math.max(grid.colsX * widthM * 1.06, grid.colsZ * lengthM * 1.06) / 2;
 		} else {
-			// pallet: a receding field of pallet-scale blocks (10x10x10 bundles
-			// each — a non-cubic ~0.66 x 1.09 x 1.56 m box, since a bundle isn't
-			// a cube), capped for renderability — the readout's note count
-			// carries the true magnitude past the cap, same principle as
-			// Cocaine's `production` tier. Cell sizes are per-axis, exactly like
-			// the bundle/cube branch above: a uniform max-extent cell would bake
-			// ~0.47 m of vertical air under every layer (floating slabs) and
-			// over-wide x-aisles.
+			// pallet: pallet-scale blocks (10x10x10 bundles each — a non-cubic
+			// ~0.66 x 1.09 x 1.56 m box, since a bundle isn't a cube). Cell sizes
+			// are per-axis, exactly like the bundle/cube branch above: a uniform
+			// max-extent cell would bake ~0.47 m of vertical air under every
+			// layer (floating slabs) and over-wide x-aisles.
 			const palletWidthMm = 10 * billStackMod.BILL_WIDTH_MM;
 			const palletLengthMm = 10 * billStackMod.BILL_LENGTH_MM;
 			const palletHeightMm = 10 * BUNDLE_HEIGHT_MM;
-			const palletGeom = new three.BoxGeometry(
-				palletWidthMm / 1000,
-				palletHeightMm / 1000,
-				palletLengthMm / 1000
-			);
-			// Pallet materials: bundle-scale granularity, not note-scale. Side
-			// faces tile the bundle-unit texture 10x10 (a pallet face is 10x10
-			// bundle edges — see makeBundleUnitTexture's comment for why this is
-			// deliberately impressionistic rather than per-note-honest); the top
-			// face tiles the bill FACE art 10x10 (a pallet top is 10x10 bundle
-			// tops, each one bill face). Both are fresh, tier-group-owned
-			// resources: clearTierGroup disposes any material (and its map) that
-			// isn't the shared billMats.face/edge, which covers these.
-			const bundleUnitMat = new three.MeshStandardMaterial({
-				map: BM!.makeBundleUnitTexture(),
-				roughness: 0.9,
-				metalness: 0,
-			});
-			bundleUnitMat.map!.anisotropy = maxAnisotropy;
-			bundleUnitMat.map!.repeat.set(10, 10);
-			bundleUnitMat.map!.needsUpdate = true;
-			const palletTopMat = billMats.face.clone();
-			palletTopMat.map = palletTopMat.map!.clone();
-			palletTopMat.map.wrapS = palletTopMat.map.wrapT = three.RepeatWrapping;
-			palletTopMat.map.anisotropy = maxAnisotropy;
-			palletTopMat.map.repeat.set(10, 10);
-			palletTopMat.map.needsUpdate = true;
-			const palletMats = [
-				bundleUnitMat,
-				bundleUnitMat,
-				palletTopMat,
-				palletTopMat,
-				bundleUnitMat,
-				bundleUnitMat,
-			]; // BoxGeometry face order: +x -x +y -y +z -z
-
-			const totalPallets = Math.ceil(count / (billStackMod.NOTES_PER_BUNDLE * PALLET_BUNDLES));
-			const renderedPallets = Math.min(totalPallets, PALLET_RENDER_CAP);
-			const grid = billStackMod.cubicGridDims(renderedPallets, palletWidthMm, palletLengthMm, palletHeightMm);
 			const palletWidthM = palletWidthMm / 1000;
 			const palletLengthM = palletLengthMm / 1000;
-			dominant = placeGridInstances(
-				three,
-				palletGeom,
-				palletMats,
-				grid,
-				palletWidthM,
-				palletHeightMm / 1000,
-				palletLengthM,
-				renderedPallets,
-				1.12
-			);
-			footprintHalfExtent = Math.max(grid.colsX * palletWidthM * 1.12, grid.colsZ * palletLengthM * 1.12) / 2;
+			const palletHeightM = palletHeightMm / 1000;
+			const totalPallets = Math.ceil(count / (billStackMod.NOTES_PER_BUNDLE * PALLET_BUNDLES));
+			const grid = billStackMod.cubicGridDims(totalPallets, palletWidthMm, palletLengthMm, palletHeightMm);
+
+			if (totalPallets <= PALLET_RENDER_CAP) {
+				// At or below the cap: an individually-instanced receding field,
+				// one InstancedMesh cell per real pallet.
+				const palletGeom = new three.BoxGeometry(palletWidthM, palletHeightM, palletLengthM);
+				// Pallet materials: bundle-scale granularity, not note-scale. Side
+				// faces tile the bundle-unit texture 10x10 (a pallet face is 10x10
+				// bundle edges — see makeBundleUnitTexture's comment for why this is
+				// deliberately impressionistic rather than per-note-honest); the top
+				// face tiles the bill FACE art 10x10 (a pallet top is 10x10 bundle
+				// tops, each one bill face). Both are fresh, tier-group-owned
+				// resources: clearTierGroup disposes any material (and its map) that
+				// isn't the shared billMats.face/edge, which covers these.
+				const bundleUnitMat = new three.MeshStandardMaterial({
+					map: BM!.makeBundleUnitTexture(),
+					roughness: 0.9,
+					metalness: 0,
+				});
+				bundleUnitMat.map!.anisotropy = maxAnisotropy;
+				bundleUnitMat.map!.repeat.set(10, 10);
+				bundleUnitMat.map!.needsUpdate = true;
+				const palletTopMat = billMats.face.clone();
+				palletTopMat.map = palletTopMat.map!.clone();
+				palletTopMat.map.wrapS = palletTopMat.map.wrapT = three.RepeatWrapping;
+				palletTopMat.map.anisotropy = maxAnisotropy;
+				palletTopMat.map.repeat.set(10, 10);
+				palletTopMat.map.needsUpdate = true;
+				const palletMats = [
+					bundleUnitMat,
+					bundleUnitMat,
+					palletTopMat,
+					palletTopMat,
+					bundleUnitMat,
+					bundleUnitMat,
+				]; // BoxGeometry face order: +x -x +y -y +z -z
+
+				dominant = placeGridInstances(
+					three,
+					palletGeom,
+					palletMats,
+					grid,
+					palletWidthM,
+					palletHeightM,
+					palletLengthM,
+					totalPallets,
+					PALLET_SPACING
+				);
+				footprintHalfExtent =
+					Math.max(grid.colsX * palletWidthM * PALLET_SPACING, grid.colsZ * palletLengthM * PALLET_SPACING) /
+					2;
+			} else {
+				// Above the cap: per-pallet instancing stops scaling (that's the
+				// whole reason for PALLET_RENDER_CAP), but at the framing distances
+				// this tier reaches, only the field's outer faces are ever
+				// resolvable anyway — so one true-size BoxGeometry "mega-block",
+				// sized from the TRUE pallet count (cubicGridDims is closed-form:
+				// cheap even at n in the millions) and dressed with true-density
+				// face subdivision, loses nothing visible while letting the camera
+				// keep dollying out continuously instead of freezing (the bug this
+				// branch fixes). The readout's exact note count carries the
+				// magnitude regardless of what the scene can show.
+				//
+				// PALLET_SPACING — the same horizontal pitch the field branch above
+				// uses — sizes this block, so it is CONTINUOUS with the field across
+				// the PALLET_RENDER_CAP boundary: at 61 pallets this block is nearly
+				// identical in size to the 60-pallet field, no visual pop. Height
+				// stays flush (no vertical air), matching the field's Y rule.
+				const blockWidthM = grid.colsX * palletWidthM * PALLET_SPACING;
+				const blockLengthM = grid.colsZ * palletLengthM * PALLET_SPACING;
+				const blockHeightM = grid.layersY * palletHeightM;
+
+				// Side faces keep the same true-density subdivision as the field
+				// (each pallet face is 10x10 bundles) but at the block's TRUE
+				// pallet-count-per-face, not the old capped grid's. Two materials
+				// because BoxGeometry's face order is [+x -x +y -y +z -z] and ±x
+				// faces span the LENGTH (colsZ pallets) while ±z faces span the
+				// WIDTH (colsX pallets) — each needs its own u-repeat.
+				const sideMatX = new three.MeshStandardMaterial({
+					map: BM!.makeBundleUnitTexture(),
+					roughness: 0.9,
+					metalness: 0,
+				});
+				sideMatX.map!.anisotropy = maxAnisotropy;
+				sideMatX.map!.repeat.set(grid.colsZ * 10, grid.layersY * 10);
+				sideMatX.map!.needsUpdate = true;
+				const sideMatZ = new three.MeshStandardMaterial({
+					map: BM!.makeBundleUnitTexture(),
+					roughness: 0.9,
+					metalness: 0,
+				});
+				sideMatZ.map!.anisotropy = maxAnisotropy;
+				sideMatZ.map!.repeat.set(grid.colsX * 10, grid.layersY * 10);
+				sideMatZ.map!.needsUpdate = true;
+				const topMat = billMats.face.clone();
+				topMat.map = topMat.map!.clone();
+				topMat.map.wrapS = topMat.map.wrapT = three.RepeatWrapping;
+				topMat.map.anisotropy = maxAnisotropy;
+				topMat.map.repeat.set(grid.colsX * 10, grid.colsZ * 10);
+				topMat.map.needsUpdate = true;
+				const megaMats = [sideMatX, sideMatX, topMat, topMat, sideMatZ, sideMatZ]; // +x -x +y -y +z -z
+
+				const megaGeom = new three.BoxGeometry(blockWidthM, blockHeightM, blockLengthM);
+				const block = new three.Mesh(megaGeom, megaMats);
+				block.castShadow = true;
+				block.position.set(0, blockHeightM / 2, 0); // grounded
+				tierGroup.add(block);
+				scene.add(tierGroup);
+
+				dominant = Math.max(blockWidthM, blockHeightM, blockLengthM);
+				footprintHalfExtent = Math.max(blockWidthM, blockLengthM) / 2;
+			}
 		}
 
 		// Strays are set dressing and must never exceed the real amount's own
