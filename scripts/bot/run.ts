@@ -118,6 +118,13 @@ function buildAbsolute(slot: Slot, cfg: Config, objs: any, day: DayPrices): Cont
 			const palm = mm < 80 ? ' Fits in your palm.' : '';
 			caption = `1 BTC today = a ${edge} ${phys.noun} cube.${palm} Weighs ${weight}.`;
 		}
+	} else if (slot.commodity === 'cash') {
+		// cash: grams IS the note count (a $1 bill weighs exactly 1 g), and
+		// the stack height follows from the BEP note thickness (0.10922 mm).
+		const notes = Math.round(grams);
+		const heightFt = (grams * 0.10922) / 1000 / 0.3048;
+		const height = heightFt >= 1 ? `${heightFt.toFixed(1)} ft` : `${(heightFt * 12).toFixed(1)} in`;
+		caption = `1 BTC today = ${notes.toLocaleString('en-US')} one-dollar bills — one stack ${height} tall. Weighs ${weight}.`;
 	} else {
 		// mass-only (cocaine): no cube
 		caption = `1 BTC today = ${weight} of ${phys.noun}, at wholesale.`;

@@ -32,10 +32,16 @@
 	let {
 		noteCount = 0,
 		staged = $bindable(false),
+		ready = $bindable(false),
 	}: {
 		noteCount?: number;
 		/** True when the dog has walked to the foreground (readout honesty line). */
 		staged?: boolean;
+		/** True once the bill scene has actually rendered a frame AND the Shiba
+		 *  has resolved (loaded or failed) — HeroStage gates the X-bot's
+		 *  data-commodity attribute on this, so the card screenshotter can never
+		 *  capture a blank or dog-less frame mid-hydration. */
+		ready?: boolean;
 	} = $props();
 
 	const BG = 0x18181b;
@@ -739,11 +745,17 @@
 
 				// Re-run the current framing so the dog is positioned immediately
 				// instead of waiting for the next noteCount change.
+				dogResolved = true;
 				refreshStage(noteCount);
+				updateReady();
 			},
 			() => {
 				/* Dog failed to load — the scene continues without it, same
-				   graceful degradation as the bill model's own error path. */
+				   graceful degradation as the bill model's own error path. The
+				   ready gate must still open, or the X-bot would wait forever
+				   on a dog that is never coming. */
+				dogResolved = true;
+				updateReady();
 			}
 		);
 	}
@@ -813,6 +825,9 @@
 		dog = mixer = idleAction = null;
 		staged = false;
 		framedOnce = false;
+		renderedOnce = false;
+		dogResolved = false;
+		ready = false;
 	}
 
 	onMount(() => {
@@ -832,11 +847,22 @@
 	 *  dog finishes loading (see `loadDog`) and on resize (aspect feeds
 	 *  `M.dogStagePosition`). No-ops until both the bill GLB and the
 	 *  maths/billStack modules are ready. */
+	// `ready` = first real frame rendered AND the dog resolved — both flags
+	// feed the bindable so the X-bot's screenshot gate (see the prop's doc
+	// comment) never opens on a half-hydrated scene.
+	let renderedOnce = false;
+	let dogResolved = false;
+	function updateReady(): void {
+		ready = renderedOnce && dogResolved;
+	}
+
 	function refreshStage(count: number): void {
 		if (!canvasActive || !T || !M || !BS || !BM || !bakedBillGeometry) return;
 		const dominant = renderTiered(T, BS, count);
 		reframe(T, M, dominant);
 		render();
+		renderedOnce = true;
+		updateReady();
 	}
 
 	$effect(() => {

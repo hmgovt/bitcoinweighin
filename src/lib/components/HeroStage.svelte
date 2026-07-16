@@ -98,8 +98,12 @@
 	// frame mid-swap.
 	let brickEl: HTMLElement | undefined = $state();
 	const brickReady = $derived(isCocaine && !!brickEl);
-	let billStageEl: HTMLElement | undefined = $state();
-	const billReady = $derived(isCash && !!billStageEl);
+	// BillStage reports readiness itself (first frame rendered + Shiba
+	// resolved) — gating on the frame div alone would advertise
+	// data-commodity before the WebGL scene exists, and the bot's card
+	// could capture a blank stage.
+	let billRendered = $state(false);
+	const billReady = $derived(isCash && billRendered);
 	const dataCommodity = $derived(
 		isCocaine ? (brickReady ? 'cocaine' : '') : isCash ? (billReady ? 'cash' : '') : selectedId
 	);
@@ -186,8 +190,8 @@
 			<CocaineBrickStack {massGrams} />
 		</div>
 	{:else if isCash}
-		<div class="bill-frame" bind:this={billStageEl}>
-			<BillStage noteCount={amount} bind:staged={billStaged} />
+		<div class="bill-frame">
+			<BillStage noteCount={amount} bind:staged={billStaged} bind:ready={billRendered} />
 		</div>
 	{:else}
 		<LiveStage commodity={active} {amount} bind:staged />

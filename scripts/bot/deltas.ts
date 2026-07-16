@@ -19,7 +19,7 @@ const PROJECT_ROOT = resolve(__dirname, '..', '..');
 const OBJECTS_PATH = join(__dirname, 'objects.json');
 const PRICES_PATH = join(PROJECT_ROOT, 'static', 'prices.json');
 
-type CommodityId = 'gold' | 'silver' | 'cocaine' | 'pu238';
+type CommodityId = 'gold' | 'silver' | 'cocaine' | 'pu238' | 'cash';
 
 interface Rung {
 	g: number;
@@ -39,7 +39,7 @@ interface ObjectsFile {
 type DayPrices = { btc: number; [field: string]: number };
 type PriceData = Record<string, DayPrices>;
 
-const COMMODITIES: CommodityId[] = ['pu238', 'gold', 'cocaine', 'silver'];
+const COMMODITIES: CommodityId[] = ['pu238', 'gold', 'cocaine', 'silver', 'cash'];
 
 /** Grams of `commodity` that 1 BTC buys at a given day's prices. */
 function gramsPerBtc(objs: ObjectsFile, commodity: CommodityId, day: DayPrices): number {
