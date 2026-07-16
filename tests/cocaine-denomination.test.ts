@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { denomination } from '../src/lib/components/CocaineDenominationRow.helpers.js';
+import {
+	denomination,
+	cocaineImpossibilityLine,
+} from '../src/lib/components/CocaineDenominationRow.helpers.js';
+import { GLOBAL_ANNUAL_GRAMS } from '../src/lib/components/CocaineBrickStack.helpers.js';
+
+const ANNUAL_KG = GLOBAL_ANNUAL_GRAMS / 1000; // 2,250,000 kg
 
 describe('denomination', () => {
 	it('returns empty string for non-positive mass', () => {
@@ -60,5 +66,34 @@ describe('denomination', () => {
 	it('boundary: 99,999 kg uses pallets, 100,000 kg uses global-production', () => {
 		expect(denomination(99999)).toBe('≈ 100 pallets · ≈ 99,999 bricks');
 		expect(denomination(100000)).toBe('≈ 4% of one year of global production');
+	});
+});
+
+describe('cocaineImpossibilityLine', () => {
+	it('returns null at exactly one year of global production', () => {
+		expect(cocaineImpossibilityLine(ANNUAL_KG)).toBeNull();
+	});
+
+	it('returns null just below one year of global production', () => {
+		expect(cocaineImpossibilityLine(ANNUAL_KG - 1)).toBeNull();
+	});
+
+	it('fires just above one year of global production', () => {
+		const line = cocaineImpossibilityLine(ANNUAL_KG + 1);
+		expect(line).not.toBeNull();
+		expect(line).toContain('This much cocaine has never been produced in a year.');
+		expect(line).toContain('Global annual production: ~2,250 t');
+	});
+
+	it('computes the multiple from mass ÷ annual production, never hardcoded', () => {
+		const line = cocaineImpossibilityLine(ANNUAL_KG * 4.7);
+		expect(line).toBe(
+			'This much cocaine has never been produced in a year. Global annual production: ~2,250 t — you are holding 4.7× that.'
+		);
+	});
+
+	it('rounds and locale-groups a large multiple', () => {
+		const line = cocaineImpossibilityLine(ANNUAL_KG * 1200);
+		expect(line).toContain('you are holding 1,200× that.');
 	});
 });

@@ -4,18 +4,28 @@ import {
 	framingDistance,
 	cameraHeight,
 	cameraTransform,
+	besidePlacement,
+	clearBesidePlacement,
+	dogFullyClear,
 	dogStagePosition,
 	dogGroundMark,
 	puGlowRamp,
 	METAL_BLOOM,
 	DOG_TOTAL_HEIGHT_M,
+	DOG_NOSE_REACH_M,
 	DOG_DISTANCE_MIN_M,
 	DOG_DISTANCE_MAX_M,
 	CAM_HEIGHT_MAX_M,
 	CAM_HEIGHT_MIN_M,
 	FRAMING_FLOOR_M,
+	gazeTargetWorld,
+	clampGazeDirection,
+	HEAD_FORWARD_LOCAL_AXIS,
+	GAZE_MAX_YAW_RAD,
+	GAZE_MAX_PITCH_RAD,
 } from '../src/lib/scene/maths.js';
 import { getCommodity } from '../src/lib/commodities.js';
+import { MathUtils } from 'three';
 
 /**
  * Scene-maths regressions for the live stage. These pin the camera/staging/
@@ -164,12 +174,18 @@ describe('dog ground-hit — distance stays within the clamp', () => {
 	});
 
 	it('keeps the dog beside the cube below the foreground threshold (edge ≤ 1.2 m)', () => {
-		const { pos, aim, besideX, besideZ } = cameraTransform(0.8);
+		const { pos, aim } = cameraTransform(0.8);
 		const stage = dogStagePosition(0.8, pos, aim, 1.0);
 		expect(stage.wFg).toBe(0);
 		expect(stage.staged).toBe(false);
-		expect(stage.x).toBeCloseTo(besideX, 6);
-		expect(stage.z).toBeCloseTo(besideZ, 6);
+		// Position is the OCCLUSION-SAFE beside placement, not the raw
+		// besidePlacement — at edge = 0.8 m (inside the reported failing band,
+		// see the "occlusion" describe block below) the raw x/z is occluded, so
+		// clearBesidePlacement necessarily differs from it.
+		const clear = clearBesidePlacement(0.8, pos);
+		expect(stage.x).toBeCloseTo(clear.x, 6);
+		expect(stage.z).toBeCloseTo(clear.z, 6);
+		expect(dogFullyClear(pos, stage.x, stage.z, 0.8)).toBe(true);
 	});
 
 	it('flags "standing nearer the camera" once wFg crosses 0.5', () => {
@@ -178,6 +194,176 @@ describe('dog ground-hit — distance stays within the clamp', () => {
 		const stage = dogStagePosition(edge, pos, aim, 1.0);
 		expect(stage.wFg).toBeGreaterThan(0.5);
 		expect(stage.staged).toBe(true);
+	});
+});
+
+/**
+ * Occlusion — the whole dog (nose included) must never be hidden behind the
+ * cube. Regression suite for the bug reported at 7,706 BTC of gold (≈ 0.6 m
+ * cube edge): the RAW `besidePlacement` puts the dog's origin at
+ * `besideZ = edge * 0.45`, slightly BEHIND the cube's front-face plane
+ * (z = edge / 2). `LiveStage` then rotates the dog to face the cube, so its
+ * head leans toward the origin's -x/-z quadrant — straight into the cube's
+ * occlusion wedge as seen from the front-left camera (`AZIMUTH_RAD`). The
+ * fix (`clearBesidePlacement` / `clearPointPlacement` in maths.ts) pushes the
+ * dog — Z first (root cause: stop sitting behind the front face), then a
+ * bounded sideways (+x) bisection — until the WHOLE dog (origin plus its
+ * `DOG_NOSE_REACH_M` nose reach along the actual facing ray, at three
+ * heights) clears an exact segment-vs-cube-AABB test (`dogFullyClear`), for
+ * the camera actually used at that edge.
+ */
+describe('occlusion — the whole dog must clear the cube (nose reach along facing)', () => {
+	const COMMODITY_IDS = ['gold', 'silver', 'pu238'];
+
+	// 24 log-spaced cube edges spanning 1 mm to 60 m — the full range the
+	// slider can produce. `dogFullyClear`/`dogStagePosition` take `edge`
+	// directly and are commodity-agnostic (density only enters upstream, in
+	// `cubeEdgeMetres`); commodities are still looped, and their real
+	// `densityGPerCm3` fetched from the schema, so this sweep matches the
+	// file's established per-commodity convention and guards against any
+	// future coupling between commodity and staging.
+	const EDGE_SWEEP = Array.from({ length: 24 }, (_, i) => {
+		const t = i / 23;
+		return 10 ** (Math.log10(0.001) + t * (Math.log10(60) - Math.log10(0.001)));
+	});
+
+	it('reproduces the reported bug: the RAW beside placement is occluded at 0.6 m edge', () => {
+		// Documents the root cause directly against the user's screenshot (7,706
+		// BTC of gold ≈ 0.6 m edge) — pins the bug so a future refactor that
+		// bypasses clearBesidePlacement fails loudly here, not just downstream.
+		const edge = 0.6;
+		const { pos } = cameraTransform(edge);
+		const raw = besidePlacement(edge);
+		expect(dogFullyClear(pos, raw.besideX, raw.besideZ, edge)).toBe(false);
+		// The shipped placement clears the same camera/edge.
+		const fixed = clearBesidePlacement(edge, pos);
+		expect(dogFullyClear(pos, fixed.x, fixed.z, edge)).toBe(true);
+	});
+
+	it('no sample of the dog is occluded — every commodity, ~24 log-spaced edges (1 mm–60 m), every aspect', () => {
+		for (const id of COMMODITY_IDS) {
+			const density = getCommodity(id)?.densityGPerCm3;
+			expect(density).toBeGreaterThan(0); // real schema density, not a stand-in
+			for (const edge of EDGE_SWEEP) {
+				const tr = cameraTransform(edge);
+				for (const aspect of ASPECTS) {
+					const stage = dogStagePosition(edge, tr.pos, tr.aim, aspect);
+					const clear = dogFullyClear(tr.pos, stage.x, stage.z, edge);
+					expect(clear, `commodity=${id} edge=${edge} aspect=${aspect}`).toBe(true);
+				}
+			}
+		}
+	});
+
+	it('the beside→foreground blend path stays clear at every intermediate wFg (1.2–3.5 m band)', () => {
+		// Finely-sampled sweep across the whole wFg transition — not just the
+		// two endpoints. A naive lerp between two individually-clear endpoints
+		// CAN dip through the wedge partway (the cube sits between them); this
+		// is what actually caught that case during development (edges just
+		// above 1.2 m, where wFg is small but nonzero) and is why the final
+		// blended target is ALSO routed through the clearance net in
+		// `dogStagePosition`, not just the beside anchor.
+		let sawIntermediateWFg = false;
+		for (let logE = Math.log10(1.2); logE <= Math.log10(3.5); logE += 0.01) {
+			const edge = 10 ** logE;
+			const tr = cameraTransform(edge);
+			for (const aspect of ASPECTS) {
+				const stage = dogStagePosition(edge, tr.pos, tr.aim, aspect);
+				if (stage.wFg > 0 && stage.wFg < 1) sawIntermediateWFg = true;
+				expect(
+					dogFullyClear(tr.pos, stage.x, stage.z, edge),
+					`edge=${edge} aspect=${aspect} wFg=${stage.wFg}`
+				).toBe(true);
+			}
+		}
+		expect(sawIntermediateWFg).toBe(true); // guard that the blend band was actually exercised
+	});
+
+	it('scale honesty: dog/cube camera-distance ratio stays ≥ 0.8 below the foreground threshold', () => {
+		// Sideways (+x) pushes ONLY increase the dog's distance from camera
+		// (safe direction); this guards against a future change leaning on
+		// forward (+z) clearance instead, which would pull the dog closer to
+		// camera, inflate its apparent size, and quietly break scale honesty.
+		// Measured baseline for this fix is ≈0.995 at its tightest — 0.8 keeps
+		// real margin below that while still catching a regression.
+		const BOUND = 0.8;
+		for (let logE = Math.log10(0.001); logE <= Math.log10(1.2); logE += 0.02) {
+			const edge = 10 ** logE;
+			const tr = cameraTransform(edge);
+			const clear = clearBesidePlacement(edge, tr.pos);
+			const dogPos = { x: clear.x, y: DOG_TOTAL_HEIGHT_M / 2, z: clear.z };
+			const cubeCentre = { x: 0, y: edge / 2, z: 0 };
+			const distDog = Math.hypot(
+				tr.pos.x - dogPos.x,
+				tr.pos.y - dogPos.y,
+				tr.pos.z - dogPos.z
+			);
+			const distCube = Math.hypot(
+				tr.pos.x - cubeCentre.x,
+				tr.pos.y - cubeCentre.y,
+				tr.pos.z - cubeCentre.z
+			);
+			expect(distDog / distCube, `edge=${edge}`).toBeGreaterThanOrEqual(BOUND);
+		}
+	});
+
+	it('continuity: no popping as edge sweeps the full range (dense adjacent-sample check)', () => {
+		// Mirrors the `framingDominant` continuity test's style — dense
+		// geometric sweep, assert adjacent samples don't leap. Two allowances,
+		// either of which is enough to pass a step:
+		//  - a generous RATIO cap once the dog is following the foreground mark
+		//    (edge > 1.2 m) — once wFg > 0 the dog's position tracks the
+		//    camera's, and past the "wide" crossover the camera's own distance
+		//    from origin scales roughly LINEARLY with edge (`framingDistance`),
+		//    so the dog's absolute position keeps drifting at a steady, elevated
+		//    rate all the way to 60 m — measured worst case ≈5.59 m of position
+		//    change per metre of edge, confirmed pre-existing (the unfixed lerp
+		//    has the same slope, ≈5.65, at the same edge) — not a regression.
+		//  - an absolute-size floor (1 cm at this sampling resolution) below
+		//    edge = 1.2 m — the correction's onset (where it starts binding,
+		//    around edge ≈ 2.5 cm–9 cm depending on commodity) is itself
+		//    steep-but-smooth (measured directly: the required push grows
+		//    continuously from 0 to a few mm over a sub-millimetre edge range),
+		//    so a few-millimetre step at this resolution is expected and
+		//    imperceptible, not a pop.
+		const aspect = 1.0;
+		let prevEdge: number | null = null;
+		let prev: { x: number; z: number } | null = null;
+		for (let logE = Math.log10(0.0001); logE <= Math.log10(60); logE += 0.01) {
+			const edge = 10 ** logE;
+			const tr = cameraTransform(edge);
+			const stage = dogStagePosition(edge, tr.pos, tr.aim, aspect);
+			if (prev && prevEdge !== null) {
+				const dEdge = edge - prevEdge;
+				const dPos = Math.hypot(stage.x - prev.x, stage.z - prev.z);
+				const followingForeground = edge > 1.2; // wFg can be > 0 here
+				const maxRatio = followingForeground ? 8 : 1.5;
+				const ok = dPos < 0.01 || dPos / dEdge < maxRatio;
+				expect(ok, `edge=${prevEdge}→${edge} dPos=${dPos} ratio=${dPos / dEdge}`).toBe(true);
+			}
+			prevEdge = edge;
+			prev = { x: stage.x, z: stage.z };
+		}
+	});
+
+	it('DOG_NOSE_REACH_M is derived from DOG_TOTAL_HEIGHT_M, not a bare literal', () => {
+		expect(DOG_NOSE_REACH_M).toBeCloseTo(DOG_TOTAL_HEIGHT_M * 0.577, 6);
+		expect(DOG_NOSE_REACH_M).toBeCloseTo(0.3, 2);
+	});
+
+	it('converges to the untouched besidePlacement for small cubes (the signed-off "sniffing" shot)', () => {
+		// Below ~2.5 cm the raw placement already clears (verified directly),
+		// so clearBesidePlacement must be a no-op there — the small-cube
+		// composition is unchanged, only the ~2.5 cm–1.2 m failing band moves.
+		const edge = 0.005; // 5 mm — deep in the signed-off small-cube regime
+		const { pos } = cameraTransform(edge);
+		const raw = besidePlacement(edge);
+		const clear = clearBesidePlacement(edge, pos);
+		expect(clear.x).toBeCloseTo(raw.besideX, 6);
+		// z is allowed a small, edge-scaled nudge only if the raw value were
+		// ever behind the front face; at 5 mm the two are already within the
+		// clearance margin's own floor (2 mm), i.e. imperceptible.
+		expect(Math.abs(clear.z - raw.besideZ)).toBeLessThan(0.01);
 	});
 });
 
@@ -218,5 +404,113 @@ describe('Pu-238 glow ramp — monotonic, bloom thresholds per commodity', () =>
 	it('emissive intensity is pushed past the bloom threshold at scale', () => {
 		// At full heat, emissiveIntensity (0.9 + 3.2) = 4.1 ≫ 0.85 threshold.
 		expect(puGlowRamp(3.4).emissiveIntensity).toBeGreaterThan(0.85);
+	});
+});
+
+describe('gaze — target point + yaw/pitch clamp (delight brief §2.2)', () => {
+	it('gazeTargetWorld sits at the cube top, x-signed toward the dog side', () => {
+		expect(gazeTargetWorld(2, 5)).toEqual({ x: 1, y: 2, z: 1 });
+		expect(gazeTargetWorld(2, -5)).toEqual({ x: -1, y: 2, z: 1 });
+	});
+
+	it('gazeTargetWorld falls back to the +x corner when dogX is exactly 0', () => {
+		expect(gazeTargetWorld(4, 0)).toEqual({ x: 2, y: 4, z: 2 });
+	});
+
+	it('scales linearly with edge', () => {
+		const a = gazeTargetWorld(1, 1);
+		const b = gazeTargetWorld(10, 1);
+		expect(b.x).toBeCloseTo(a.x * 10, 9);
+		expect(b.y).toBeCloseTo(a.y * 10, 9);
+		expect(b.z).toBeCloseTo(a.z * 10, 9);
+	});
+
+	it('HEAD_FORWARD_LOCAL_AXIS is a unit vector', () => {
+		const { x, y, z } = HEAD_FORWARD_LOCAL_AXIS;
+		expect(Math.hypot(x, y, z)).toBeCloseTo(1, 5);
+	});
+
+	it('clampGazeDirection is a no-op when desired already equals current', () => {
+		const v = { x: 0, y: 0, z: 1 };
+		const out = clampGazeDirection(v, v);
+		expect(out.x).toBeCloseTo(0, 9);
+		expect(out.y).toBeCloseTo(0, 9);
+		expect(out.z).toBeCloseTo(1, 9);
+	});
+
+	it('passes small deviations through unclamped', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const az = MathUtils.degToRad(10);
+		const desired = { x: Math.sin(az), y: 0, z: Math.cos(az) };
+		const out = clampGazeDirection(current, desired);
+		expect(Math.atan2(out.x, out.z)).toBeCloseTo(az, 5);
+		expect(out.y).toBeCloseTo(0, 9);
+	});
+
+	it('clamps yaw to the max when the desired direction is far to one side', () => {
+		const current = { x: 0, y: 0, z: 1 }; // straight ahead
+		const desired = { x: 1, y: 0, z: 0 }; // 90° to the right
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.atan2(out.x, out.z)).toBeCloseTo(GAZE_MAX_YAW_RAD, 5);
+	});
+
+	it('clamps yaw to the max on the other side too', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const desired = { x: -1, y: 0, z: 0 }; // 90° to the left
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.atan2(out.x, out.z)).toBeCloseTo(-GAZE_MAX_YAW_RAD, 5);
+	});
+
+	it('clamps pitch to the max when the desired direction is far above', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const desired = { x: 0, y: 1, z: 0 }; // straight up
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.asin(MathUtils.clamp(out.y, -1, 1))).toBeCloseTo(GAZE_MAX_PITCH_RAD, 5);
+	});
+
+	it('clamps pitch to the max when the desired direction is far below', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const desired = { x: 0, y: -1, z: 0.001 }; // nearly straight down
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.asin(MathUtils.clamp(out.y, -1, 1))).toBeCloseTo(-GAZE_MAX_PITCH_RAD, 5);
+	});
+
+	it('clamps yaw and pitch independently at the same time', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		const desired = { x: 1, y: 1, z: 0.01 }; // far up-right
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		const yaw = Math.atan2(out.x, out.z);
+		const pitch = Math.asin(MathUtils.clamp(out.y, -1, 1));
+		expect(yaw).toBeCloseTo(GAZE_MAX_YAW_RAD, 5);
+		expect(pitch).toBeCloseTo(GAZE_MAX_PITCH_RAD, 5);
+	});
+
+	it('the clamped output is always a unit vector', () => {
+		const current = { x: 0, y: 0, z: 1 };
+		for (let az = -180; az <= 180; az += 15) {
+			for (let el = -80; el <= 80; el += 20) {
+				const a = MathUtils.degToRad(az);
+				const e = MathUtils.degToRad(el);
+				const desired = {
+					x: Math.cos(e) * Math.sin(a),
+					y: Math.sin(e),
+					z: Math.cos(e) * Math.cos(a),
+				};
+				const out = clampGazeDirection(current, desired);
+				expect(Math.hypot(out.x, out.y, out.z)).toBeCloseTo(1, 6);
+			}
+		}
+	});
+
+	it('the current direction can itself be off-centre (clamp is relative, not absolute)', () => {
+		// "current" is already turned 20° right of world-forward (e.g. the
+		// idle animation mid-sway); the clamp budget is measured from THAT,
+		// not from world +Z, so a further 40° yaw lands at 60° total.
+		const az0 = MathUtils.degToRad(20);
+		const current = { x: Math.sin(az0), y: 0, z: Math.cos(az0) };
+		const az1 = MathUtils.degToRad(90);
+		const desired = { x: Math.sin(az1), y: 0, z: Math.cos(az1) };
+		const out = clampGazeDirection(current, desired, GAZE_MAX_YAW_RAD, GAZE_MAX_PITCH_RAD);
+		expect(Math.atan2(out.x, out.z)).toBeCloseTo(az0 + GAZE_MAX_YAW_RAD, 5);
 	});
 });

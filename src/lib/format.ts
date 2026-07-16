@@ -128,7 +128,7 @@ export function unitLabel(unit: string): string {
 
 // ── Number formatting ───────────────────────────────────────────
 
-function formatNum(n: number): string {
+export function formatNum(n: number): string {
 	if (n === 0) return '0';
 	const abs = Math.abs(n);
 	if (abs >= 1_000_000) {
@@ -242,4 +242,62 @@ export function formatNoteCount(count: number): string {
 		return `${(count / 1_000_000).toFixed(2)} million bills`;
 	}
 	return `${Math.round(count).toLocaleString('en-US')} bills`;
+}
+
+// ── Impossibility-band formatting ───────────────────────────────
+//
+// Shared by the gold/silver quantity-anchor terminal band and the cocaine
+// readout's honesty line (delight pass, 2026-07-10): past a knowable
+// threshold — the largest real quantity of a substance ever mined, or the
+// largest annual output of it ever produced — a real-world equivalent
+// stops existing. The honest statement quantifies the overshoot as a
+// multiple of that threshold instead. See docs/handoff/13-delight.md §1.2.
+
+/**
+ * Format a "how many times over" multiple for impossibility-band copy.
+ * Low multiples keep one or two decimals ("4.7×"); multiples at or above
+ * 100 round to a whole, locale-grouped number ("1,200×") — matching
+ * `formatNum`'s existing precision ladder so this reads consistently with
+ * every other number on the site.
+ */
+export function formatMultiple(n: number): string {
+	if (!Number.isFinite(n) || n <= 0) return '0×';
+	return `${formatNum(n)}×`;
+}
+
+/** Format a kg quantity as whole, locale-grouped metric tonnes ("213,000 t"). */
+export function formatTonnes(kg: number): string {
+	if (!Number.isFinite(kg) || kg <= 0) return '0 t';
+	return `${formatNum(kg / 1000)} t`;
+}
+
+export interface ImpossibilityLine {
+	/** The bare statement, e.g. "This much gold has never been mined." */
+	headline: string;
+	/** The sourced quantity and multiple, e.g. "All gold ever: ~213,000 t — you are holding 4.7× that." */
+	blurb: string;
+}
+
+/**
+ * Construct the shared "impossibility" line: a dry statement of fact
+ * followed by the reference figure and the computed overshoot multiple.
+ * Never hardcode the multiple — it must always be derived from the
+ * reference quantity and the current mass by the caller.
+ */
+export function formatImpossibilityLine(opts: {
+	/** Commodity name as it reads mid-sentence, e.g. "gold", "cocaine". */
+	subject: string;
+	/** Verb phrase completing "has never been ___.", e.g. "mined", "produced in a year". */
+	verb: string;
+	/** Label for the reference clause, e.g. "All gold ever", "Global annual production". */
+	referenceLabel: string;
+	/** The reference quantity in kg that `multiple` is computed against. */
+	referenceKg: number;
+	/** currentMassKg / referenceKg — computed by the caller from real data, never hardcoded. */
+	multiple: number;
+}): ImpossibilityLine {
+	return {
+		headline: `This much ${opts.subject} has never been ${opts.verb}.`,
+		blurb: `${opts.referenceLabel}: ~${formatTonnes(opts.referenceKg)} — you are holding ${formatMultiple(opts.multiple)} that.`,
+	};
 }

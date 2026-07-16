@@ -7,12 +7,20 @@
 	 * anchor's description as a blurb. No italic.
 	 *
 	 * When `selectAnchor()` returns null (no anchor within ±10 % of
-	 * `currentMassKg`), the component renders nothing and the surrounding
-	 * layout contracts naturally.
+	 * `currentMassKg`), the component checks the terminal impossibility
+	 * band (delight pass, 2026-07-10, brief §1.2): past the largest anchor
+	 * for the commodity, there is no real-world equivalent left to name, so
+	 * the card states the impossibility with the overshoot multiple instead.
+	 * Only when neither applies does the card render nothing.
 	 */
 
 	import anchorsData from '$lib/quantity-anchors.json';
-	import { selectAnchor, type QuantityAnchor } from './QuantityAnchorCard.helpers.js';
+	import {
+		selectAnchor,
+		selectImpossibilityBand,
+		type QuantityAnchor,
+	} from './QuantityAnchorCard.helpers.js';
+	import { formatImpossibilityLine } from '$lib/format.js';
 
 	let {
 		commodityId,
@@ -32,9 +40,24 @@
 
 	const list = $derived(ANCHORS[commodityId] ?? []);
 	const selected = $derived(selectAnchor(list, currentMassKg));
+	const impossibility = $derived(
+		selected ? null : selectImpossibilityBand(list, currentMassKg)
+	);
 
 	const headline = $derived(
 		selected ? selected.displayName.replace(/^≈\s*/, '') : ''
+	);
+
+	const impossibilityCopy = $derived(
+		impossibility
+			? formatImpossibilityLine({
+					subject: commodityId,
+					verb: impossibility.anchor.impossibilityVerb ?? 'mined',
+					referenceLabel: `All ${commodityId} ever`,
+					referenceKg: impossibility.anchor.quantityKg,
+					multiple: impossibility.multiple,
+				})
+			: null
 	);
 
 	const accentBgStyle = $derived(`background: ${hexToRgba(accent, 0.07)};`);
@@ -57,6 +80,12 @@
 		{#if selected.description}
 			<p class="anchor-blurb">{selected.description}</p>
 		{/if}
+	</div>
+{:else if impossibilityCopy}
+	<div class="anchor-card" style={accentBgStyle + accentRuleStyle}>
+		<div class="anchor-eyebrow" style={accentEyebrowStyle}>{eyebrow}</div>
+		<div class="anchor-headline">{impossibilityCopy.headline}</div>
+		<p class="anchor-blurb">{impossibilityCopy.blurb}</p>
 	</div>
 {/if}
 

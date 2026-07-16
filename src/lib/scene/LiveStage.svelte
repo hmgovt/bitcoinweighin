@@ -15,8 +15,9 @@
 	 *    in `./materials.ts`. This component is the renderer + lifecycle only.
 	 *
 	 * The stage is a pure consumer of `(commodity, amount)`. `staged` is a
-	 * bindable the page reads to add the "Shiba standing nearer the camera"
-	 * honesty line to the readout when the dog is in the foreground.
+	 * bindable the page reads to add the "Sat is standing nearer the camera"
+	 * honesty line to the readout when the dog — Sat, the Shiba — is in the
+	 * foreground.
 	 */
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
@@ -62,7 +63,32 @@
 	let mixer: THREE.AnimationMixer | null = null;
 	let idleAction: THREE.AnimationAction | null = null;
 	let trickClips: THREE.AnimationClip[] = [];
+	let trickQueue: string[] = []; // pending trick-name fragments (Konami chain)
 	let envTexture: THREE.Texture | null = null;
+
+	// ── Gaze tracking (brief §2.2) ─────────────────────────────────────────
+	// `headBone` is found by name once the dog loads; stays null (gaze never
+	// runs) if the rig has no identifiable head joint. `gazeScratch` holds
+	// reused three.js objects for the per-frame maths (no per-frame alloc);
+	// `gazeLocalQuat` is the persistent, damped-toward-target head rotation —
+	// nulled whenever gaze is suspended (tricks, reduced motion) so it
+	// re-baselines cleanly from the fresh pose on resume instead of jumping
+	// from a stale value.
+	interface GazeScratch {
+		headWorldPos: THREE.Vector3;
+		headWorldQuat: THREE.Quaternion;
+		parentWorldQuat: THREE.Quaternion;
+		forwardAxis: THREE.Vector3;
+		targetVec: THREE.Vector3;
+		currentFwd: THREE.Vector3;
+		desiredDir: THREE.Vector3;
+		clampedDir: THREE.Vector3;
+		idealWorldQuat: THREE.Quaternion;
+		idealLocalQuat: THREE.Quaternion;
+	}
+	let headBone: THREE.Bone | null = null;
+	let gazeScratch: GazeScratch | null = null;
+	let gazeLocalQuat: THREE.Quaternion | null = null;
 
 	let camPos: THREE.Vector3 | null = null;
 	let camAim: THREE.Vector3 | null = null;
@@ -174,6 +200,54 @@
 		if (canvasActive) update();
 	});
 
+	// ── Gaze tracking (brief §2.2) — head bone aims at the cube, post-mix ─────
+	// Runs AFTER mixer.update(dt) so it composes on top of the idle/trick
+	// clips rather than fighting them: each frame we read the mixer's fresh
+	// (post-mix) head orientation as the "neck's rest pose" reference, clamp
+	// a look-at offset relative to THAT, and damped-slerp a persistent
+	// quaternion toward it — the persistence (not the per-frame baseline) is
+	// what makes the damping/easing real rather than a no-op recomputed
+	// identically every frame. Suspended entirely during tricks; nulling
+	// `gazeLocalQuat` there means the very next active frame re-baselines
+	// from the fresh idle pose and eases in via the same k damping (~0.5 s),
+	// rather than jumping from a stale pre-trick value.
+	function updateGaze(dt: number): void {
+		if (!M || !dog || !headBone || !headBone.parent || !gazeScratch || prefersReduced) return;
+		if (trickPlaying) {
+			gazeLocalQuat = null;
+			return;
+		}
+		const s = gazeScratch;
+		if (!gazeLocalQuat) gazeLocalQuat = headBone.quaternion.clone();
+
+		headBone.getWorldQuaternion(s.headWorldQuat);
+		headBone.getWorldPosition(s.headWorldPos);
+		headBone.parent.getWorldQuaternion(s.parentWorldQuat);
+
+		const edge = M.cubeEdgeMetres(amount ?? 0, commodity);
+		const target = M.gazeTargetWorld(Math.max(edge, 1e-5), dog.position.x);
+		s.targetVec.set(target.x, target.y, target.z);
+
+		s.currentFwd.copy(s.forwardAxis).applyQuaternion(s.headWorldQuat).normalize();
+		s.desiredDir.subVectors(s.targetVec, s.headWorldPos).normalize();
+
+		const clamped = M.clampGazeDirection(
+			{ x: s.currentFwd.x, y: s.currentFwd.y, z: s.currentFwd.z },
+			{ x: s.desiredDir.x, y: s.desiredDir.y, z: s.desiredDir.z }
+		);
+		s.clampedDir.set(clamped.x, clamped.y, clamped.z);
+
+		// World orientation whose local forward axis points along the clamped
+		// direction, converted into the head bone's LOCAL space (relative to
+		// its parent's current — animated — world orientation).
+		s.idealWorldQuat.setFromUnitVectors(s.forwardAxis, s.clampedDir);
+		s.idealLocalQuat.copy(s.parentWorldQuat).invert().multiply(s.idealWorldQuat);
+
+		const k = 1 - Math.exp(-dt * M.GAZE_DAMPING_K);
+		gazeLocalQuat.slerp(s.idealLocalQuat, k);
+		headBone.quaternion.copy(gazeLocalQuat);
+	}
+
 	// ── Render loop (damped dolly — the easing IS the scale cue) ──────────────
 	function loop(): void {
 		if (!running || destroyed || !T || !camera || !camPos || !camAim || !wantPos || !wantAim) return;
@@ -193,6 +267,7 @@
 		camera.lookAt(camAim);
 
 		mixer?.update(dt);
+		updateGaze(dt); // post-mix additive — must run AFTER mixer.update()
 		if (useBloom && composer) composer.render();
 		else if (renderer && scene) renderer.render(scene, camera);
 	}
@@ -209,16 +284,43 @@
 		rafId = 0;
 	}
 
-	// ── Easter egg — hover dwell / tap / ?easter=doge → random trick ──────────
-	function playTrick(): void {
-		if (prefersReduced || !mixer || trickPlaying || !trickClips.length) return;
+	// ── Easter egg — hover dwell / tap / ?easter=doge / Konami → tricks ───────
+	// `playClip` is the shared single-clip player; `trickQueue` lets the
+	// Konami code (brief §2.4) chain all three tricks back-to-back through
+	// the SAME machinery — the mixer's `finished` listener in `loadDog`
+	// drains the queue before falling back to idle.
+	function playClip(clip: THREE.AnimationClip): void {
+		if (!mixer) return;
 		trickPlaying = true;
-		const clip = trickClips[Math.floor(Math.random() * trickClips.length)];
 		const action = mixer.clipAction(clip);
 		action.reset();
 		action.setLoop(2200, 1); // THREE.LoopOnce
 		idleAction?.fadeOut(0.25);
 		action.fadeIn(0.25).play();
+	}
+
+	function playTrick(): void {
+		if (prefersReduced || !mixer || trickPlaying || !trickClips.length) return;
+		playClip(trickClips[Math.floor(Math.random() * trickClips.length)]);
+	}
+
+	/** Konami hook (brief §2.4) — queues play_dead → rollover → shake, played
+	 *  back to back. No-ops gracefully (never throws) before the dog/mixer
+	 *  has loaded, mid-trick, or under reduced motion — same guards as
+	 *  `playTrick`. Exposed via `bind:this` (through HeroStage's thin
+	 *  forwarding export) for the page's global keydown handler. */
+	export function triggerKonami(): void {
+		playTrickSequence(['play_dead', 'rollover', 'shake']);
+	}
+
+	function playTrickSequence(names: string[]): void {
+		if (prefersReduced || !mixer || trickPlaying || !trickClips.length) return;
+		const queue = names
+			.map((name) => trickClips.find((c) => c.name.includes(name)))
+			.filter((c): c is THREE.AnimationClip => !!c);
+		if (!queue.length) return;
+		trickQueue = queue.slice(1);
+		playClip(queue[0]);
 	}
 
 	function pointerOnDog(e: PointerEvent): boolean {
@@ -362,8 +464,37 @@
 				dog = object;
 				dog.traverse((o) => {
 					if ((o as THREE.Mesh).isMesh) o.castShadow = true;
+					// Gaze bone (brief §2.2) — matched by NAME, first hit wins. The
+					// shipped rig has exactly one match: "head_jnt.40_038". No match
+					// (a differently-rigged model) → headBone stays null and gaze
+					// never runs; it degrades to the authored idle animation only,
+					// never a crash.
+					if (!headBone && (o as THREE.Bone).isBone && /head/i.test(o.name)) {
+						headBone = o as THREE.Bone;
+					}
 				});
 				scene.add(dog);
+
+				if (headBone?.parent) {
+					gazeScratch = {
+						headWorldPos: new three.Vector3(),
+						headWorldQuat: new three.Quaternion(),
+						parentWorldQuat: new three.Quaternion(),
+						forwardAxis: new three.Vector3(
+							M.HEAD_FORWARD_LOCAL_AXIS.x,
+							M.HEAD_FORWARD_LOCAL_AXIS.y,
+							M.HEAD_FORWARD_LOCAL_AXIS.z
+						),
+						targetVec: new three.Vector3(),
+						currentFwd: new three.Vector3(),
+						desiredDir: new three.Vector3(),
+						clampedDir: new three.Vector3(),
+						idealWorldQuat: new three.Quaternion(),
+						idealLocalQuat: new three.Quaternion(),
+					};
+				} else {
+					headBone = null; // no identifiable head bone (or no parent) — gaze off
+				}
 
 				if (animations.length) {
 					mixer = new three.AnimationMixer(dog);
@@ -378,6 +509,14 @@
 					trickClips = animations.filter((c) => /play_dead|rollover|shake/.test(c.name));
 					if (!prefersReduced) idleAction.play();
 					mixer.addEventListener('finished', () => {
+						// Konami chain (brief §2.4): drain the queue before falling
+						// back to idle, so the three tricks play back to back.
+						if (trickQueue.length) {
+							const next = trickQueue[0];
+							trickQueue = trickQueue.slice(1);
+							playClip(next);
+							return;
+						}
 						trickPlaying = false;
 						idleAction?.reset().fadeIn(0.3).play();
 					});
@@ -461,6 +600,10 @@
 		renderer = composer = bloomPass = scene = camera = cube = puLight = key = null;
 		dog = mixer = idleAction = null;
 		trickClips = [];
+		trickQueue = [];
+		headBone = null;
+		gazeScratch = null;
+		gazeLocalQuat = null;
 	}
 
 	onMount(() => {

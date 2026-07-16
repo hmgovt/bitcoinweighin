@@ -1,5 +1,5 @@
 {
-	"_doc": "Weight-delta object ladders for the X bot's daily reframe. The engine computes grams-of-commodity per 1 BTC for two consecutive days, takes the delta, and picks the ladder object whose weight is nearest |delta|. Each commodity sits at a different value-density, so each gets its own object world. Ladders cover ~0.2% to ±50% single-day BTC moves (the credible historical ceiling).",
+	"_doc": "Weight-delta object ladders shared by the homepage Daily Delta line (src/lib/deltas.ts) and the X bot's daily reframe (scripts/bot/deltas.ts, run.ts, make-short.ts). The engine computes grams-of-commodity per 1 BTC for two consecutive days, takes the delta, and picks the ladder object whose weight is nearest |delta|. Each commodity sits at a different value-density, so each gets its own object world. Ladders cover ~0.2% to ±50% single-day BTC moves (the credible historical ceiling). Moved here from scripts/bot/objects.json 2026-07-09 so there is one copy, not one per runtime — see tests/drift.test.ts for the price-figure cross-checks.",
 	"asOfSnapshot": {
 		"date": "2026-05-28",
 		"btcUsd": 73716.9,

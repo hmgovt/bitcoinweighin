@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  workflow_dispatch: # manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx svelte-kit sync
+
+      - run: npm test
+
+      - run: npm run build

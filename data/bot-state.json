@@ -1,204 +1,15 @@
 {
-  "monthKey": "2026-06",
-  "postsThisMonth": 60,
-  "creditsSpentCents": 126,
+  "monthKey": "2026-07",
+  "postsThisMonth": 78,
+  "creditsSpentCents": 454,
   "lastSlotDate": {
-    "gold-am": "2026-06-13",
-    "silver-mid": "2026-06-13",
-    "cocaine-eve": "2026-06-12",
-    "pu238-night": "2026-06-13",
-    "hashweight-mid": "2026-06-13"
+    "gold-am": "2026-07-16",
+    "silver-mid": "2026-07-15",
+    "cocaine-eve": "2026-07-15",
+    "pu238-night": "2026-07-16",
+    "hashweight-mid": "2026-07-16"
   },
   "posts": [
-    {
-      "at": "2026-05-31T10:12:25.343Z",
-      "slot": "gold-am",
-      "commodity": "gold",
-      "tweetId": "2061028030496039079",
-      "caption": "1 BTC today = a 30 mm gold cube. Fits in your palm. Weighs 503 g (1.11 lb).\nhttps://bitcoinweighin.com/?btc=1&commodity=gold"
-    },
-    {
-      "at": "2026-05-31T17:58:01.733Z",
-      "slot": "silver-mid",
-      "commodity": "silver",
-      "tweetId": "2061145204682260814",
-      "caption": "In silver, 1 BTC held steady overnight — within a rounding error of yesterday's close.\nhttps://bitcoinweighin.com/?btc=1&commodity=silver"
-    },
-    {
-      "at": "2026-05-31T21:53:23.331Z",
-      "slot": "cocaine-eve",
-      "commodity": "cocaine",
-      "tweetId": "2061204469614838025",
-      "caption": "1 BTC today = 2.4 kg (5.4 lb) of cocaine, at wholesale."
-    },
-    {
-      "at": "2026-06-01T06:09:29.972Z",
-      "slot": "pu238-night",
-      "commodity": "pu238",
-      "tweetId": "2061329313199271944",
-      "caption": "1 BTC today = a 9 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 15 g (0.03 lb)."
-    },
-    {
-      "at": "2026-06-01T18:36:31.657Z",
-      "slot": "gold-am",
-      "commodity": "gold",
-      "tweetId": "2061517309286514973",
-      "caption": "1 BTC today = a 30 mm gold cube. Fits in your palm. Weighs 503 g (1.11 lb)."
-    },
-    {
-      "at": "2026-06-01T19:56:41.646Z",
-      "slot": "silver-mid",
-      "commodity": "silver",
-      "tweetId": "2061537486933795047",
-      "caption": "In silver, 1 BTC held steady overnight — within a rounding error of yesterday's close."
-    },
-    {
-      "at": "2026-06-01T21:56:57.957Z",
-      "slot": "cocaine-eve",
-      "commodity": "cocaine",
-      "tweetId": "2061567796874444941",
-      "caption": "1 BTC today = 2.4 kg (5.4 lb) of cocaine, at wholesale."
-    },
-    {
-      "at": "2026-06-02T05:54:19.487Z",
-      "slot": "pu238-night",
-      "commodity": "pu238",
-      "tweetId": "2061687897175035957",
-      "caption": "1 BTC today = a 9 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 15 g (0.03 lb)."
-    },
-    {
-      "at": "2026-06-02T17:20:17.428Z",
-      "slot": "gold-am",
-      "commodity": "gold",
-      "tweetId": "2061860517438713946",
-      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 492 g (1.09 lb)."
-    },
-    {
-      "at": "2026-06-02T18:42:41.132Z",
-      "slot": "silver-mid",
-      "commodity": "silver",
-      "tweetId": "2061881250210578657",
-      "caption": "In silver, 1 BTC lost a basketball since yesterday's close (−749 g)."
-    },
-    {
-      "at": "2026-06-02T21:39:37.985Z",
-      "slot": "cocaine-eve",
-      "commodity": "cocaine",
-      "tweetId": "2061925783283568744",
-      "caption": "1 BTC today = 2.4 kg (5.2 lb) of cocaine, at wholesale."
-    },
-    {
-      "at": "2026-06-03T06:08:24.498Z",
-      "slot": "pu238-night",
-      "commodity": "pu238",
-      "tweetId": "2062053824513102033",
-      "caption": "1 BTC today = a 9 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 14 g (0.03 lb)."
-    },
-    {
-      "at": "2026-06-03T17:59:25.324Z",
-      "slot": "gold-am",
-      "commodity": "gold",
-      "tweetId": "2062232758773051673",
-      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 468 g (1.03 lb)."
-    },
-    {
-      "at": "2026-06-03T18:47:41.402Z",
-      "slot": "silver-mid",
-      "commodity": "silver",
-      "tweetId": "2062244900092211442",
-      "caption": "In silver, 1 BTC dropped a laptop since yesterday's close (−1.6 kg)."
-    },
-    {
-      "at": "2026-06-03T21:41:09.065Z",
-      "slot": "cocaine-eve",
-      "commodity": "cocaine",
-      "tweetId": "2062288553145671967",
-      "caption": "1 BTC today = 2.2 kg (5.0 lb) of cocaine, at wholesale."
-    },
-    {
-      "at": "2026-06-04T06:01:01.472Z",
-      "slot": "pu238-night",
-      "commodity": "pu238",
-      "tweetId": "2062414355589939649",
-      "caption": "1 BTC today = a 9 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
-    },
-    {
-      "at": "2026-06-04T16:19:50.467Z",
-      "slot": "gold-am",
-      "commodity": "gold",
-      "tweetId": "2062570089002705233",
-      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 460 g (1.01 lb)."
-    },
-    {
-      "at": "2026-06-04T17:47:19.496Z",
-      "slot": "hashweight-mid",
-      "commodity": "hashweight",
-      "tweetId": "2062592073669169554",
-      "caption": "The Bitcoin network's mining hardware weighs ~84,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 930 EH/s."
-    },
-    {
-      "at": "2026-06-04T19:22:21.074Z",
-      "slot": "silver-mid",
-      "commodity": "silver",
-      "tweetId": "2062616015616495838",
-      "caption": "In silver, 1 BTC grew heavier by a full can of soda since yesterday's close (+105 g)."
-    },
-    {
-      "at": "2026-06-04T22:17:33.250Z",
-      "slot": "cocaine-eve",
-      "commodity": "cocaine",
-      "tweetId": "2062660105812791422",
-      "caption": "1 BTC today = 2.2 kg (4.8 lb) of cocaine, at wholesale."
-    },
-    {
-      "at": "2026-06-05T05:23:48.426Z",
-      "slot": "pu238-night",
-      "commodity": "pu238",
-      "tweetId": "2062767381751947280",
-      "caption": "1 BTC today = a 9 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
-    },
-    {
-      "at": "2026-06-05T15:51:24.019Z",
-      "slot": "gold-am",
-      "commodity": "gold",
-      "tweetId": "2062925308194611269",
-      "caption": "1 BTC today = a 28 mm gold cube. Fits in your palm. Weighs 440 g (0.97 lb)."
-    },
-    {
-      "at": "2026-06-05T17:24:38.818Z",
-      "slot": "hashweight-mid",
-      "commodity": "hashweight",
-      "tweetId": "2062948744438661556",
-      "caption": "The Bitcoin network's mining hardware weighs ~82,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 907 EH/s."
-    },
-    {
-      "at": "2026-06-05T18:57:24.549Z",
-      "slot": "silver-mid",
-      "commodity": "silver",
-      "tweetId": "2062972123652764122",
-      "caption": "In silver, 1 BTC grew lighter by a laptop since yesterday's close (−1.4 kg)."
-    },
-    {
-      "at": "2026-06-05T22:11:29.726Z",
-      "slot": "cocaine-eve",
-      "commodity": "cocaine",
-      "tweetId": "2063020969883476215",
-      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
-    },
-    {
-      "at": "2026-06-06T04:58:48.042Z",
-      "slot": "pu238-night",
-      "commodity": "pu238",
-      "tweetId": "2063123472847433880",
-      "caption": "1 BTC today = a 9 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
-    },
-    {
-      "at": "2026-06-06T14:28:24.355Z",
-      "slot": "gold-am",
-      "commodity": "gold",
-      "tweetId": "2063266816806297755",
-      "caption": "1 BTC today = a 28 mm gold cube. Fits in your palm. Weighs 440 g (0.97 lb)."
-    },
     {
       "at": "2026-06-06T16:08:38.241Z",
       "slot": "hashweight-mid",
@@ -450,6 +261,1154 @@
       "commodity": "silver",
       "tweetId": "2065858106597499206",
       "caption": "In silver, 1 BTC held steady overnight — within a rounding error of yesterday's close."
+    },
+    {
+      "at": "2026-06-13T21:57:47.010Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2065916585093587356",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-14T05:56:23.637Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2066037209338401279",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-14T15:07:18.443Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2066175833752899652",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 474 g (1.05 lb)."
+    },
+    {
+      "at": "2026-06-14T16:25:06.548Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2066195384645361921",
+      "caption": "The Bitcoin network's mining hardware weighs ~79,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 878 EH/s."
+    },
+    {
+      "at": "2026-06-14T18:10:22.279Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2066221853832560954",
+      "caption": "In silver, 1 BTC added a newborn baby since yesterday's close (+2.8 kg)."
+    },
+    {
+      "at": "2026-06-14T22:03:38.895Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2066280471844044841",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-15T06:31:20.514Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2066408354491121988",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-15T17:59:02.424Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2066581434525995180",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 474 g (1.05 lb)."
+    },
+    {
+      "at": "2026-06-15T20:22:57.807Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2066617676529611091",
+      "caption": "The Bitcoin network's mining hardware weighs ~81,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 904 EH/s."
+    },
+    {
+      "at": "2026-06-15T21:38:08.021Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2066636528496132249",
+      "caption": "In silver, 1 BTC grew lighter by a loaf of bread since yesterday's close (−482 g)."
+    },
+    {
+      "at": "2026-06-15T22:59:46.780Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2066656989925515318",
+      "caption": "1 BTC today = 2.2 kg (4.8 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-16T06:37:34.241Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2066772317535936849",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-16T18:04:04.081Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2066945087381381201",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 478 g (1.05 lb)."
+    },
+    {
+      "at": "2026-06-16T18:56:14.144Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2066958209328296054",
+      "caption": "The Bitcoin network's mining hardware weighs ~84,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 930 EH/s."
+    },
+    {
+      "at": "2026-06-16T20:11:44.742Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2066977171571175480",
+      "caption": "In silver, 1 BTC picked up a loaf of bread since yesterday's close (+439 g)."
+    },
+    {
+      "at": "2026-06-16T21:37:39.932Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2066998686433919184",
+      "caption": "1 BTC today = 2.2 kg (4.9 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-17T06:20:56.482Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2067130527652389239",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-17T17:05:19.292Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2067292690077921750",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 473 g (1.04 lb)."
+    },
+    {
+      "at": "2026-06-17T17:50:48.517Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2067304135355945155",
+      "caption": "The Bitcoin network's mining hardware weighs ~83,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 921 EH/s."
+    },
+    {
+      "at": "2026-06-17T19:22:44.483Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2067327180078731561",
+      "caption": "In silver, 1 BTC gave back a full can of soda since yesterday's close (−359 g)."
+    },
+    {
+      "at": "2026-06-17T21:00:02.827Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2067351604961947812",
+      "caption": "1 BTC today = 2.2 kg (4.8 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-18T06:00:36.999Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2067487798689456619",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-18T16:30:53.310Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2067646434820682208",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 470 g (1.04 lb)."
+    },
+    {
+      "at": "2026-06-18T18:19:28.022Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2067673758236824029",
+      "caption": "The Bitcoin network's mining hardware weighs ~84,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 937 EH/s."
+    },
+    {
+      "at": "2026-06-18T19:35:59.935Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2067692955889181034",
+      "caption": "In silver, 1 BTC held steady overnight — within a rounding error of yesterday's close."
+    },
+    {
+      "at": "2026-06-18T21:16:58.456Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2067718286565896575",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-19T06:24:54.637Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2067856261278736690",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-19T15:58:43.229Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2068000709744750600",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 465 g (1.03 lb)."
+    },
+    {
+      "at": "2026-06-19T17:21:27.859Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2068021532283277781",
+      "caption": "The Bitcoin network's mining hardware weighs ~83,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 927 EH/s."
+    },
+    {
+      "at": "2026-06-19T18:52:09.180Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2068044320838488109",
+      "caption": "In silver, 1 BTC gained a laptop since yesterday's close (+1.3 kg)."
+    },
+    {
+      "at": "2026-06-19T21:59:27.042Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2068091350491222151",
+      "caption": "1 BTC today = 2.1 kg (4.6 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-20T05:21:10.556Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2068202637619507241",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-20T15:02:31.143Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2068348930597769437",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 474 g (1.04 lb)."
+    },
+    {
+      "at": "2026-06-20T16:22:09.214Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2068368950388568129",
+      "caption": "The Bitcoin network's mining hardware weighs ~85,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 939 EH/s."
+    },
+    {
+      "at": "2026-06-20T18:08:06.268Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2068395576954429779",
+      "caption": "In silver, 1 BTC held steady overnight — within a rounding error of yesterday's close."
+    },
+    {
+      "at": "2026-06-20T22:01:22.865Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2068454202607845549",
+      "caption": "1 BTC today = 2.1 kg (4.6 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-21T06:08:57.591Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2068577044137451804",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-21T15:11:57.395Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2068713719711031681",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 481 g (1.06 lb)."
+    },
+    {
+      "at": "2026-06-21T16:47:14.685Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2068737656851415544",
+      "caption": "The Bitcoin network's mining hardware weighs ~85,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 940 EH/s."
+    },
+    {
+      "at": "2026-06-21T18:17:03.731Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2068760266662379808",
+      "caption": "In silver, 1 BTC picked up a loaf of bread since yesterday's close (+462 g)."
+    },
+    {
+      "at": "2026-06-21T22:09:09.257Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2068818549884235904",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-22T06:34:02.611Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2068945753704165448",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-22T17:29:23.003Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2069110689520837069",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 478 g (1.05 lb)."
+    },
+    {
+      "at": "2026-06-22T18:49:16.076Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2069130750998507901",
+      "caption": "The Bitcoin network's mining hardware weighs ~84,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 931 EH/s."
+    },
+    {
+      "at": "2026-06-22T20:07:56.170Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2069150554950103342",
+      "caption": "In silver, 1 BTC shed a bag of sugar since yesterday's close (−1.0 kg)."
+    },
+    {
+      "at": "2026-06-22T21:27:40.298Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2069170500807651669",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-23T05:08:05.957Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2069286527243530647",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-23T15:45:27.449Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2069446899292066211",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 476 g (1.05 lb)."
+    },
+    {
+      "at": "2026-06-23T17:19:52.421Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2069470665594286192",
+      "caption": "The Bitcoin network's mining hardware weighs ~84,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 933 EH/s."
+    },
+    {
+      "at": "2026-06-23T19:08:17.976Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2069497935046570132",
+      "caption": "In silver, 1 BTC gained a house brick since yesterday's close (+2.0 kg)."
+    },
+    {
+      "at": "2026-06-23T22:08:09.444Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2069543078227021911",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-24T05:05:37.036Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2069648301364756869",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-24T15:32:22.837Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2069806017056260115",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 475 g (1.05 lb)."
+    },
+    {
+      "at": "2026-06-24T17:07:24.258Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2069829964971557310",
+      "caption": "The Bitcoin network's mining hardware weighs ~87,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 966 EH/s."
+    },
+    {
+      "at": "2026-06-24T18:48:30.473Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2069855339546120231",
+      "caption": "In silver, 1 BTC dropped a full can of soda since yesterday's close (−211 g)."
+    },
+    {
+      "at": "2026-06-24T22:10:31.064Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2069906058756210921",
+      "caption": "1 BTC today = 2.1 kg (4.6 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-25T05:10:14.299Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2070011850859926012",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-25T15:38:33.234Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2070169925629407442",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 473 g (1.04 lb)."
+    },
+    {
+      "at": "2026-06-25T17:13:33.019Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2070193869384188273",
+      "caption": "The Bitcoin network's mining hardware weighs ~87,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 961 EH/s."
+    },
+    {
+      "at": "2026-06-25T19:04:15.086Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2070221710465384516",
+      "caption": "In silver, 1 BTC added a laptop since yesterday's close (+1.4 kg)."
+    },
+    {
+      "at": "2026-06-25T22:16:28.909Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2070269950296490453",
+      "caption": "1 BTC today = 2.0 kg (4.5 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-26T05:14:14.351Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2070375242250285456",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-26T15:22:42.039Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2070528361013612969",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 463 g (1.02 lb)."
+    },
+    {
+      "at": "2026-06-26T17:02:31.509Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2070553477097431534",
+      "caption": "The Bitcoin network's mining hardware weighs ~88,000 tonnes — about 1.7× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 977 EH/s."
+    },
+    {
+      "at": "2026-06-26T18:28:17.724Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2070575028308246827",
+      "caption": "In silver, 1 BTC grew lighter by a full can of soda since yesterday's close (−181 g)."
+    },
+    {
+      "at": "2026-06-26T22:05:13.241Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2070629522051878989",
+      "caption": "1 BTC today = 2.0 kg (4.4 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-27T04:57:10.427Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2070733320720093456",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-27T14:27:15.720Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2070876800247603589",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 458 g (1.01 lb)."
+    },
+    {
+      "at": "2026-06-27T16:07:43.169Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2070902103250448576",
+      "caption": "The Bitcoin network's mining hardware weighs ~89,000 tonnes — about 1.7× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 990 EH/s."
+    },
+    {
+      "at": "2026-06-27T17:58:11.218Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2070929826207105089",
+      "caption": "In silver, 1 BTC gave back a laptop since yesterday's close (−1.3 kg)."
+    },
+    {
+      "at": "2026-06-27T21:57:01.162Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2070989845581774882",
+      "caption": "1 BTC today = 2.0 kg (4.4 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-28T05:21:40.103Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2071101908362862897",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-28T14:47:00.289Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2071244152168181914",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 460 g (1.01 lb)."
+    },
+    {
+      "at": "2026-06-28T16:14:01.554Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2071266046141460921",
+      "caption": "The Bitcoin network's mining hardware weighs ~91,000 tonnes — about 1.7× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 1006 EH/s."
+    },
+    {
+      "at": "2026-06-28T18:02:31.615Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2071293317669941702",
+      "caption": "In silver, 1 BTC put on a full can of soda since yesterday's close (+85 g)."
+    },
+    {
+      "at": "2026-06-28T21:56:54.483Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2071352186693365944",
+      "caption": "1 BTC today = 2.0 kg (4.4 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-29T05:56:00.318Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2071472910091632765",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-29T16:37:41.820Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2071634380368290132",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 452 g (1.00 lb)."
+    },
+    {
+      "at": "2026-06-29T17:40:13.681Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2071650143669977271",
+      "caption": "The Bitcoin network's mining hardware weighs ~89,000 tonnes — about 1.7× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 988 EH/s."
+    },
+    {
+      "at": "2026-06-29T19:02:41.773Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2071670848193175569",
+      "caption": "In silver, 1 BTC lost a loaf of bread since yesterday's close (−470 g)."
+    },
+    {
+      "at": "2026-06-29T22:05:13.264Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2071716682410643967",
+      "caption": "1 BTC today = 2.0 kg (4.3 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-06-30T05:10:12.778Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2071823779764772941",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-06-30T15:24:57.424Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2071978457014190151",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 468 g (1.03 lb)."
+    },
+    {
+      "at": "2026-06-30T17:07:56.279Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2072004371504595313",
+      "caption": "The Bitcoin network's mining hardware weighs ~87,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 966 EH/s."
+    },
+    {
+      "at": "2026-06-30T18:54:20.995Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2072031127586427311",
+      "caption": "In silver, 1 BTC gained a laptop since yesterday's close (+1.5 kg)."
+    },
+    {
+      "at": "2026-06-30T22:11:13.202Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2072080557425709558",
+      "caption": "1 BTC today = 2.0 kg (4.4 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-01T05:27:39.672Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2072190547406585942",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-01T15:39:39.585Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2072344560068612488",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 454 g (1.00 lb)."
+    },
+    {
+      "at": "2026-07-01T17:19:43.520Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2072369754568839601",
+      "caption": "The Bitcoin network's mining hardware weighs ~87,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 962 EH/s."
+    },
+    {
+      "at": "2026-07-01T18:57:36.254Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2072394329285410926",
+      "caption": "In silver, 1 BTC gave back a bag of sugar since yesterday's close (−953 g)."
+    },
+    {
+      "at": "2026-07-01T22:14:19.650Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2072443729227743529",
+      "caption": "1 BTC today = 2.0 kg (4.3 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-02T05:03:25.822Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2072546803665301937",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-02T15:12:48.417Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2072700183985455505",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 465 g (1.03 lb)."
+    },
+    {
+      "at": "2026-07-02T16:51:59.056Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2072725142912807219",
+      "caption": "The Bitcoin network's mining hardware weighs ~86,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 951 EH/s."
+    },
+    {
+      "at": "2026-07-02T18:24:01.518Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2072748272083415289",
+      "caption": "In silver, 1 BTC lost a full can of soda since yesterday's close (−259 g)."
+    },
+    {
+      "at": "2026-07-02T22:01:03.636Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2072802801097277875",
+      "caption": "1 BTC today = 2.0 kg (4.4 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-03T04:47:41.184Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2072905283987227076",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-03T15:08:22.249Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2073061468279296460",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 464 g (1.02 lb)."
+    },
+    {
+      "at": "2026-07-03T16:27:35.239Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2073081422366081516",
+      "caption": "The Bitcoin network's mining hardware weighs ~85,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 950 EH/s."
+    },
+    {
+      "at": "2026-07-03T18:09:32.910Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2073107015010820586",
+      "caption": "In silver, 1 BTC dropped a bag of sugar since yesterday's close (−847 g)."
+    },
+    {
+      "at": "2026-07-03T21:59:35.297Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2073164799563710950",
+      "caption": "1 BTC today = 2.0 kg (4.5 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-04T04:39:39.846Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2073265589464813767",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-04T14:26:48.883Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2073413400110244346",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 467 g (1.03 lb)."
+    },
+    {
+      "at": "2026-07-04T16:05:30.820Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2073438244717425003",
+      "caption": "The Bitcoin network's mining hardware weighs ~85,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 945 EH/s."
+    },
+    {
+      "at": "2026-07-04T17:59:22.482Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2073466846268018736",
+      "caption": "In silver, 1 BTC grew heavier by a basketball since yesterday's close (+563 g)."
+    },
+    {
+      "at": "2026-07-04T21:51:33.479Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2073525160787779607",
+      "caption": "1 BTC today = 2.1 kg (4.6 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-05T05:01:24.652Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2073633505091719278",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-05T14:38:57.944Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2073778851079999683",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 472 g (1.04 lb)."
+    },
+    {
+      "at": "2026-07-05T16:12:02.385Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2073802272287375506",
+      "caption": "The Bitcoin network's mining hardware weighs ~84,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 932 EH/s."
+    },
+    {
+      "at": "2026-07-05T17:58:44.008Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2073829079439020104",
+      "caption": "In silver, 1 BTC grew heavier by a full can of soda since yesterday's close (+299 g)."
+    },
+    {
+      "at": "2026-07-05T21:54:24.902Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2073888293461074309",
+      "caption": "1 BTC today = 2.1 kg (4.6 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-06T05:17:55.062Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2073999994210660649",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-06T16:18:00.631Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2074166158366822433",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 474 g (1.04 lb)."
+    },
+    {
+      "at": "2026-07-06T17:46:13.346Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2074188376069349785",
+      "caption": "The Bitcoin network's mining hardware weighs ~84,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 933 EH/s."
+    },
+    {
+      "at": "2026-07-06T18:52:24.034Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2074204976881017146",
+      "caption": "In silver, 1 BTC picked up a loaf of bread since yesterday's close (+519 g)."
+    },
+    {
+      "at": "2026-07-06T22:08:43.519Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2074254287257911310",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-07T04:58:15.498Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2074357460744155554",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-07T15:42:20.539Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2074519549542637798",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 480 g (1.06 lb)."
+    },
+    {
+      "at": "2026-07-07T17:19:08.017Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2074543887570391146",
+      "caption": "The Bitcoin network's mining hardware weighs ~83,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 921 EH/s."
+    },
+    {
+      "at": "2026-07-07T18:59:09.354Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2074569060747014527",
+      "caption": "In silver, 1 BTC put on a bag of sugar since yesterday's close (+965 g)."
+    },
+    {
+      "at": "2026-07-07T22:06:56.104Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2074616198336323598",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-08T04:19:05.339Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2074710013004624165",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-08T15:18:08.769Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2074875865763135898",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 483 g (1.06 lb)."
+    },
+    {
+      "at": "2026-07-08T16:41:55.150Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2074896954786525479",
+      "caption": "The Bitcoin network's mining hardware weighs ~83,000 tonnes — about 1.6× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 920 EH/s."
+    },
+    {
+      "at": "2026-07-08T18:14:50.241Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2074920295408783758",
+      "caption": "In silver, 1 BTC lost a full can of soda since yesterday's close (−253 g)."
+    },
+    {
+      "at": "2026-07-08T22:00:13.504Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2074976894575845644",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-09T04:58:47.979Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2075082410153087300",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-09T15:55:00.524Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2075247484839002491",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 476 g (1.05 lb)."
+    },
+    {
+      "at": "2026-07-09T17:23:35.572Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2075269834628112803",
+      "caption": "The Bitcoin network's mining hardware weighs ~81,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 902 EH/s."
+    },
+    {
+      "at": "2026-07-09T18:47:20.989Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2075290850498589105",
+      "caption": "In silver, 1 BTC added a loaf of bread since yesterday's close (+455 g)."
+    },
+    {
+      "at": "2026-07-09T22:15:35.000Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2075343145420898768",
+      "caption": "1 BTC today = 2.1 kg (4.6 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-10T04:58:07.478Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2075444614115271151",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-10T15:30:09.306Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2075603638177661097",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 478 g (1.05 lb)."
+    },
+    {
+      "at": "2026-07-10T16:58:38.341Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2075625938943893759",
+      "caption": "The Bitcoin network's mining hardware weighs ~80,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 893 EH/s."
+    },
+    {
+      "at": "2026-07-10T18:20:19.429Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2075646433819042038",
+      "caption": "In silver, 1 BTC dropped a loaf of bread since yesterday's close (−498 g)."
+    },
+    {
+      "at": "2026-07-10T21:54:16.185Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2075700183153688715",
+      "caption": "1 BTC today = 2.1 kg (4.6 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-11T04:17:22.471Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2075796726590345484",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-11T14:20:40.078Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2075948554208563321",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 485 g (1.07 lb)."
+    },
+    {
+      "at": "2026-07-11T15:58:39.183Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2075973221573448186",
+      "caption": "The Bitcoin network's mining hardware weighs ~80,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 888 EH/s."
+    },
+    {
+      "at": "2026-07-11T17:51:49.677Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2076001646794924070",
+      "caption": "In silver, 1 BTC put on a basketball since yesterday's close (+605 g)."
+    },
+    {
+      "at": "2026-07-11T21:41:54.617Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2076059479406227860",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-12T04:29:11.090Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2076162111118479770",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-12T14:25:14.034Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2076312070509760780",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 487 g (1.07 lb)."
+    },
+    {
+      "at": "2026-07-12T16:01:40.475Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2076336387725639830",
+      "caption": "The Bitcoin network's mining hardware weighs ~78,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 868 EH/s."
+    },
+    {
+      "at": "2026-07-12T17:56:40.216Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2076365280666915126",
+      "caption": "In silver, 1 BTC held steady overnight — within a rounding error of yesterday's close."
+    },
+    {
+      "at": "2026-07-12T21:42:26.665Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2076422002424869184",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-13T04:34:22.434Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2076525809314197625",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-13T15:40:39.212Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2076693472401391799",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 488 g (1.08 lb)."
+    },
+    {
+      "at": "2026-07-13T17:14:25.315Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2076717062588624927",
+      "caption": "The Bitcoin network's mining hardware weighs ~79,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 880 EH/s."
+    },
+    {
+      "at": "2026-07-13T18:46:12.485Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2076740109794242957",
+      "caption": "In silver, 1 BTC gained a basketball since yesterday's close (+782 g)."
+    },
+    {
+      "at": "2026-07-13T21:48:21.677Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2076785879868203415",
+      "caption": "1 BTC today = 2.1 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-14T04:07:53.116Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2076881525036273912",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-14T14:46:42.043Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2077042289105662215",
+      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 481 g (1.06 lb)."
+    },
+    {
+      "at": "2026-07-14T16:18:15.945Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2077065323841548373",
+      "caption": "The Bitcoin network's mining hardware weighs ~82,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 910 EH/s."
+    },
+    {
+      "at": "2026-07-14T17:58:48.448Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2077090579997954163",
+      "caption": "In silver, 1 BTC dropped a basketball since yesterday's close (−774 g)."
+    },
+    {
+      "at": "2026-07-14T21:50:48.344Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2077148871445156247",
+      "caption": "1 BTC today = 2.1 kg (4.5 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-15T04:09:45.258Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2077244400166654323",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 12 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-15T14:46:22.723Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2077404587951112457",
+      "caption": "1 BTC today = a 30 mm gold cube. Fits in your palm. Weighs 499 g (1.10 lb)."
+    },
+    {
+      "at": "2026-07-15T16:25:07.250Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2077429449050779959",
+      "caption": "The Bitcoin network's mining hardware weighs ~81,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 902 EH/s."
+    },
+    {
+      "at": "2026-07-15T18:02:23.591Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2077453868758446388",
+      "caption": "In silver, 1 BTC grew heavier by a bag of sugar since yesterday's close (+1.2 kg)."
+    },
+    {
+      "at": "2026-07-15T21:51:46.263Z",
+      "slot": "cocaine-eve",
+      "commodity": "cocaine",
+      "tweetId": "2077511489011732913",
+      "caption": "1 BTC today = 2.2 kg (4.8 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-07-16T04:13:15.257Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2077607624544018482",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
+    },
+    {
+      "at": "2026-07-16T14:58:09.153Z",
+      "slot": "gold-am",
+      "commodity": "gold",
+      "tweetId": "2077769946721931539",
+      "caption": "1 BTC today = a 30 mm gold cube. Fits in your palm. Weighs 498 g (1.10 lb)."
+    },
+    {
+      "at": "2026-07-16T16:19:01.665Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2077790289306276184",
+      "caption": "The Bitcoin network's mining hardware weighs ~81,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 895 EH/s."
     }
   ]
 }

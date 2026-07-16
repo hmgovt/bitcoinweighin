@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	selectAnchor,
+	selectImpossibilityBand,
 	type QuantityAnchor,
 } from '../src/lib/components/QuantityAnchorCard.helpers.js';
 
@@ -60,5 +61,65 @@ describe('selectAnchor', () => {
 		selectAnchor(anchors, 10.25);
 		const after = anchors.map((a) => a.id).join(',');
 		expect(after).toBe(before);
+	});
+});
+
+describe('selectImpossibilityBand', () => {
+	// terminal anchor here is 'd' at 100 kg
+	it('returns null for empty anchor list', () => {
+		expect(selectImpossibilityBand([], 1000)).toBeNull();
+	});
+
+	it('returns null for non-positive current mass', () => {
+		expect(selectImpossibilityBand(anchors, 0)).toBeNull();
+		expect(selectImpossibilityBand(anchors, -1)).toBeNull();
+	});
+
+	it('returns null at exactly the terminal anchor mass', () => {
+		expect(selectImpossibilityBand(anchors, 100)).toBeNull();
+	});
+
+	it('returns null just below the terminal anchor mass (normal band still applies)', () => {
+		expect(selectImpossibilityBand(anchors, 99)).toBeNull();
+	});
+
+	it('fires just above the terminal anchor mass', () => {
+		const band = selectImpossibilityBand(anchors, 100.01);
+		expect(band).not.toBeNull();
+		expect(band?.anchor.id).toBe('d');
+		expect(band?.multiple).toBeCloseTo(1.0001, 4);
+	});
+
+	it('computes the multiple against the largest anchor, not the closest one', () => {
+		// terminal anchor is 'd' (100 kg), even though 'c' (10.5 kg) is
+		// numerically closer in the list — the terminal band always
+		// compares against the single largest anchor for the commodity.
+		const band = selectImpossibilityBand(anchors, 470);
+		expect(band?.anchor.id).toBe('d');
+		expect(band?.multiple).toBeCloseTo(4.7, 5);
+	});
+
+	it('picks the single largest anchor as terminal regardless of list order', () => {
+		const shuffled: QuantityAnchor[] = [anchors[3], anchors[0], anchors[2], anchors[1]];
+		const band = selectImpossibilityBand(shuffled, 1000);
+		expect(band?.anchor.id).toBe('d');
+		expect(band?.multiple).toBeCloseTo(10, 5);
+	});
+
+	it('matches the real gold anchor set: fires past all gold ever mined with the correct multiple', () => {
+		const goldAnchors: QuantityAnchor[] = [
+			{
+				id: 'all_gold_mined',
+				quantityKg: 213_000_000,
+				displayName: '≈ all gold ever mined',
+				description: '',
+				priority: 1,
+				impossibilityVerb: 'mined',
+			},
+		];
+		expect(selectImpossibilityBand(goldAnchors, 213_000_000)).toBeNull();
+		const band = selectImpossibilityBand(goldAnchors, 213_000_000 * 4.7);
+		expect(band?.multiple).toBeCloseTo(4.7, 5);
+		expect(band?.anchor.impossibilityVerb).toBe('mined');
 	});
 });
