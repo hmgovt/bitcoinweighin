@@ -1,23 +1,16 @@
 {
   "monthKey": "2026-07",
-  "postsThisMonth": 91,
-  "creditsSpentCents": 480,
+  "postsThisMonth": 92,
+  "creditsSpentCents": 482,
   "lastSlotDate": {
     "gold-am": "2026-07-18",
     "silver-mid": "2026-07-18",
     "cocaine-eve": "2026-07-17",
     "pu238-night": "2026-07-18",
     "hashweight-mid": "2026-07-18",
-    "cash-early-eve": "2026-07-17"
+    "cash-early-eve": "2026-07-18"
   },
   "posts": [
-    {
-      "at": "2026-06-09T05:12:32.737Z",
-      "slot": "pu238-night",
-      "commodity": "pu238",
-      "tweetId": "2064214138209861701",
-      "caption": "1 BTC today = a 9 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
-    },
     {
       "at": "2026-06-09T15:53:08.827Z",
       "slot": "gold-am",
@@ -1410,6 +1403,13 @@
       "commodity": "silver",
       "tweetId": "2078538712972185963",
       "caption": "In silver, 1 BTC shed a loaf of bread since yesterday's close (−438 g)."
+    },
+    {
+      "at": "2026-07-18T19:57:15.344Z",
+      "slot": "cash-early-eve",
+      "commodity": "cash",
+      "tweetId": "2078570012663771378",
+      "caption": "In $1 bills, 1 BTC held steady overnight — within a rounding error of yesterday's close."
     }
   ]
 }
