@@ -23,8 +23,8 @@
     {
       "slug": "el-salvador",
       "label": "El Salvador",
-      "btc": 7715,
-      "asOf": "2026-07-17",
+      "btc": 7716,
+      "asOf": "2026-07-18",
       "type": "nation-state",
       "source": "https://bitcointreasuries.net/governments/el-salvador",
       "sourceName": "Bitcoin Treasuries (mirrors El Salvador National Bitcoin Office)",
