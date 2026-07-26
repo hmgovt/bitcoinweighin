@@ -124,6 +124,22 @@
 			{/each}
 		</dl>
 
+		{#if data.snapshotPages.length}
+			<h2 class="prose-h2">This ratio through history</h2>
+			<p class="prose-p">
+				Each year page summarises what one bitcoin bought at that year's open and
+				close, drawn from the same
+				<a href="/data" class="underline hover:no-underline">daily dataset</a>.
+			</p>
+			<ul class="related-list">
+				{#each data.snapshotPages as page (page.href)}
+					<li>
+						<a href={page.href} class="related-link">{page.label}</a>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+
 		{#if data.relatedPages.length}
 			<h2 class="prose-h2">Other commodities</h2>
 			<ul class="related-list">
