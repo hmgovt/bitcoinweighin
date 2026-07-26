@@ -6,7 +6,7 @@
 	const title =
 		'Bitcoin Purchasing Power, Year by Year (2013–present) · Bitcoin Weigh-In';
 	const description =
-		"Yearly snapshots of how much gold, silver, and oil one bitcoin bought, from 2013 to today. Sourced from the public Bitcoin Weigh-In commodity price dataset.";
+		"Yearly snapshots of how much gold and silver one bitcoin bought, from 2013 to today. Sourced from the public Bitcoin Weigh-In commodity price dataset.";
 	const url = 'https://bitcoinweighin.com/snapshot';
 
 	function fmtUsd(n: number): string {

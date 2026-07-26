@@ -564,10 +564,14 @@
 	// daily ratio (which used to bake into the title and tanked queries like
 	// "bitcoin to gold" because the title kept shifting). og:title still
 	// carries the dynamic ratio so share previews remain conversation-worthy.
-	const pageTitle =
-		'Bitcoin Weigh-In — BTC to Gold, Silver, Oil & Commodities Visualised';
+	//
+	// Query-first, brand as suffix: the highest-weight slot goes to the search
+	// phrase, not to a brand nobody searches yet. Kept under 60 chars so it
+	// doesn't truncate in SERPs. Only commodities with a live /btc/* page may
+	// be named here — the previous title advertised oil, which 404s.
+	const pageTitle = 'How Much Gold Does 1 BTC Buy? — Bitcoin Weigh-In';
 	const pageDescription =
-		"Bitcoin's purchasing power, visualised in physical commodities. See how much gold, silver, oil, or plutonium one BTC buys, with a daily-updated dataset back to 2013.";
+		"Bitcoin's purchasing power, visualised in physical commodities. See how much gold, silver, cash or plutonium one BTC buys, with a daily-updated dataset back to 2013.";
 
 	const ogTitle = $derived(
 		ogReadoutText
@@ -791,7 +795,7 @@
 					Bitcoin's purchasing power in physical commodities
 				</h1>
 				<p class="brand__subtitle">
-					How much gold, silver, oil or plutonium does 1 BTC buy? Live ratios, daily, since 2013.
+					How much gold, silver, cash or plutonium does 1 BTC buy? Live ratios, daily, since 2013.
 				</p>
 			</a>
 			<div class="header-pills">
