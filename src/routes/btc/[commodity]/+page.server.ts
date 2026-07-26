@@ -18,12 +18,63 @@ import type { EntryGenerator, PageServerLoad } from './$types';
 import { LAUNCH_COMMODITIES, getCommodity } from '$lib/commodities.js';
 import { computeCommodityAmount, type DayPrices } from '$lib/prices.js';
 import { COMMODITY_CONTENT } from '$lib/seo/commodity-content.js';
+import { listYears } from '$lib/seo/snapshots.js';
 
 export const prerender = true;
 
 export const entries: EntryGenerator = () => {
 	return LAUNCH_COMMODITIES.map((c) => ({ commodity: c.id }));
 };
+
+interface Milestone {
+	date: string;
+	commodity: string;
+	label: string;
+}
+
+/**
+ * Snapshot-year cross-links. These pages linked out to sibling commodities,
+ * /data and /methodology, but never into the /snapshot* tree — leaving the
+ * year pages reachable from /snapshot alone.
+ *
+ * Selection is derived, not editorial. Gold and silver point at the years
+ * their milestones were first crossed, newest first, reusing the same
+ * static/milestones.json that feeds the slider markers. Every commodity
+ * also gets the first and latest years of coverage, so the pages with no
+ * milestones of their own (pu238, cocaine, cash) still link out. Capped at
+ * three so the block stays a contextual aside, not a link dump.
+ */
+function snapshotLinksFor(
+	commodityId: string,
+	root: string
+): Array<{ href: string; label: string }> {
+	const years = listYears();
+	if (!years.length) return [];
+
+	const milestones: Milestone[] = JSON.parse(
+		readFileSync(join(root, 'static', 'milestones.json'), 'utf-8')
+	);
+
+	const candidates: Array<{ year: number; label: string }> = [
+		...milestones
+			.filter((m) => m.commodity === commodityId)
+			.sort((a, b) => b.date.localeCompare(a.date))
+			.slice(0, 2)
+			.map((m) => ({ year: Number(m.date.slice(0, 4)), label: m.label })),
+		{ year: years[0], label: 'the first year of coverage' },
+		{ year: years[years.length - 1], label: 'the year so far' },
+	];
+
+	const seen = new Set<number>();
+	const out: Array<{ href: string; label: string }> = [];
+	for (const c of candidates) {
+		if (seen.has(c.year) || !years.includes(c.year)) continue;
+		seen.add(c.year);
+		out.push({ href: `/snapshot/${c.year}`, label: `${c.year} — ${c.label}` });
+		if (out.length === 3) break;
+	}
+	return out;
+}
 
 function formatNoteCountForRatio(amount: number): string {
 	if (amount >= 1_000_000_000_000) return `${(amount / 1_000_000_000_000).toFixed(2)} trillion $1 bills`;
@@ -124,6 +175,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		context,
 		faqs,
 		relatedPages: content.relatedPages ?? [],
+		snapshotPages: snapshotLinksFor(commodity.id, ROOT),
 		ratio,
 		btcUsd,
 		amount,

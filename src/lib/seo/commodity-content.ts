@@ -25,11 +25,16 @@ export interface CommodityContent {
 	relatedPages?: Array<{ href: string; label: string }>;
 }
 
+// One entry per launch commodity. Keep this in lockstep with the
+// `mvpLaunch: true` set in $lib/commodities.ts — a commodity missing here
+// still gets a prerendered page but nothing links to it, which is how
+// /btc/cash shipped as an orphan in the internal link graph.
 const RELATED_DEFAULT = [
 	{ href: '/btc/gold', label: 'BTC → gold' },
 	{ href: '/btc/silver', label: 'BTC → silver' },
 	{ href: '/btc/pu238', label: 'BTC → plutonium-238' },
 	{ href: '/btc/cocaine', label: 'BTC → cocaine' },
+	{ href: '/btc/cash', label: 'BTC → cash' },
 ];
 
 export const COMMODITY_CONTENT: Record<string, CommodityContent> = {

@@ -4,8 +4,13 @@
  * Returns strings ready to inline inside <script type="application/ld+json">
  * via {@html ...}. Schema.org types follow Google's structured-data guidance
  * (Dataset for /data so the dataset shows in Google Dataset Search; WebSite
- * + SearchAction + Organization sitewide; BreadcrumbList for hierarchy;
- * FAQPage where Q&A blocks are visible on the page).
+ * + Organization sitewide; BreadcrumbList for hierarchy; FAQPage where Q&A
+ * blocks are visible on the page).
+ *
+ * No SearchAction: the sitewide-searchbox markup requires a real search
+ * endpoint to point at, and this site has no search. Do not add one back
+ * without shipping search first — Google treats a SearchAction whose target
+ * doesn't resolve as invalid markup.
  */
 
 const SITE_URL = 'https://bitcoinweighin.com';
@@ -22,7 +27,10 @@ export function organizationJsonLd(): string {
 		'@id': `${SITE_URL}/#organization`,
 		name: SITE_NAME,
 		url: SITE_URL,
-		logo: `${SITE_URL}/header@1x.webp`,
+		// Google wants a roughly square logo, min 112x112. header@1x.webp is a
+		// 280x98 banner and fails that; logo-square.png is the scale mark from
+		// the same header, cropped square at 512x512.
+		logo: `${SITE_URL}/logo-square.png`,
 		email: 'info@sortathing.com',
 		sameAs: ['https://github.com/hmgovt/bitcoinweighin'],
 	});

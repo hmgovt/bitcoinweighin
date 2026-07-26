@@ -18,6 +18,17 @@
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   Cache-Control: public, max-age=3600
   X-Content-Type-Options: nosniff
+  # Versioned dataset artifacts (prices.json/ndjson/csv/parquet, SHA256SUMS,
+  # CITATION.cff, LICENSE.txt) are files, not pages — keep them out of the
+  # search index (GSC "crawled, not indexed"). noindex is a SERP directive
+  # only; it does NOT block fetching, so the open-CORS access above still
+  # lets notebooks and AI crawlers ingest the data. The /data HTML landing
+  # page (path /data, which does not match /data/*) stays indexable.
+  X-Robots-Tag: noindex
+
+# Health endpoint is an ops asset, not a page — keep it out of the index.
+/health.json
+  X-Robots-Tag: noindex
 
 # SvelteKit's hashed bundles — content-addressed, safe to cache forever.
 /_app/immutable/*

@@ -83,7 +83,8 @@
 			</p>
 			<h3>CoinGecko</h3>
 			<p>
-				The primary source for BTC-USD (coin id <code>bitcoin</code>) and for gold, priced via Pax
+				The primary source for BTC-USD (coin id <code>bitcoin</code>) and for
+				<a href="/btc/gold" class="underline hover:no-underline">gold</a>, priced via Pax
 				Gold (<code>pax-gold</code>) — a token redeemable for one fine troy ounce of LBMA gold that
 				tracks spot within a small premium. Both come from CoinGecko's keyless public API
 				(<code>market_chart</code>); the daily job records the last price of each UTC day. No API key
@@ -91,7 +92,9 @@
 								</p>
 				<h3>GoldAPI.io</h3>
 				<p>
-					The primary source for silver spot (<code>XAG/USD</code>, USD per troy ounce). The daily
+					The primary source for
+					<a href="/btc/silver" class="underline hover:no-underline">silver</a> spot
+					(<code>XAG/USD</code>, USD per troy ounce). The daily
 					job sends the key in the <code>x-access-token</code> header, and
 				a redacted form of every fetched URL is recorded in
 				<a href="/health.json" class="underline hover:no-underline">/health.json</a> so an
@@ -122,7 +125,8 @@
 			</p>
 			<h3>Cash (derived, no API)</h3>
 			<p>
-				The Cash commodity has no price to fetch: one $1 Federal Reserve Note is worth exactly
+				The <a href="/btc/cash" class="underline hover:no-underline">Cash</a> commodity has
+				no price to fetch: one $1 Federal Reserve Note is worth exactly
 				one dollar, so its "price" is the constant 1, and the note count is simply the live
 				BTC-USD value. The only external data are fixed physical constants from the U.S. Bureau
 				of Engraving and Printing — note length 155.956&nbsp;mm (6.14&nbsp;in), width
@@ -161,6 +165,13 @@
 				signal that authentication, rate limits, or upstream infrastructure has changed, rather
 				than silent fill propagating an undetected outage.
 			</p>
+			<p>
+				Forward-fill is why the
+				<a href="/snapshot" class="underline hover:no-underline">year-by-year snapshots</a>
+				can quote a value for every year-open and year-close: those boundary dates
+				frequently fall on a weekend or holiday, and the figure shown is the last
+				known close carried forward, not a trade that happened on 1 January.
+			</p>
 		</section>
 
 		<section id="btc-supply" class="prose-section">
@@ -191,7 +202,9 @@
 		<section id="illustrative" class="prose-section">
 			<h2>Illustrative pricing</h2>
 			<p>
-				Two of the four commodities rendered in the visualisation — Plutonium-238 and cocaine —
+				Two of the five commodities rendered in the visualisation —
+				<a href="/btc/pu238" class="underline hover:no-underline">Plutonium-238</a> and
+				<a href="/btc/cocaine" class="underline hover:no-underline">cocaine</a> —
 				do not have public spot markets. Their prices on the site are illustrative composites
 				constructed from named sources, with the as-of date carried alongside. They appear on the
 				main visualisation but they are <strong>not</strong> in the live dataset published under

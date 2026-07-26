@@ -48,6 +48,32 @@
 		}
 	}
 
+	// Contextual internal links. /data is the site's highest-authority page —
+	// the CC-BY dataset with checksums and citation formats is the thing
+	// analysts actually cite — and it used to link nowhere but /methodology.
+	// Every column and provenance row that has a commodity page now points at
+	// it, so the equity flows down. Dataset columns with no page (platinum,
+	// copper, brent, wheat, coffee, btc_supply) stay plain text: do not link
+	// them until those pages exist, or /data starts advertising 404s.
+	const COMMODITY_PAGE_BY_PREFIX: Record<string, string> = {
+		xau: '/btc/gold',
+		xag: '/btc/silver',
+	};
+
+	function pageForColumn(name: string): string | null {
+		const m = /^([a-z]+)_/.exec(name);
+		return m ? (COMMODITY_PAGE_BY_PREFIX[m[1]] ?? null) : null;
+	}
+
+	// Provenance rows are keyed by display name, and include the two
+	// illustratively-priced commodities that have pages but no dataset column.
+	const COMMODITY_PAGE_BY_NAME: Record<string, string> = {
+		Gold: '/btc/gold',
+		Silver: '/btc/silver',
+		'Plutonium-238': '/btc/pu238',
+		Cocaine: '/btc/cocaine',
+	};
+
 	const apiExamples = {
 		curl: `curl https://bitcoinweighin.com/api/prices.json`,
 		python: `import requests
@@ -150,6 +176,10 @@ const prices = await res.json();`,
 					<dt class="text-zinc-500">Coverage</dt>
 					<dd class="font-mono">
 						{data.meta.coverage.first_date} → {data.meta.coverage.last_date}
+						<span class="mt-0.5 block font-sans text-[11px] text-zinc-500">
+							Summarised
+							<a href="/snapshot" class="underline hover:no-underline">year by year</a>.
+						</span>
 					</dd>
 				</div>
 				<div>
@@ -276,8 +306,15 @@ const prices = await res.json();`,
 					</thead>
 					<tbody>
 						{#each data.schema.columns as col}
+							{@const colPage = pageForColumn(col.name)}
 							<tr class="border-b border-zinc-100 align-top">
-								<td class="py-2 pr-4 font-mono">{col.name}</td>
+								<td class="py-2 pr-4 font-mono">
+									{#if colPage}
+										<a href={colPage} class="underline hover:no-underline">{col.name}</a>
+									{:else}
+										{col.name}
+									{/if}
+								</td>
 								<td class="py-2 pr-4 font-mono text-zinc-600">{col.type}</td>
 								<td class="py-2 pr-4 text-zinc-600">{col.unit}</td>
 								<td class="py-2 pr-4 text-zinc-600">{col.source}</td>
@@ -304,9 +341,16 @@ const prices = await res.json();`,
 					</thead>
 					<tbody>
 						{#each data.provenance as p}
+							{@const rowPage = COMMODITY_PAGE_BY_NAME[p.commodity] ?? null}
 							<tr class="border-b border-zinc-100 align-top">
 								<td class="py-2 pr-4">
-									<div class="font-medium">{p.commodity}</div>
+									<div class="font-medium">
+										{#if rowPage}
+											<a href={rowPage} class="underline hover:no-underline">{p.commodity}</a>
+										{:else}
+											{p.commodity}
+										{/if}
+									</div>
 									<div class="font-mono text-xs text-zinc-500">{p.ticker}</div>
 								</td>
 								<td class="py-2 pr-4 text-zinc-600">
@@ -444,14 +488,19 @@ const prices = await res.json();`,
 					in v1.1.
 				</p>
 				<p>
-					Pricing for Plutonium-238 and cocaine on the main visualisation is
-					illustrative — engineering composites described on the
+					Pricing for
+					<a href="/btc/pu238" class="underline hover:no-underline">Plutonium-238</a>
+					and <a href="/btc/cocaine" class="underline hover:no-underline">cocaine</a> on
+					the main visualisation is illustrative — engineering composites described on
+					the
 					<a href="/methodology" class="underline hover:no-underline">methodology page</a> — and
 					is not included in this dataset, which holds only live market closes.
 				</p>
 				<p>
 					Pre-2013 data is unavailable across the commodity set at acceptable
-					quality, so coverage begins 2013-01-02. Source outages and
+					quality, so coverage begins 2013-01-02 — see the
+					<a href="/snapshot/2013" class="underline hover:no-underline">2013 snapshot</a>
+					for what the first year of coverage looks like. Source outages and
 					cross-validation flags from the secondary feed are logged at
 					<a href={data.buildStatusUrl} class="font-mono underline hover:no-underline"
 						>health.json</a

@@ -7,19 +7,27 @@
 
 User-agent: *
 Allow: /
+# Cloudflare-injected endpoint (e.g. /cdn-cgi/l/email-protection from email
+# obfuscation) — not a real page; keep crawlers off it. Repeated per search
+# group below because a crawler obeys only its single most-specific group.
+Disallow: /cdn-cgi/
 
 # Search engines — explicit allow for clarity
 User-agent: Googlebot
 Allow: /
+Disallow: /cdn-cgi/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /cdn-cgi/
 
 User-agent: DuckDuckBot
 Allow: /
+Disallow: /cdn-cgi/
 
 User-agent: Applebot
 Allow: /
+Disallow: /cdn-cgi/
 
 # AI / LLM crawlers — explicit allow. These bots commonly check robots.txt
 # for an explicit grant before training or surfacing in answer products.

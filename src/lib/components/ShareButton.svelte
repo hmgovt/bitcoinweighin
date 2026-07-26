@@ -92,15 +92,23 @@
 		return templates[Math.floor(Math.random() * templates.length)];
 	}
 
+	// Canonical origin: bitcoinweighin.com is the canonical host, so strip any
+	// leading `www.` before emitting share/og URLs. Visitors landing on
+	// www.bitcoinweighin.com would otherwise generate non-canonical www links.
+	// Localhost and preview hosts pass through unchanged.
+	function canonicalOrigin(): string {
+		if (typeof window === 'undefined') return 'https://bitcoinweighin.com';
+		return window.location.origin.replace('://www.', '://');
+	}
+
 	function getShareUrl(): string {
 		// Build a canonical, commodity-aware URL on the current origin so
 		// the share lands on the same view the user is looking at.
-		if (typeof window === 'undefined') return 'https://bitcoinweighin.com/';
 		const params = new URLSearchParams();
 		params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
 		if (commodity?.id) params.set('commodity', commodity.id);
-		return `${window.location.origin}/?${params.toString()}`;
+		return `${canonicalOrigin()}/?${params.toString()}`;
 	}
 
 	function getOgImageUrl(): string {
@@ -108,11 +116,7 @@
 		params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
 		if (commodity?.id) params.set('commodity', commodity.id);
-		const origin =
-			typeof window !== 'undefined'
-				? window.location.origin
-				: 'https://bitcoinweighin.com';
-		return `${origin}/og-image?${params.toString()}`;
+		return `${canonicalOrigin()}/og-image?${params.toString()}`;
 	}
 
 	// ── Action handlers ────────────────────────────────────────
