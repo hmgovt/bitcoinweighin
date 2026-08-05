@@ -701,6 +701,23 @@
 	<meta name="description" content={pageDescription} />
 	<link rel="canonical" href="https://bitcoinweighin.com/" />
 	<!--
+		header.webp is the confirmed LCP element (PageSpeed's LCP breakdown)
+		but had no preload hint, so the browser couldn't discover/start
+		fetching it until HTML parsing reached the <img> tag deep in the
+		body — well after the head's own preloaded fonts + shiba sprite were
+		already competing for bandwidth. Homepage-only (this file is the
+		only place header.webp is used), so this lives here rather than in
+		the shared app.html, which would waste the preload on every other
+		route.
+	-->
+	<link
+		rel="preload"
+		as="image"
+		href="/header.webp"
+		imagesrcset="/header@1x.webp 1x, /header.webp 2x"
+		fetchpriority="high"
+	/>
+	<!--
 		Open Graph + Twitter cards. The og:image hits the /og-image Pages
 		Function (functions/og-image.ts) with the current slider state, so
 		share previews reflect the URL's btc / date / commodity params.
