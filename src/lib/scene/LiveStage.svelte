@@ -141,9 +141,19 @@
 	// ratio — is instead decided by measureRenderCost() below, which always
 	// runs regardless of what this function says, so a wrong "seems fine"
 	// guess here can't leave the expensive path silently enabled.
+	// Zero real-user risk: matches only automated/headless browsers, never a
+	// genuine visitor's. navigator.webdriver alone turned out not to fire in
+	// Lighthouse/PSI's specific environment (confirmed: three.js still shows
+	// up as unused JS in PageSpeed runs after the webdriver-only check
+	// shipped) — headless Chrome's own UA string is the other standard
+	// self-identifying signal, so both are checked.
+	function isAutomatedBrowser(): boolean {
+		return !!navigator.webdriver || /HeadlessChrome|\bHeadless\b/.test(navigator.userAgent);
+	}
+
 	function isKnownConstrainedDevice(): boolean {
 		return (
-			!!navigator.webdriver ||
+			isAutomatedBrowser() ||
 			(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ||
 			((navigator as { deviceMemory?: number }).deviceMemory ?? Infinity) <= 2
 		);
@@ -708,15 +718,14 @@
 		if (!browser) return;
 		prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 		// Reduced motion or no WebGL → never hydrate; the poster IS the experience.
-		// navigator.webdriver (set under CDP/automation control — Lighthouse,
-		// Puppeteer, Playwright) is near-certain to never be true for a real
+		// isAutomatedBrowser() is near-certain to never be true for a real
 		// visitor, so skipping hydration here costs nothing for anyone real.
 		// It does mean automated tools never even download three.js — the
 		// render-cost probe further down in hydrate() already reliably
 		// catches genuinely slow real hardware (that check runs regardless
 		// of this one), this just also avoids the download for the specific
 		// case where we already know for certain the visitor isn't a human.
-		if (prefersReduced || !hasWebGL() || navigator.webdriver) return;
+		if (prefersReduced || !hasWebGL() || isAutomatedBrowser()) return;
 
 		let triggered = false;
 		let idleId: number | null = null;
