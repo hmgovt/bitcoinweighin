@@ -498,6 +498,24 @@
 			useBloom = false;
 			renderer.shadowMap.enabled = false;
 			renderer.setPixelRatio(1);
+
+			// Verify the downgrade actually worked rather than assuming it
+			// did — PageSpeed kept showing the same ~165-232ms recurring
+			// per-frame cost across every one of these mitigations, which
+			// means downgrading quality alone isn't reliably enough. A
+			// scene still too slow even at minimum settings isn't worth
+			// rendering at all: the SSR poster (CubeRenderer) is a complete,
+			// zero-cost fallback already used for the no-WebGL and reduced-
+			// motion cases. Bail out to it entirely — no canvas, no loop,
+			// nothing left to be slow — rather than run a real-time loop
+			// that visitors on this hardware can't actually benefit from.
+			const downgradedCostMs = measureRenderCost(renderer, () => {
+				if (renderer && scene && camera) renderer.render(scene, camera);
+			});
+			if (downgradedCostMs > 50) {
+				teardown();
+				return;
+			}
 		}
 
 		// Pointer / easter-egg wiring.
