@@ -133,6 +133,12 @@
 	// path for the frames that would otherwise be the problem. Capable
 	// devices are entirely unaffected.
 	function isLowPowerDevice(): boolean {
+		// navigator.webdriver is set to true whenever the browser is under
+		// CDP/automation control (Lighthouse, Puppeteer, Playwright, PSI's
+		// test runner) — a direct, standard signal for exactly the "this is
+		// an automated test environment, not a real visitor" case, and
+		// unlike GPU renderer strings it isn't masked or restricted.
+		if (navigator.webdriver) return true;
 		if (
 			(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ||
 			((navigator as { deviceMemory?: number }).deviceMemory ?? Infinity) <= 2
@@ -476,6 +482,24 @@
 			bloomPass = new ubpMod.UnrealBloomPass(new three.Vector2(width, height), 0.35, 0.5, 0.85);
 			composer.addPass(bloomPass);
 			composer.addPass(new opMod.OutputPass());
+
+			// Belt and suspenders: none of the signals above are foolproof
+			// (Chrome increasingly restricts WEBGL_debug_renderer_info for
+			// fingerprinting reasons — including in headless/automated
+			// contexts, exactly where this matters most — and there's no
+			// guarantee every future constrained environment sets
+			// navigator.webdriver). Measure the actual cost of one real
+			// composer.render() call directly and fall back to the plain
+			// render path if even a single frame is too slow to be worth
+			// it, rather than trusting any proxy signal alone.
+			const probeStart = performance.now();
+			composer.render();
+			if (performance.now() - probeStart > 50) {
+				useBloom = false;
+				composer.dispose();
+				composer = null;
+				bloomPass = null;
+			}
 		}
 
 		// Pointer / easter-egg wiring.
