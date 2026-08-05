@@ -43,8 +43,44 @@
 	let tooltipX = $state(0);
 	let tooltipY = $state(0);
 
-	// Speed: degrees per frame at 60fps.
-	const ROT_SPEED = 0.12;
+	// Speed: degrees per second (was a fixed per-frame step, which tied
+	// rotation speed to display refresh rate and — combined with an
+	// unconditional rAF loop — kept the main thread busy redrawing the full
+	// world map every frame forever, on/off screen, tab hidden or not. That
+	// showed up as ~30s of blocking main-thread work in Lighthouse traces.
+	const ROT_SPEED_DEG_PER_SEC = 7.2; // == the old 0.12°/frame at 60fps
+	// Redraw cap — a slow globe rotation doesn't need 60+ redraws/sec of a
+	// full country-border path + gradients; 30fps is visually identical.
+	const FRAME_INTERVAL_MS = 1000 / 30;
+	let lastFrameTime = 0;
+
+	// Loop only runs when visible, tab-focused, and motion isn't reduced.
+	let looping = false;
+	let inViewport = false;
+	let tabVisible = true;
+	let reducedMotion = false;
+
+	function shouldAnimate(): boolean {
+		return inViewport && tabVisible && !reducedMotion;
+	}
+
+	function startLoop() {
+		if (looping) return;
+		looping = true;
+		lastFrameTime = 0;
+		animFrame = requestAnimationFrame(tick);
+	}
+
+	function stopLoop() {
+		looping = false;
+		if (animFrame) cancelAnimationFrame(animFrame);
+		animFrame = 0;
+	}
+
+	function syncLoop() {
+		if (shouldAnimate()) startLoop();
+		else stopLoop();
+	}
 
 	onMount(async () => {
 		dpr = window.devicePixelRatio || 1;
@@ -54,8 +90,37 @@
 			const w = entry.contentRect.width;
 			size = Math.floor(Math.min(w, 540));
 			resizeCanvas();
+			draw();
 		});
 		if (containerEl) ro.observe(containerEl);
+
+		const mql = matchMedia('(prefers-reduced-motion: reduce)');
+		reducedMotion = mql.matches;
+		const onMqlChange = (e: MediaQueryListEvent) => {
+			reducedMotion = e.matches;
+			syncLoop();
+			if (reducedMotion) draw();
+		};
+		mql.addEventListener('change', onMqlChange);
+
+		const onVisibilityChange = () => {
+			tabVisible = document.visibilityState === 'visible';
+			syncLoop();
+		};
+		document.addEventListener('visibilitychange', onVisibilityChange);
+		tabVisible = document.visibilityState === 'visible';
+
+		let io: IntersectionObserver | null = null;
+		if (containerEl) {
+			io = new IntersectionObserver(
+				(entries) => {
+					for (const e of entries) inViewport = e.isIntersecting;
+					syncLoop();
+				},
+				{ threshold: 0 }
+			);
+			io.observe(containerEl);
+		}
 
 		// Load world borders TopoJSON.
 		try {
@@ -72,15 +137,19 @@
 			console.warn('MiningGlobe: could not load world-110m.json', e);
 		}
 
-		animate();
+		draw(); // always paint one frame, even if animation never starts
+		syncLoop();
 
 		return () => {
 			ro.disconnect();
-			cancelAnimationFrame(animFrame);
+			io?.disconnect();
+			mql.removeEventListener('change', onMqlChange);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+			stopLoop();
 		};
 	});
 
-	onDestroy(() => { if (browser) cancelAnimationFrame(animFrame); });
+	onDestroy(() => { if (browser) stopLoop(); });
 
 	function resizeCanvas() {
 		if (!canvas) return;
@@ -92,10 +161,13 @@
 		if (ctx) ctx.scale(dpr, dpr);
 	}
 
-	function animate() {
-		if (!isHovered) rotation = (rotation + ROT_SPEED) % 360;
+	function tick(now: number) {
+		animFrame = requestAnimationFrame(tick);
+		if (now - lastFrameTime < FRAME_INTERVAL_MS) return;
+		const dt = lastFrameTime ? (now - lastFrameTime) / 1000 : 0;
+		lastFrameTime = now;
+		if (!isHovered) rotation = (rotation + ROT_SPEED_DEG_PER_SEC * dt) % 360;
 		draw();
-		animFrame = requestAnimationFrame(animate);
 	}
 
 	function makeProjection(): GeoProjection {
@@ -259,7 +331,13 @@
 	}
 
 	$effect(() => {
-		if (canvas && size) resizeCanvas();
+		if (canvas && size) {
+			resizeCanvas();
+			// Resizing clears the canvas; repaint immediately rather than
+			// waiting for the next animation frame (which may not come if
+			// the loop is currently stopped — off-screen or reduced motion).
+			draw();
+		}
 	});
 
 	const hoveredData = $derived(

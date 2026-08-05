@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import MiningGlobe from './MiningGlobe.svelte';
+	// Type-only — erased at build. The real module (plus its d3-geo /
+	// topojson-client deps and the world-110m.json fetch) is dynamic-imported
+	// below once the globe column nears the viewport, so none of it sits in
+	// the initial critical-path bundle for a panel that's below the fold.
+	import type MiningGlobeType from './MiningGlobe.svelte';
 	import AsicSound from './AsicSound.svelte';
 	import HashweightSparkline from './HashweightSparkline.svelte';
 	import {
@@ -20,15 +24,33 @@
 	const TONNES_TO_SHORT_TONS = 1.10231;
 
 	let panelEl: HTMLElement | undefined = $state();
+	let globeColEl: HTMLElement | undefined = $state();
 	let showSoloMiners = $state(false);
 	let estimate = $state<NetworkWeightEstimate | null>(null);
 	let loading = $state(true);
+	let MiningGlobe: typeof MiningGlobeType | null = $state(null);
 
 	onMount(async () => {
 		const eh = await fetchHashrateEH();
 		// Fallback to a recent known-good value if the API is unreachable.
 		estimate = computeNetworkWeight(eh ?? 800);
 		loading = false;
+	});
+
+	onMount(() => {
+		if (!globeColEl) return;
+		const io = new IntersectionObserver(
+			(entries) => {
+				for (const e of entries) {
+					if (!e.isIntersecting) continue;
+					io.disconnect();
+					import('./MiningGlobe.svelte').then((m) => { MiningGlobe = m.default; });
+				}
+			},
+			{ rootMargin: '400px 0px' }
+		);
+		io.observe(globeColEl);
+		return () => io.disconnect();
 	});
 
 	function formatTonnes(t: number, sys: UnitSystem): string {
@@ -85,8 +107,12 @@
 	<div class="nw-layout">
 
 		<!-- Globe -->
-		<div class="nw-globe-col">
-			<MiningGlobe {showSoloMiners} />
+		<div class="nw-globe-col" bind:this={globeColEl}>
+			{#if MiningGlobe}
+				<MiningGlobe {showSoloMiners} />
+			{:else}
+				<div class="nw-globe-placeholder" aria-hidden="true"></div>
+			{/if}
 		</div>
 
 		<!-- Stats -->
@@ -272,6 +298,18 @@
 			flex: 1 1 0;
 			min-width: 0;
 		}
+	}
+
+	/* Reserves the globe's footprint before its lazy chunk loads, so the
+	   swap-in causes zero layout shift. Matches MiningGlobe's own sizing
+	   (`min(containerWidth, 540px)`, centered, circular). */
+	.nw-globe-placeholder {
+		width: 100%;
+		max-width: 540px;
+		aspect-ratio: 1 / 1;
+		margin: 0 auto;
+		border-radius: 50%;
+		background: radial-gradient(circle at 35% 35%, #1e3a5f, #0a1628);
 	}
 
 	.nw-loading {

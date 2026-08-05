@@ -231,6 +231,13 @@ export async function renderHashweightCard(opts: { out: string }): Promise<strin
 		const panel = page.locator('#hashweight');
 		await panel.waitFor({ state: 'visible', timeout: 25_000 });
 		await page.waitForSelector('#hashweight .stat-value--large', { state: 'visible', timeout: 25_000 });
+		// The globe (d3-geo/topojson + world-110m.json) is now lazy-loaded on
+		// scroll-into-view to keep it off the critical bundle — scroll it into
+		// view early so the IntersectionObserver fires with time to spare
+		// before the screenshot, rather than relying on Locator.screenshot's
+		// just-in-time auto-scroll (which wouldn't leave the import time to land).
+		await panel.scrollIntoViewIfNeeded();
+		await page.waitForSelector('#hashweight canvas', { state: 'visible', timeout: 25_000 });
 		await page.waitForTimeout(400); // let the globe settle
 		// Clip to the panel's bounding box so the card is just the panel —
 		// no site slider bar above or the next section peeking below.

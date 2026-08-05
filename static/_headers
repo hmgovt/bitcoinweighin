@@ -7,6 +7,29 @@
 # visible within minutes, long enough that a viral citation does not
 # saturate the origin.
 
+# Site-wide security headers (PageSpeed "Best Practices" / Trust & Safety).
+# Conservative on purpose:
+#  - HSTS: staged low max-age per Google's own rollout guidance, no
+#    includeSubDomains/preload — those are effectively irreversible once a
+#    browser caches them, and we haven't audited every subdomain's HTTPS
+#    readiness. Raise the max-age over time once confirmed safe.
+#  - X-Frame-Options: SAMEORIGIN blocks clickjacking site-wide, with an
+#    explicit carve-out below for /embed, whose entire purpose is being
+#    iframed by other people's pages (see src/routes/embed).
+# Deliberately NOT added here: a full Content-Security-Policy or
+# Trusted-Types policy. This site loads several third-party scripts whose
+# exact resource origins aren't all visible from the codebase (Cloudflare
+# dashboard-injected tags), and Svelte's `{@html}` sinks would need a real
+# Trusted Types policy audit — a wrong CSP here fails silently (broken
+# resources, no build error) rather than safely. Also skipping COOP for now:
+# untested interaction with any window.open()-based share flows.
+/*
+  Strict-Transport-Security: max-age=86400
+  X-Frame-Options: SAMEORIGIN
+
+/embed
+  ! X-Frame-Options
+
 /api/prices.json
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
@@ -38,6 +61,11 @@
 # stale-while-revalidate lets repeat visits skip the network entirely
 # while still picking up re-renders within a reasonable window.
 /sprites/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+# 3D reference models (shiba.glb etc.) — large, lazy-loaded, effectively
+# static. Same rationale as sprite art above; previously uncached.
+/models/*
   Cache-Control: public, max-age=604800, stale-while-revalidate=86400
 
 # Header art + favicon — same rationale, smaller payload.
