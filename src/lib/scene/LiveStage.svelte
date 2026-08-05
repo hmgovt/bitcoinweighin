@@ -107,6 +107,12 @@
 	let running = false;
 	let rafId = 0;
 	const clock = { last: 0 };
+	// Redraw cap — an uncapped bloom-postprocessed render (scene pass +
+	// bright-pass + blur + composite) every display refresh is expensive
+	// enough on a throttled/low-power CPU to blow well past a 16ms frame
+	// budget each time; 30fps is visually indistinguishable for camera
+	// easing + idle animation and roughly halves the per-second GPU/CPU work.
+	const FRAME_INTERVAL_MS = 1000 / 30;
 
 	let resizeObs: ResizeObserver | null = null;
 	let viewObs: IntersectionObserver | null = null;
@@ -249,11 +255,11 @@
 	}
 
 	// ── Render loop (damped dolly — the easing IS the scale cue) ──────────────
-	function loop(): void {
+	function loop(now: number): void {
 		if (!running || destroyed || !T || !camera || !camPos || !camAim || !wantPos || !wantAim) return;
 		rafId = requestAnimationFrame(loop);
+		if (now - clock.last < FRAME_INTERVAL_MS) return;
 
-		const now = performance.now();
 		const dt = Math.min((now - clock.last) / 1000 || 0, 0.05);
 		clock.last = now;
 
