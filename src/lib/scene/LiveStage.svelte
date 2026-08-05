@@ -121,60 +121,46 @@
 
 	const isPu = (c: Commodity) => c.id === 'pu238';
 
-	// Bloom postprocessing (EffectComposer: scene pass + bright-pass extract +
-	// blur + composite) is cheap on capable hardware but, under CPU throttling
-	// or on genuinely low-end devices, a single composer.render() call can run
-	// long enough to blow the frame budget on its own — no redraw-frequency
-	// cap helps, since the loop is then bottlenecked by render cost, not by
-	// how often it's invoked. Detected via a synchronous CPU probe (a fixed
-	// amount of work that completes in a couple ms on a normal device but
-	// takes much longer once throttled ~4-6x) plus the two standard low-end
-	// device signals, so we can skip straight to the plain (non-bloom) render
-	// path for the frames that would otherwise be the problem. Capable
-	// devices are entirely unaffected.
-	function isLowPowerDevice(): boolean {
-		// navigator.webdriver is set to true whenever the browser is under
-		// CDP/automation control (Lighthouse, Puppeteer, Playwright, PSI's
-		// test runner) — a direct, standard signal for exactly the "this is
-		// an automated test environment, not a real visitor" case, and
-		// unlike GPU renderer strings it isn't masked or restricted.
-		if (navigator.webdriver) return true;
-		if (
+	// Several rounds of trying to *infer* render cost from proxy signals
+	// (CPU busy-loop timing, hardwareConcurrency/deviceMemory,
+	// navigator.webdriver, WEBGL_debug_renderer_info) each helped a little
+	// but never reliably — PageSpeed mobile TBT went 31s -> 70ms -> 29.7s ->
+	// 14.8s -> back to ~38s of "Other" main-thread work across successive
+	// deploys of the SAME logic, which is the signature of an unreliable
+	// upfront signal rather than a real fix. None of these are trustworthy
+	// on their own: WEBGL_debug_renderer_info is masked by Chrome for
+	// fingerprinting reasons in many contexts; navigator.webdriver depends
+	// on exact launch flags and Lighthouse's chrome-launcher doesn't
+	// necessarily set the same ones Puppeteer does; a CPU busy-loop timed
+	// against a fixed threshold is inherently noisy run-to-run.
+	//
+	// isKnownConstrainedDevice() keeps the two *static, non-timing* signals
+	// (used only to decide antialiasing, which can't be changed after the
+	// WebGL context is created) as a fast, reliable pre-filter. Everything
+	// that CAN be adjusted after construction — bloom, shadow maps, pixel
+	// ratio — is instead decided by measureRenderCost() below, which always
+	// runs regardless of what this function says, so a wrong "seems fine"
+	// guess here can't leave the expensive path silently enabled.
+	function isKnownConstrainedDevice(): boolean {
+		return (
+			!!navigator.webdriver ||
 			(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ||
 			((navigator as { deviceMemory?: number }).deviceMemory ?? Infinity) <= 2
-		) {
-			return true;
-		}
-		const start = performance.now();
-		let x = 0;
-		for (let i = 0; i < 2_000_000; i++) x += Math.sqrt(i);
-		void x;
-		return performance.now() - start > 10;
+		);
 	}
 
-	// The CPU-based checks above catch mobile CPU throttling (confirmed:
-	// PageSpeed mobile TBT went from ~31s to 70ms), but not Lighthouse's
-	// desktop profile, which throttles the CPU far less yet still showed
-	// ~26s of TBT from this same render loop. The actual common cause is
-	// headless test runners rendering WebGL in software (SwiftShader/Mesa/
-	// llvmpipe, no real GPU) — multi-pass postprocessing is dramatically
-	// more expensive there regardless of CPU speed. This checks the actual
-	// WebGL renderer string, which is a direct, reliable signal rather than
-	// an inference from CPU behaviour.
-	function isSoftwareRenderer(renderer: THREE.WebGLRenderer): boolean {
-		try {
-			const gl = renderer.getContext();
-			const ext = gl.getExtension('WEBGL_debug_renderer_info');
-			if (!ext) return false;
-			const info = String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '').toLowerCase();
-			// Matches within the full ANGLE renderer string too (e.g. "ANGLE
-			// (Google, Vulkan ... (SwiftShader Device ...))") — deliberately
-			// NOT matching on "angle" or "google" alone, since that's also the
-			// prefix for normal hardware-accelerated Chrome rendering.
-			return /swiftshader|llvmpipe|\bmesa\b|software rasterizer/.test(info);
-		} catch {
-			return false;
-		}
+	// The one authoritative signal: actually render a representative frame
+	// (full scene, current settings) and measure how long it really takes,
+	// rather than guessing. gl.finish() forces a CPU/GPU sync point before
+	// stopping the clock — render() only *enqueues* GPU commands, so on a
+	// driver that queues asynchronously the call can return almost
+	// immediately regardless of how long the GPU actually takes; timing
+	// render() alone silently measures the wrong thing.
+	function measureRenderCost(renderer: THREE.WebGLRenderer, renderOnce: () => void): number {
+		const start = performance.now();
+		renderOnce();
+		renderer.getContext().finish();
+		return performance.now() - start;
 	}
 
 	function hasWebGL(): boolean {
@@ -420,30 +406,20 @@
 		width = containerEl.clientWidth || 1;
 		height = containerEl.clientHeight || 1;
 
-		// Decided up front, before the renderer exists, so it can also gate
-		// renderer-construction-time options (antialiasing) — not just bloom,
-		// which is the only thing the later software-renderer/empirical
-		// checks can react to (they need a live WebGL context to run).
-		const lowPower = isLowPowerDevice();
-
-		renderer = new three.WebGLRenderer({ antialias: !lowPower, alpha: false });
-		// Bloom/shadows/AA off still left the *base* PBR-material render
-		// itself too expensive under software rendering: confirmed via
-		// PageSpeed's long-task breakdown, ~160-225ms per render() call,
-		// recurring for nearly the whole trace, with no bloom/shadow/AA
-		// pass in sight. Fragment-shading cost scales with pixel count, so
-		// this is the remaining high-leverage, shader-feature-agnostic
-		// lever: at pixel ratio 1 instead of up to 2, a high-DPI phone
-		// renders roughly a quarter of the fragments per frame.
-		renderer.setPixelRatio(lowPower ? 1 : Math.min(window.devicePixelRatio, 2));
+		// Antialias is the one setting that can't be changed after the WebGL
+		// context is created, so it has to go by the imperfect upfront
+		// signal. Everything else below (bloom, shadow maps, resolution)
+		// starts at full quality and is downgraded together, once, by the
+		// empirical probe right after the scene is built.
+		renderer = new three.WebGLRenderer({
+			antialias: !isKnownConstrainedDevice(),
+			alpha: false,
+		});
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.setSize(width, height);
 		renderer.toneMapping = three.ACESFilmicToneMapping;
 		renderer.toneMappingExposure = 1.3;
-		// Shadow maps are a full extra render pass (2048×2048, PCF soft
-		// filtering — several texture samples per fragment for the penumbra)
-		// on top of the main scene render, independent of bloom. Skip that
-		// pass too on constrained hardware, for the same reason as bloom below.
-		renderer.shadowMap.enabled = !lowPower;
+		renderer.shadowMap.enabled = true;
 		renderer.shadowMap.type = three.PCFSoftShadowMap;
 		renderer.domElement.className = 'stage-canvas';
 		renderer.domElement.setAttribute('aria-hidden', 'true');
@@ -451,8 +427,7 @@
 
 		renderer.domElement.addEventListener('webglcontextlost', onContextLost, false);
 
-		// Bloom only on WebGL2, and only on hardware that can actually afford it.
-		useBloom = renderer.capabilities.isWebGL2 && !lowPower && !isSoftwareRenderer(renderer);
+		useBloom = renderer.capabilities.isWebGL2; // WebGL2 only; may be downgraded below
 
 		scene = new three.Scene();
 		scene.background = new three.Color(BG);
@@ -492,38 +467,37 @@
 		wantAim = new three.Vector3();
 		raycaster = new three.Raycaster();
 
-		// Composer (bloom) — WebGL2 only.
+		// Composer (bloom) — WebGL2 only, built optimistically. The probe
+		// right after is what actually decides whether it stays.
 		if (useBloom) {
 			composer = new ecMod.EffectComposer(renderer);
 			composer.addPass(new rpMod.RenderPass(scene, camera));
 			bloomPass = new ubpMod.UnrealBloomPass(new three.Vector2(width, height), 0.35, 0.5, 0.85);
 			composer.addPass(bloomPass);
 			composer.addPass(new opMod.OutputPass());
+		}
 
-			// Belt and suspenders: none of the signals above are foolproof
-			// (Chrome increasingly restricts WEBGL_debug_renderer_info for
-			// fingerprinting reasons — including in headless/automated
-			// contexts, exactly where this matters most — and there's no
-			// guarantee every future constrained environment sets
-			// navigator.webdriver). Measure the actual cost of one real
-			// composer.render() call directly and fall back to the plain
-			// render path if even a single frame is too slow to be worth
-			// it, rather than trusting any proxy signal alone.
-			//
-			// gl.finish() forces a CPU/GPU sync point before we stop the
-			// clock. render() only *enqueues* GPU commands — on a driver
-			// that queues asynchronously, the call returns almost
-			// immediately regardless of how long the GPU actually takes,
-			// so timing render() alone silently measures the wrong thing.
-			const probeStart = performance.now();
-			composer.render();
-			renderer.getContext().finish();
-			if (performance.now() - probeStart > 50) {
-				useBloom = false;
+		// The one authoritative check: render one real frame at the current
+		// (full) settings and measure it directly, rather than trusting any
+		// proxy signal. Too slow -> drop bloom, shadow maps, and resolution
+		// together in a single step. The first frame pays whatever the full
+		// cost is regardless (one-time, during hydration, before the canvas
+		// is even revealed) — same as the earlier bloom-only version of this
+		// check, just now covering everything that can be adjusted post-
+		// construction instead of bloom alone.
+		const renderCostMs = measureRenderCost(renderer, () => {
+			if (useBloom && composer) composer.render();
+			else if (renderer && scene && camera) renderer.render(scene, camera);
+		});
+		if (renderCostMs > 50) {
+			if (composer) {
 				composer.dispose();
 				composer = null;
 				bloomPass = null;
 			}
+			useBloom = false;
+			renderer.shadowMap.enabled = false;
+			renderer.setPixelRatio(1);
 		}
 
 		// Pointer / easter-egg wiring.
