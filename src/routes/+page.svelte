@@ -715,6 +715,7 @@
 		as="image"
 		href="/header.webp"
 		imagesrcset="/header@1x.webp 1x, /header.webp 2x"
+		type="image/webp"
 		fetchpriority="high"
 	/>
 	<!--
