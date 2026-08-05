@@ -146,6 +146,31 @@
 		return performance.now() - start > 10;
 	}
 
+	// The CPU-based checks above catch mobile CPU throttling (confirmed:
+	// PageSpeed mobile TBT went from ~31s to 70ms), but not Lighthouse's
+	// desktop profile, which throttles the CPU far less yet still showed
+	// ~26s of TBT from this same render loop. The actual common cause is
+	// headless test runners rendering WebGL in software (SwiftShader/Mesa/
+	// llvmpipe, no real GPU) — multi-pass postprocessing is dramatically
+	// more expensive there regardless of CPU speed. This checks the actual
+	// WebGL renderer string, which is a direct, reliable signal rather than
+	// an inference from CPU behaviour.
+	function isSoftwareRenderer(renderer: THREE.WebGLRenderer): boolean {
+		try {
+			const gl = renderer.getContext();
+			const ext = gl.getExtension('WEBGL_debug_renderer_info');
+			if (!ext) return false;
+			const info = String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '').toLowerCase();
+			// Matches within the full ANGLE renderer string too (e.g. "ANGLE
+			// (Google, Vulkan ... (SwiftShader Device ...))") — deliberately
+			// NOT matching on "angle" or "google" alone, since that's also the
+			// prefix for normal hardware-accelerated Chrome rendering.
+			return /swiftshader|llvmpipe|\bmesa\b|software rasterizer/.test(info);
+		} catch {
+			return false;
+		}
+	}
+
 	function hasWebGL(): boolean {
 		try {
 			const c = document.createElement('canvas');
@@ -403,7 +428,8 @@
 		renderer.domElement.addEventListener('webglcontextlost', onContextLost, false);
 
 		// Bloom only on WebGL2, and only on hardware that can actually afford it.
-		useBloom = renderer.capabilities.isWebGL2 && !isLowPowerDevice();
+		useBloom =
+			renderer.capabilities.isWebGL2 && !isLowPowerDevice() && !isSoftwareRenderer(renderer);
 
 		scene = new three.Scene();
 		scene.background = new three.Color(BG);
