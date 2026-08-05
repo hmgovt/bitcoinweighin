@@ -121,6 +121,31 @@
 
 	const isPu = (c: Commodity) => c.id === 'pu238';
 
+	// Bloom postprocessing (EffectComposer: scene pass + bright-pass extract +
+	// blur + composite) is cheap on capable hardware but, under CPU throttling
+	// or on genuinely low-end devices, a single composer.render() call can run
+	// long enough to blow the frame budget on its own — no redraw-frequency
+	// cap helps, since the loop is then bottlenecked by render cost, not by
+	// how often it's invoked. Detected via a synchronous CPU probe (a fixed
+	// amount of work that completes in a couple ms on a normal device but
+	// takes much longer once throttled ~4-6x) plus the two standard low-end
+	// device signals, so we can skip straight to the plain (non-bloom) render
+	// path for the frames that would otherwise be the problem. Capable
+	// devices are entirely unaffected.
+	function isLowPowerDevice(): boolean {
+		if (
+			(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) ||
+			((navigator as { deviceMemory?: number }).deviceMemory ?? Infinity) <= 2
+		) {
+			return true;
+		}
+		const start = performance.now();
+		let x = 0;
+		for (let i = 0; i < 2_000_000; i++) x += Math.sqrt(i);
+		void x;
+		return performance.now() - start > 10;
+	}
+
 	function hasWebGL(): boolean {
 		try {
 			const c = document.createElement('canvas');
@@ -377,7 +402,8 @@
 
 		renderer.domElement.addEventListener('webglcontextlost', onContextLost, false);
 
-		useBloom = renderer.capabilities.isWebGL2; // bloom only on WebGL2
+		// Bloom only on WebGL2, and only on hardware that can actually afford it.
+		useBloom = renderer.capabilities.isWebGL2 && !isLowPowerDevice();
 
 		scene = new three.Scene();
 		scene.background = new three.Color(BG);
