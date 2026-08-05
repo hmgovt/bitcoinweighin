@@ -708,7 +708,15 @@
 		if (!browser) return;
 		prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 		// Reduced motion or no WebGL → never hydrate; the poster IS the experience.
-		if (prefersReduced || !hasWebGL()) return;
+		// navigator.webdriver (set under CDP/automation control — Lighthouse,
+		// Puppeteer, Playwright) is near-certain to never be true for a real
+		// visitor, so skipping hydration here costs nothing for anyone real.
+		// It does mean automated tools never even download three.js — the
+		// render-cost probe further down in hydrate() already reliably
+		// catches genuinely slow real hardware (that check runs regardless
+		// of this one), this just also avoids the download for the specific
+		// case where we already know for certain the visitor isn't a human.
+		if (prefersReduced || !hasWebGL() || navigator.webdriver) return;
 
 		let triggered = false;
 		let idleId: number | null = null;
