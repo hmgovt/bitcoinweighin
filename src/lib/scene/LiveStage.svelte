@@ -420,12 +420,22 @@
 		width = containerEl.clientWidth || 1;
 		height = containerEl.clientHeight || 1;
 
-		renderer = new three.WebGLRenderer({ antialias: true, alpha: false });
+		// Decided up front, before the renderer exists, so it can also gate
+		// renderer-construction-time options (antialiasing) — not just bloom,
+		// which is the only thing the later software-renderer/empirical
+		// checks can react to (they need a live WebGL context to run).
+		const lowPower = isLowPowerDevice();
+
+		renderer = new three.WebGLRenderer({ antialias: !lowPower, alpha: false });
 		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // DPR cap 2
 		renderer.setSize(width, height);
 		renderer.toneMapping = three.ACESFilmicToneMapping;
 		renderer.toneMappingExposure = 1.3;
-		renderer.shadowMap.enabled = true;
+		// Shadow maps are a full extra render pass (2048×2048, PCF soft
+		// filtering — several texture samples per fragment for the penumbra)
+		// on top of the main scene render, independent of bloom. Skip that
+		// pass too on constrained hardware, for the same reason as bloom below.
+		renderer.shadowMap.enabled = !lowPower;
 		renderer.shadowMap.type = three.PCFSoftShadowMap;
 		renderer.domElement.className = 'stage-canvas';
 		renderer.domElement.setAttribute('aria-hidden', 'true');
@@ -434,8 +444,7 @@
 		renderer.domElement.addEventListener('webglcontextlost', onContextLost, false);
 
 		// Bloom only on WebGL2, and only on hardware that can actually afford it.
-		useBloom =
-			renderer.capabilities.isWebGL2 && !isLowPowerDevice() && !isSoftwareRenderer(renderer);
+		useBloom = renderer.capabilities.isWebGL2 && !lowPower && !isSoftwareRenderer(renderer);
 
 		scene = new three.Scene();
 		scene.background = new three.Color(BG);
@@ -492,8 +501,15 @@
 			// composer.render() call directly and fall back to the plain
 			// render path if even a single frame is too slow to be worth
 			// it, rather than trusting any proxy signal alone.
+			//
+			// gl.finish() forces a CPU/GPU sync point before we stop the
+			// clock. render() only *enqueues* GPU commands — on a driver
+			// that queues asynchronously, the call returns almost
+			// immediately regardless of how long the GPU actually takes,
+			// so timing render() alone silently measures the wrong thing.
 			const probeStart = performance.now();
 			composer.render();
+			renderer.getContext().finish();
 			if (performance.now() - probeStart > 50) {
 				useBloom = false;
 				composer.dispose();
