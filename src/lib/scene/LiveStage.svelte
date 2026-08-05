@@ -167,6 +167,20 @@
 	// immediately regardless of how long the GPU actually takes; timing
 	// render() alone silently measures the wrong thing.
 	function measureRenderCost(renderer: THREE.WebGLRenderer, renderOnce: () => void): number {
+		// The very first render through a given pipeline (shaders not yet
+		// compiled, render targets not yet allocated) can be dramatically
+		// slower than every render after it — a real driver cost, but a
+		// ONE-TIME one, not representative of the ongoing per-frame cost
+		// this is meant to measure. Without warming up first, a perfectly
+		// capable real device measures its own shader-compile stall and
+		// gets wrongly judged as too slow — exactly what happened here:
+		// the Pu-238 bloom glow disappeared for real visitors, not just in
+		// PageSpeed runs. Two discarded renders (synced) before the timed
+		// one so the measurement reflects steady state.
+		renderOnce();
+		renderOnce();
+		renderer.getContext().finish();
+
 		const start = performance.now();
 		renderOnce();
 		renderer.getContext().finish();
