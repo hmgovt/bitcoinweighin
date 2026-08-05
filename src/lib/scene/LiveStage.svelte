@@ -427,7 +427,15 @@
 		const lowPower = isLowPowerDevice();
 
 		renderer = new three.WebGLRenderer({ antialias: !lowPower, alpha: false });
-		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // DPR cap 2
+		// Bloom/shadows/AA off still left the *base* PBR-material render
+		// itself too expensive under software rendering: confirmed via
+		// PageSpeed's long-task breakdown, ~160-225ms per render() call,
+		// recurring for nearly the whole trace, with no bloom/shadow/AA
+		// pass in sight. Fragment-shading cost scales with pixel count, so
+		// this is the remaining high-leverage, shader-feature-agnostic
+		// lever: at pixel ratio 1 instead of up to 2, a high-DPI phone
+		// renders roughly a quarter of the fragments per frame.
+		renderer.setPixelRatio(lowPower ? 1 : Math.min(window.devicePixelRatio, 2));
 		renderer.setSize(width, height);
 		renderer.toneMapping = three.ACESFilmicToneMapping;
 		renderer.toneMappingExposure = 1.3;
