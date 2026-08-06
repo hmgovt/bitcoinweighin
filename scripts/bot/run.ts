@@ -32,7 +32,6 @@ const CARD_OUT = join(PROJECT_ROOT, 'output', 'cards');
 type CommodityId = 'gold' | 'silver' | 'cocaine' | 'pu238';
 interface Slot {
 	id: string;
-	utcHour: number;
 	commodity: CommodityId | 'hashweight';
 	format: 'absolute' | 'delta' | 'hashweight';
 	btc: number;
@@ -40,9 +39,11 @@ interface Slot {
 interface Config {
 	siteBase: string;
 	handle: string;
-	budget: { balanceCents: number; centsPerPost: number; monthlyCap: number };
+	budget: { balanceCents: number; centsPerPostNoLink: number; centsPerPostWithLink: number; linkThresholdPct: number; monthlyCap: number };
 	physical: Record<CommodityId, { display: string; noun: string; shape: 'cube' | 'mass'; densityGPerCm3?: number; novelty?: boolean }>;
 	slots: Slot[];
+	rotation: (string | null)[];
+	dailyUtcHour: number;
 	slotCatchupHours: number;
 }
 interface State {
@@ -139,13 +140,19 @@ function buildHashweight(eh: number): Content {
 	return { caption, btc: 0, commodity: 'hashweight' };
 }
 
+/** Deep link back to the exact view the card is showing. */
+function buildLink(cfg: Config, content: Content, dateStr: string): string {
+	if (content.commodity === 'hashweight') return `${cfg.siteBase}/#hashweight`;
+	return `${cfg.siteBase}/?btc=${content.btc}&commodity=${content.commodity}&date=${dateStr}`;
+}
+
 /**
- * Catch-up slot selection. GitHub frequently delays scheduled runs by
- * 1–4h, so matching "current hour == slot hour" silently drops late runs.
- * Instead, pick the earliest slot scheduled *today* (UTC) whose time has
- * passed, hasn't posted today, and is no more than `slotCatchupHours` old.
- * A delayed run still fires the right slot; a missed slot is recovered by
- * the next run within the window. Earliest-first so backlogs drain in order.
+ * One post/day: today's pillar is fixed by UTC weekday via `cfg.rotation`
+ * (null = scheduled day off). GitHub frequently delays scheduled runs by
+ * 1–4h, so matching "current hour == dailyUtcHour" exactly would silently
+ * drop late runs — instead fire once the daily time has passed, as long as
+ * it's no more than `slotCatchupHours` old and today's pillar hasn't
+ * already posted.
  */
 export function pickSlot(cfg: Config, now: Date, state: State, today: string): Slot | null {
 	const explicit = arg('slot');
@@ -154,16 +161,18 @@ export function pickSlot(cfg: Config, now: Date, state: State, today: string): S
 		if (!s) throw new Error(`Unknown --slot "${explicit}". Options: ${cfg.slots.map((x) => x.id).join(', ')}`);
 		return s;
 	}
+	const slotId = cfg.rotation[now.getUTCDay()];
+	if (!slotId) return null; // scheduled day off
+	const slot = cfg.slots.find((x) => x.id === slotId);
+	if (!slot) throw new Error(`rotation references unknown slot "${slotId}"`);
+	if (state.lastSlotDate[slot.id] === today) return null; // already posted today's pillar
+
+	const sched = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), cfg.dailyUtcHour, 0, 0);
+	const age = now.getTime() - sched;
 	const lookbackMs = cfg.slotCatchupHours * 3_600_000;
-	let best: { slot: Slot; sched: number } | null = null;
-	for (const s of cfg.slots) {
-		if (state.lastSlotDate[s.id] === today) continue; // already posted today
-		const sched = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), s.utcHour, 0, 0);
-		const age = now.getTime() - sched;
-		if (age < 0 || age > lookbackMs) continue; // not due yet, or too stale
-		if (!best || sched < best.sched) best = { slot: s, sched };
-	}
-	return best?.slot ?? null;
+	if (age < 0 || age > lookbackMs) return null; // not due yet, or too stale
+
+	return slot;
 }
 
 async function main() {
@@ -188,7 +197,7 @@ async function main() {
 	const today = isoDate(now);
 	const slot = pickSlot(cfg, now, state, today);
 	if (!slot) {
-		console.log(`No slot due at UTC hour ${now.getUTCHours()}. Slots: ${cfg.slots.map((s) => `${s.id}@${s.utcHour}`).join(', ')}.`);
+		console.log(`No pillar due at UTC hour ${now.getUTCHours()} (weekday ${now.getUTCDay()}). Rotation: ${cfg.rotation.map((s) => s ?? 'off').join(', ')}.`);
 		return;
 	}
 
@@ -203,15 +212,24 @@ async function main() {
 		console.log(`✗ Monthly cap reached (${state.postsThisMonth}/${cfg.budget.monthlyCap}). Skipping.`);
 		return;
 	}
+
+	// Big-move days earn the link back to the site; X bills a post with a
+	// URL at ~13x a plain post ($0.20 vs $0.015), so it's reserved for
+	// moves worth the spend rather than included every day.
+	const dates = Object.keys(prices).sort();
+	const latest = prices[dates[dates.length - 1]];
+	const prevDay = dates.length >= 2 ? prices[dates[dates.length - 2]] : undefined;
+	const btcPctChange = prevDay ? ((latest.btc - prevDay.btc) / prevDay.btc) * 100 : 0;
+	const includeLink = Math.abs(btcPctChange) >= cfg.budget.linkThresholdPct;
+	const costCents = includeLink ? cfg.budget.centsPerPostWithLink : cfg.budget.centsPerPostNoLink;
+
 	const remainingCents = cfg.budget.balanceCents - state.creditsSpentCents;
-	if (remainingCents < cfg.budget.centsPerPost) {
-		console.log(`✗ Credit guard: ${remainingCents}c left < ${cfg.budget.centsPerPost}c/post. Top up at X. Skipping.`);
+	if (remainingCents < costCents) {
+		console.log(`✗ Credit guard: ${remainingCents}c left < ${costCents}c for this post. Top up at X. Skipping.`);
 		return;
 	}
 
 	// ── Content ─────────────────────────────────────────────────────
-	const dates = Object.keys(prices).sort();
-	const latest = prices[dates[dates.length - 1]];
 	const out = join(CARD_OUT, `${slot.id}-${today}.png`);
 
 	let content: Content;
@@ -227,6 +245,11 @@ async function main() {
 				: buildAbsolute(slot, cfg, objs, latest);
 		renderImage = () =>
 			renderCard({ btc: content.btc, commodity: content.commodity as string, date: dates[dates.length - 1], out });
+	}
+
+	if (includeLink) {
+		console.log(`BTC moved ${btcPctChange.toFixed(1)}% today (>= ${cfg.budget.linkThresholdPct}% threshold) — including link.`);
+		content.caption = `${content.caption}\n\n${buildLink(cfg, content, dates[dates.length - 1])}`;
 	}
 
 	console.log('─'.repeat(60));
@@ -251,7 +274,7 @@ async function main() {
 	// ── Record state ────────────────────────────────────────────────
 	state.lastSlotDate[slot.id] = today;
 	state.postsThisMonth += 1;
-	state.creditsSpentCents += cfg.budget.centsPerPost;
+	state.creditsSpentCents += costCents;
 	state.posts.push({ at: now.toISOString(), slot: slot.id, commodity: content.commodity, tweetId, caption: content.caption });
 	if (state.posts.length > 200) state.posts = state.posts.slice(-200);
 	await fs.writeFile(STATE_PATH, JSON.stringify(state, null, 2) + '\n');

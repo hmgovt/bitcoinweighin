@@ -1,12 +1,14 @@
 {
-	"_doc": "Runtime config for the X bot. Six scheduled slots/day (5 commodities + a Hashweight network-mass post), with varied format so it doesn't read as a ticker. run.ts maps the current UTC hour to a slot (or takes --slot explicitly). Budget guard tracks spend against the prepaid X credit balance.",
+	"_doc": "Runtime config for the X bot. One post/day, pillar rotates by UTC weekday (see `rotation`; run.ts maps today's weekday to a slot, or takes --slot explicitly). Budget guard tracks spend against the prepaid X credit balance.",
 	"siteBase": "https://bitcoinweighin.com",
 	"handle": "bitcoinweighin",
 	"budget": {
 		"balanceCents": 1086,
-		"centsPerPost": 2,
+		"centsPerPostNoLink": 2,
+		"centsPerPostWithLink": 20,
+		"linkThresholdPct": 5,
 		"monthlyCap": 186,
-		"_note": "balanceCents is cumulative lifetime funding, not a resettable pool: remaining = balanceCents - state.creditsSpentCents (which never resets). History: 500 (launch) -> 586 on 2026-08-06 (confirmed $0.86 left at X, creditsSpentCents pinned at 500 since exhausted 2026-07-20) -> 1086 same day after a further $5.00 top-up at X ($5.86 now available). To top up again: balanceCents += (new cents funded at X). monthlyCap caps posts per calendar month regardless of remaining balance (6 slots/day x 31 = 186)."
+		"_note": "balanceCents is cumulative lifetime funding, not a resettable pool: remaining = balanceCents - state.creditsSpentCents (which never resets). History: 500 (launch) -> 586 on 2026-08-06 (confirmed $0.86 left at X, creditsSpentCents pinned at 500 since exhausted 2026-07-20) -> 1086 same day after a further $5.00 top-up at X ($5.86 now available). To top up again: balanceCents += (new cents funded at X). X bills a post containing a URL at $0.20/request vs $0.015 plain (per X's write-ops pricing), so the caption only includes the deep link back to the site when |BTC day-over-day move| >= linkThresholdPct; otherwise it stays link-free at the cheap rate. monthlyCap is a hard ceiling on posts/month regardless of balance (now generous at 1/day; kept as a safety net)."
 	},
 	"physical": {
 		"gold": {
@@ -42,46 +44,44 @@
 	"slots": [
 		{
 			"id": "gold-am",
-			"utcHour": 13,
 			"commodity": "gold",
 			"format": "absolute",
 			"btc": 1
 		},
 		{
 			"id": "hashweight-mid",
-			"utcHour": 15,
 			"commodity": "hashweight",
 			"format": "hashweight",
 			"btc": 1
 		},
 		{
 			"id": "silver-mid",
-			"utcHour": 17,
 			"commodity": "silver",
 			"format": "delta",
 			"btc": 1
 		},
 		{
 			"id": "cash-early-eve",
-			"utcHour": 19,
 			"commodity": "cash",
 			"format": "delta",
 			"btc": 1
 		},
 		{
 			"id": "cocaine-eve",
-			"utcHour": 21,
 			"commodity": "cocaine",
 			"format": "absolute",
 			"btc": 1
 		},
 		{
 			"id": "pu238-night",
-			"utcHour": 1,
 			"commodity": "pu238",
 			"format": "absolute",
 			"btc": 1
 		}
 	],
+	"rotation": [null, "gold-am", "hashweight-mid", "silver-mid", "cash-early-eve", "cocaine-eve", "pu238-night"],
+	"_rotationDoc": "Index = UTC weekday (0=Sun..6=Sat, JS Date#getUTCDay). null = scheduled day off. Currently Mon-Sat one pillar each, Sunday quiet.",
+	"dailyUtcHour": 0,
+	"_dailyUtcHourDoc": "0 UTC = ~8pm ET, picked for US retail/crypto-native evening scroll time (also catches early Asian trading-day open). Not yet verified against this account's own engagement data — X's Owned Reads pricing (GET /2/users/{id}/tweets, $0.001/resource) now makes it cheap to pull real post history and confirm/adjust this once there's enough post volume to compare.",
 	"slotCatchupHours": 6
 }

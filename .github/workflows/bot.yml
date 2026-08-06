@@ -1,26 +1,23 @@
 name: X bot
 
-# Five posts/day: 4 commodities + a Hashweight (network mining-hardware mass)
-# post, varied format (see scripts/bot/config.json).
-# run.ts uses catch-up selection: each run posts the earliest slot due today
-# (UTC) that hasn't posted yet and is within slotCatchupHours. GitHub often
-# delays scheduled runs 1–4h, so each slot has a primary cron at its time plus
-# a +2h catch-up cron; whichever fires first within the window posts the slot.
-# Cron times are UTC (~9a / 11a / 1p / 5p / 9p ET, EDT).
+# One post/day: the pillar rotates by UTC weekday (gold, hashweight, silver,
+# cash, cocaine, pu238 — see scripts/bot/config.json `rotation`), Sunday off.
+# The caption stays link-free (cheap) unless BTC's day-over-day move clears
+# `linkThresholdPct` — X bills a post containing a URL at ~13x a plain post.
+# run.ts fires once dailyUtcHour has passed and today's pillar hasn't posted
+# yet; GitHub often delays scheduled runs 1–4h, so a +4h catch-up cron covers
+# a missed primary run within slotCatchupHours (6h).
+# Cron times are UTC (dailyUtcHour=0 ~= 8p ET, evening crypto-scroll window
+# per scripts/bot/config.json `_dailyUtcHourDoc` — not yet verified against
+# this account's own engagement data).
 on:
   schedule:
-    - cron: '0 13 * * *' # gold-am        primary  (~9a ET)
-    - cron: '0 15 * * *' # gold-am catch-up / hashweight-mid primary (~11a ET)
-    - cron: '0 17 * * *' # silver-mid  primary  (~1p ET)
-    - cron: '0 19 * * *' # silver-mid  catch-up
-    - cron: '0 21 * * *' # cocaine-eve primary  (~5p ET)
-    - cron: '0 23 * * *' # cocaine-eve catch-up
-    - cron: '0 1 * * *'  # pu238-night primary  (~9p ET previous day)
-    - cron: '0 3 * * *'  # pu238-night catch-up
+    - cron: '0 0 * * *' # primary   (~8p ET)
+    - cron: '0 4 * * *' # catch-up  (~midnight ET)
   workflow_dispatch:
     inputs:
       slot:
-        description: 'Slot id to run (blank = auto by current UTC hour)'
+        description: "Slot id to run (blank = auto by today's weekday rotation)"
         type: string
         default: ''
       dry_run:
