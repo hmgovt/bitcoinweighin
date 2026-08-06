@@ -3,10 +3,10 @@
 	"siteBase": "https://bitcoinweighin.com",
 	"handle": "bitcoinweighin",
 	"budget": {
-		"balanceCents": 500,
+		"balanceCents": 586,
 		"centsPerPost": 2,
 		"monthlyCap": 186,
-		"_note": "balanceCents is the prepaid X credit pool (authoritative balance lives at X; this is a local guard). At 2c/post, 500c ~= 250 posts. monthlyCap caps posts per calendar month regardless of remaining balance (6 slots/day x 31 = 186)."
+		"_note": "balanceCents is cumulative lifetime funding, not a resettable pool: remaining = balanceCents - state.creditsSpentCents (which never resets). Bumped 500->586 on 2026-08-06 after confirming $0.86 left at X (creditsSpentCents was pinned at 500, i.e. exhausted, since 2026-07-20). To top up again: balanceCents += (new cents funded at X). monthlyCap caps posts per calendar month regardless of remaining balance (6 slots/day x 31 = 186)."
 	},
 	"physical": {
 		"gold": {
