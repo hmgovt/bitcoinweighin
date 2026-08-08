@@ -1,23 +1,16 @@
 {
   "monthKey": "2026-08",
-  "postsThisMonth": 1,
-  "creditsSpentCents": 502,
+  "postsThisMonth": 2,
+  "creditsSpentCents": 504,
   "lastSlotDate": {
     "gold-am": "2026-07-20",
     "silver-mid": "2026-07-19",
     "cocaine-eve": "2026-08-07",
-    "pu238-night": "2026-07-20",
+    "pu238-night": "2026-08-08",
     "hashweight-mid": "2026-07-19",
     "cash-early-eve": "2026-07-19"
   },
   "posts": [
-    {
-      "at": "2026-06-11T18:18:29.027Z",
-      "slot": "hashweight-mid",
-      "commodity": "hashweight",
-      "tweetId": "2065136638225998188",
-      "caption": "The Bitcoin network's mining hardware weighs ~81,000 tonnes — about 1.5× the Titanic in ASICs, humming in warehouses to secure the chain. Hashrate today: 898 EH/s."
-    },
     {
       "at": "2026-06-11T19:32:22.992Z",
       "slot": "silver-mid",
@@ -1410,6 +1403,13 @@
       "commodity": "cocaine",
       "tweetId": "2085525143489589386",
       "caption": "1 BTC today = 2.2 kg (4.7 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-08-08T02:57:05.407Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2085923244587049096",
+      "caption": "1 BTC today = a 10 mm cube of plutonium-238 — the glowing isotope that powers deep-space probes. Weighs 13 g (0.03 lb)."
     }
   ]
 }
