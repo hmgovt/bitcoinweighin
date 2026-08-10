@@ -804,7 +804,15 @@
 		position: absolute;
 		inset: 0;
 		display: grid;
-		place-items: center;
+		/* justify-items must stay `stretch` (the grid default) — CubeRenderer's
+		   .cube-scene has `container-type: inline-size`, which forces it to be
+		   sized without regard to its own content. If this grid item is also
+		   asked to size itself from content (`justify-items: center`), the two
+		   constraints deadlock to a 0px-wide box: invisible to real visitors
+		   (the WebGL canvas covers the poster within moments of hydration) but
+		   fatal for headless/bot captures, which sit on the poster indefinitely.
+		   Only vertical centering is wanted here, so align-items alone. */
+		align-items: center;
 		padding: 8px 12px;
 		opacity: 1;
 		transition: opacity 320ms ease;
