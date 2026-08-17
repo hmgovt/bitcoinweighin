@@ -68,6 +68,56 @@ export async function postTweet(imagePath: string, caption: string): Promise<str
 	return data.id;
 }
 
+/**
+ * Post a text-only reply to an existing tweet.
+ *
+ * Used for the "first-reply link" pattern: the main tweet stays link-free
+ * (avoiding X's 30-80% external-link penalty) and the site URL goes here
+ * where it still gets impressions from anyone who expands the thread.
+ *
+ * Returns the reply tweet id.
+ */
+export async function replyToTweet(parentTweetId: string, text: string): Promise<string> {
+	if (text.length > 280) throw new Error(`Reply ${text.length} chars > 280 limit.`);
+	const client = clientFromEnv();
+	const { data } = await client.v2.tweet({
+		text,
+		reply: { in_reply_to_tweet_id: parentTweetId },
+	});
+	return data.id;
+}
+
+/**
+ * Post a thread (array of tweets where each replies to the previous).
+ * First tweet can have an image; subsequent are text-only.
+ * Returns array of tweet ids in thread order.
+ *
+ * Threads get 40-60% more total impressions than standalone posts
+ * because the algo assigns each tweet its own velocity score while
+ * cross-pollinating impressions across the thread.
+ */
+export async function postThread(tweets: Array<{ text: string; imagePath?: string }>): Promise<string[]> {
+	if (!tweets.length) throw new Error('Thread must have at least one tweet.');
+	const client = clientFromEnv();
+	const ids: string[] = [];
+
+	for (const tweet of tweets) {
+		if (tweet.text.length > 280) throw new Error(`Thread tweet ${ids.length + 1} is ${tweet.text.length} chars > 280.`);
+		let mediaId: string | undefined;
+		if (tweet.imagePath) {
+			mediaId = await client.v1.uploadMedia(tweet.imagePath);
+		}
+		const payload: Record<string, unknown> = { text: tweet.text };
+		if (mediaId) payload.media = { media_ids: [mediaId] };
+		if (ids.length > 0) payload.reply = { in_reply_to_tweet_id: ids[ids.length - 1] };
+
+		const { data } = await client.v2.tweet(payload);
+		ids.push(data.id);
+	}
+
+	return ids;
+}
+
 async function main() {
 	const args = parseArgs(process.argv.slice(2));
 	const imagePath = resolve(args.image);

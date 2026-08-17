@@ -56,6 +56,7 @@ jobs:
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          NOTIFY_WEBHOOK_URL: ${{ secrets.NOTIFY_WEBHOOK_URL }}
         run: |
           ARGS=""
           if [ -n "${{ github.event.inputs.slot }}" ]; then ARGS="$ARGS --slot=${{ github.event.inputs.slot }}"; fi
