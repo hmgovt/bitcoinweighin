@@ -1,19 +1,23 @@
 name: X bot
 
-# One post/day: the pillar rotates by UTC weekday (gold, hashweight, silver,
-# cash, cocaine, pu238 — see scripts/bot/config.json `rotation`), Sunday off.
-# The caption stays link-free (cheap) unless BTC's day-over-day move clears
-# `linkThresholdPct` — X bills a post containing a URL at ~13x a plain post.
-# run.ts fires once dailyUtcHour has passed and today's pillar hasn't posted
-# yet; GitHub often delays scheduled runs 1–4h, so a +4h catch-up cron covers
-# a missed primary run within slotCatchupHours (6h).
-# Cron times are UTC (dailyUtcHour=0 ~= 8p ET, evening crypto-scroll window
-# per scripts/bot/config.json `_dailyUtcHourDoc` — not yet verified against
-# this account's own engagement data).
+# First-reply A/B test: all commodity slots post daily (rotation="*"),
+# one per cron invocation (pickSlot returns the next unposted slot for
+# today). Cron fires 6 times/day spaced ~4 hours apart to cover up
+# to 6 slots, with run.ts gracefully exiting if all slots are done.
+# slotCatchupHours=23 covers the full day so late GitHub Actions runners
+# still pick up missed slots. Cost: ~22c/post (2c main + 20c first-reply).
+# At 5-6 posts/day this burns through ~$5.68 remaining X API credit in
+# ~5 days, giving an A/B comparison of the first-reply link tactic.
+# After credits are exhausted, migrate to OpenTweet ($11.99/mo).
+# Cron times are UTC. Sunday off (rotation[0] = null).
 on:
   schedule:
-    - cron: '0 0 * * *' # primary   (~8p ET)
-    - cron: '0 4 * * *' # catch-up  (~midnight ET)
+    - cron: '0 0 * * 1-6'  # 00:00 UTC Mon-Sat
+    - cron: '0 4 * * 1-6'  # 04:00 UTC
+    - cron: '0 8 * * 1-6'  # 08:00 UTC
+    - cron: '0 12 * * 1-6' # 12:00 UTC
+    - cron: '0 16 * * 1-6' # 16:00 UTC
+    - cron: '0 20 * * 1-6' # 20:00 UTC
   workflow_dispatch:
     inputs:
       slot:
@@ -72,19 +76,15 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/bot-state.json
           git diff --cached --quiet || git commit -m "chore(bot): state $(date -u +%Y-%m-%dT%H:%MZ)"
-          # Push with rebase-and-retry. The bot's concurrency group serialises
-          # bot-vs-bot, but not bot-vs-daily-update or bot-vs-manual pushes —
-          # those races would otherwise silently drop the bot-state commit
-          # and re-post the same slot next cron.
           for attempt in 1 2 3 4 5; do
             if git push; then
               echo "Pushed on attempt $attempt"
               exit 0
             fi
-            echo "Push attempt $attempt rejected — fetching and rebasing"
+            echo "Push attempt $attempt rejected â fetching and rebasing"
             git fetch origin main
             git rebase origin/main || {
-              echo "::error::Rebase conflict on attempt $attempt — aborting"
+              echo "::error::Rebase conflict on attempt $attempt â aborting"
               git rebase --abort || true
               exit 1
             }
