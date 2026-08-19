@@ -1,23 +1,16 @@
 {
   "monthKey": "2026-08",
-  "postsThisMonth": 17,
-  "creditsSpentCents": 694,
+  "postsThisMonth": 18,
+  "creditsSpentCents": 716,
   "lastSlotDate": {
     "gold-am": "2026-08-19",
     "silver-mid": "2026-08-19",
     "cocaine-eve": "2026-08-18",
     "pu238-night": "2026-08-15",
     "hashweight-mid": "2026-08-19",
-    "cash-early-eve": "2026-08-18"
+    "cash-early-eve": "2026-08-19"
   },
   "posts": [
-    {
-      "at": "2026-06-14T18:10:22.279Z",
-      "slot": "silver-mid",
-      "commodity": "silver",
-      "tweetId": "2066221853832560954",
-      "caption": "In silver, 1 BTC added a newborn baby since yesterday's close (+2.8 kg)."
-    },
     {
       "at": "2026-06-14T22:03:38.895Z",
       "slot": "cocaine-eve",
@@ -1410,6 +1403,13 @@
       "commodity": "silver",
       "tweetId": "2090096678456184923",
       "caption": "In silver, 1 BTC gained a bag of sugar since yesterday's close (+1.2 kg)."
+    },
+    {
+      "at": "2026-08-19T16:41:10.752Z",
+      "slot": "cash-early-eve",
+      "commodity": "cash",
+      "tweetId": "2090117037934719179",
+      "caption": "In $1 bills, 1 BTC put on a full can of soda since yesterday's close (+357 g)."
     }
   ]
 }
