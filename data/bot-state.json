@@ -1,23 +1,16 @@
 {
   "monthKey": "2026-08",
-  "postsThisMonth": 30,
-  "creditsSpentCents": 980,
+  "postsThisMonth": 31,
+  "creditsSpentCents": 1002,
   "lastSlotDate": {
     "gold-am": "2026-08-21",
     "silver-mid": "2026-08-21",
     "cocaine-eve": "2026-08-21",
-    "pu238-night": "2026-08-20",
+    "pu238-night": "2026-08-21",
     "hashweight-mid": "2026-08-21",
     "cash-early-eve": "2026-08-21"
   },
   "posts": [
-    {
-      "at": "2026-06-17T17:05:19.292Z",
-      "slot": "gold-am",
-      "commodity": "gold",
-      "tweetId": "2067292690077921750",
-      "caption": "1 BTC today = a 29 mm gold cube. Fits in your palm. Weighs 473 g (1.04 lb)."
-    },
     {
       "at": "2026-06-17T17:50:48.517Z",
       "slot": "hashweight-mid",
@@ -1410,6 +1403,13 @@
       "commodity": "cocaine",
       "tweetId": "2090842137399312880",
       "caption": "1 BTC today = 2.4 kg (5.3 lb) of cocaine, at wholesale."
+    },
+    {
+      "at": "2026-08-21T20:28:31.710Z",
+      "slot": "pu238-night",
+      "commodity": "pu238",
+      "tweetId": "2090898884348518695",
+      "caption": "Voyager runs on plutonium-238. 1 BTC buys a 11 mm cube of it — 15 g (0.03 lb)."
     }
   ]
 }
