@@ -1,23 +1,16 @@
 {
   "monthKey": "2026-08",
-  "postsThisMonth": 33,
-  "creditsSpentCents": 1046,
+  "postsThisMonth": 34,
+  "creditsSpentCents": 1068,
   "lastSlotDate": {
     "gold-am": "2026-08-22",
-    "silver-mid": "2026-08-21",
+    "silver-mid": "2026-08-22",
     "cocaine-eve": "2026-08-21",
     "pu238-night": "2026-08-21",
     "hashweight-mid": "2026-08-22",
     "cash-early-eve": "2026-08-21"
   },
   "posts": [
-    {
-      "at": "2026-06-17T21:00:02.827Z",
-      "slot": "cocaine-eve",
-      "commodity": "cocaine",
-      "tweetId": "2067351604961947812",
-      "caption": "1 BTC today = 2.2 kg (4.8 lb) of cocaine, at wholesale."
-    },
     {
       "at": "2026-06-18T06:00:36.999Z",
       "slot": "pu238-night",
@@ -1410,6 +1403,13 @@
       "commodity": "hashweight",
       "tweetId": "2091081378779586902",
       "caption": "The chain is secured by ~83,000 tonnes of ASICs — about 1.6× the Titanic's mass, at 921 EH/s of hashpower."
+    },
+    {
+      "at": "2026-08-22T12:12:42.230Z",
+      "slot": "silver-mid",
+      "commodity": "silver",
+      "tweetId": "2091136497839739298",
+      "caption": "In silver, 1 BTC put on a house brick since yesterday's close (+2.6 kg)."
     }
   ]
 }
