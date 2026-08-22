@@ -1,23 +1,16 @@
 {
   "monthKey": "2026-08",
-  "postsThisMonth": 32,
-  "creditsSpentCents": 1024,
+  "postsThisMonth": 33,
+  "creditsSpentCents": 1046,
   "lastSlotDate": {
     "gold-am": "2026-08-22",
     "silver-mid": "2026-08-21",
     "cocaine-eve": "2026-08-21",
     "pu238-night": "2026-08-21",
-    "hashweight-mid": "2026-08-21",
+    "hashweight-mid": "2026-08-22",
     "cash-early-eve": "2026-08-21"
   },
   "posts": [
-    {
-      "at": "2026-06-17T19:22:44.483Z",
-      "slot": "silver-mid",
-      "commodity": "silver",
-      "tweetId": "2067327180078731561",
-      "caption": "In silver, 1 BTC gave back a full can of soda since yesterday's close (−359 g)."
-    },
     {
       "at": "2026-06-17T21:00:02.827Z",
       "slot": "cocaine-eve",
@@ -1410,6 +1403,13 @@
       "commodity": "gold",
       "tweetId": "2090963578534887533",
       "caption": "Right now, 1 BTC buys a 30 mm gold cube. Fits in your palm. Total weight: 501 g (1.10 lb)."
+    },
+    {
+      "at": "2026-08-22T08:33:38.818Z",
+      "slot": "hashweight-mid",
+      "commodity": "hashweight",
+      "tweetId": "2091081378779586902",
+      "caption": "The chain is secured by ~83,000 tonnes of ASICs — about 1.6× the Titanic's mass, at 921 EH/s of hashpower."
     }
   ]
 }
