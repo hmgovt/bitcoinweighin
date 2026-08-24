@@ -990,7 +990,7 @@
 								<div class="value-context">
 									{formatUsd(sceneBtc * dayPrices.btc)} ·
 									{#if $selectedDate === lastDate && livePrice}
-										<span title="Live CoinGecko price, updated {formatLiveAsOf(livePrice.asOf)}"
+										<span title="Live Bitstamp price, updated {formatLiveAsOf(livePrice.asOf)}"
 											>live</span
 										>
 									{:else}
@@ -1003,6 +1003,11 @@
 							{#if dayPrices}
 								<div class="value-context">
 									{formatBtc(lockedBtcForDateMode)} locked · {formatUsd(lockedBtcForDateMode * dayPrices.btc)}
+									{#if $selectedDate === lastDate && livePrice}
+										<span title="Live Bitstamp price, updated {formatLiveAsOf(livePrice.asOf)}"
+											>· live</span
+										>
+									{/if}
 								</div>
 							{:else}
 								<div class="value-context">{formatBtc(lockedBtcForDateMode)} locked</div>
