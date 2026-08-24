@@ -62,6 +62,12 @@
 		return prices?.[date];
 	}
 
+	// Live BTC/USD overlay (functions/api/live-price.ts) — the archive's
+	// `btc` field is yesterday's-close-at-best (daily cron), which ages
+	// fast. Polled client-side and layered onto the latest day only;
+	// historical dates keep their frozen close untouched.
+	let livePrice = $state<{ usd: number; asOf: number } | null>(null);
+
 	// ── Slider log-scale helpers ────────────────────────────────
 	const BTC_MIN = 0.00000001; // 1 sat
 	const BTC_MAX = 21_000_000;
@@ -473,7 +479,13 @@
 		if (entity && !reduceMotion) tweenSceneBtc(from, entity.btc, 600);
 	}
 
-	const dayPrices = $derived(getDayPrices($selectedDate));
+	const dayPrices = $derived.by(() => {
+		const raw = getDayPrices($selectedDate);
+		if (raw && $selectedDate === lastDate && livePrice) {
+			return { ...raw, btc: livePrice.usd };
+		}
+		return raw;
+	});
 
 	function formatUsd(value: number): string {
 		if (value >= 1_000_000_000_000) {
@@ -489,6 +501,10 @@
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
 		});
+	}
+
+	function formatLiveAsOf(unixSeconds: number): string {
+		return new Date(unixSeconds * 1000).toLocaleTimeString('en-US');
 	}
 
 	function formatDateReadout(dateStr: string): string {
@@ -689,6 +705,31 @@
 		// is guaranteed to be in `prices`. A brief flicker on deep-links is
 		// the cost of avoiding an SSR/client hydration mismatch.
 		hydrateFromUrl(lastDate);
+	});
+
+	// Poll the live price on the same cadence as its edge cache TTL
+	// (functions/api/live-price.ts, 30s) — polling faster would only ever
+	// re-fetch the same cached value. A failed poll just leaves the prior
+	// value in place; the archive's daily close remains the fallback until
+	// the first successful response ever arrives.
+	onMount(() => {
+		let cancelled = false;
+		async function poll() {
+			try {
+				const res = await fetch('/api/live-price');
+				if (!res.ok) return;
+				const body = (await res.json()) as { usd: number; asOf: number };
+				if (!cancelled) livePrice = body;
+			} catch {
+				// Offline / blocked — keep showing the last known price.
+			}
+		}
+		poll();
+		const interval = setInterval(poll, 30_000);
+		return () => {
+			cancelled = true;
+			clearInterval(interval);
+		};
 	});
 </script>
 
@@ -947,7 +988,14 @@
 							{/if}
 							{#if dayPrices}
 								<div class="value-context">
-									{formatUsd(sceneBtc * dayPrices.btc)} · {formatDateReadout($selectedDate)}
+									{formatUsd(sceneBtc * dayPrices.btc)} ·
+									{#if $selectedDate === lastDate && livePrice}
+										<span title="Live CoinGecko price, updated {formatLiveAsOf(livePrice.asOf)}"
+											>live</span
+										>
+									{:else}
+										{formatDateReadout($selectedDate)}
+									{/if}
 								</div>
 							{/if}
 						{:else}
