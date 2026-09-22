@@ -23,8 +23,8 @@
     {
       "slug": "el-salvador",
       "label": "El Salvador",
-      "btc": 7780,
-      "asOf": "2026-09-20",
+      "btc": 7782,
+      "asOf": "2026-09-22",
       "type": "nation-state",
       "source": "https://bitcointreasuries.net/governments/el-salvador",
       "sourceName": "Bitcoin Treasuries (mirrors El Salvador National Bitcoin Office)",
@@ -73,8 +73,8 @@
     {
       "slug": "strategy",
       "label": "Strategy",
-      "btc": 845050,
-      "asOf": "2026-09-01",
+      "btc": 846000,
+      "asOf": "2026-09-22",
       "type": "corporate",
       "source": "https://bitcointreasuries.net/public-companies/strategy",
       "sourceName": "Bitcoin Treasuries (mirrors Strategy 8-K filings)",
