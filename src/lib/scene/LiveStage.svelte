@@ -37,13 +37,14 @@
 	 *    state the dog-placement maths didn't solve for.
 	 *  · OPTICS. A physical depth-of-field pass (declared 38 mm f/2.8 lens) and,
 	 *    for cubes too small to resolve, a magnifier loupe with a declared power.
-	 *  · SOUND. The cube rings at its real free-vibration modes when it lands
-	 *    (`impact-sound.ts`): pitch ∝ 1/edge, so small cubes ring in
-	 *    ultrasound — silent to people, not to Sat. Off by default; the stage's
-	 *    speaker toggle shares the site's one audio switch (`audioEnabled`,
-	 *    `?audio=on`) with the Pu-238 Geiger counter.
+	 *  · SOUND. The landing is heard mostly through the floor (`impact-sound.ts`):
+	 *    the blow's force pulse — τ = π√(m/k), longer and deeper for bigger
+	 *    cubes — radiated by the slab, a crack from the cube stopping dead,
+	 *    fracture when the floor cracks, and a stated room. Off by default;
+	 *    the stage's speaker toggle shares the site's one audio switch
+	 *    (`audioEnabled`, `?audio=on`) with the Pu-238 Geiger counter.
 	 *  · CLIP. "Make a clip" records the Drop at the current amount as a
-	 *    vertical video (numbers and the ring baked in) to share.
+	 *    vertical video (numbers and the sound baked in) to share.
 	 *
 	 * The stage is a pure consumer of `(commodity, amount)`. `staged` is a
 	 * bindable the page reads to add the "Sat is standing nearer the camera"
@@ -51,6 +52,7 @@
 	 * foreground.
 	 */
 	import { onMount, tick } from 'svelte';
+	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
 	import type { Commodity } from '$lib/commodities.js';
 	import CubeRenderer from '$lib/components/CubeRenderer.svelte';
@@ -71,16 +73,18 @@
 		bearingPressurePa,
 		exceedsBedrock,
 		clearCameraFromCube,
+		formatDuration,
 	} from './drop.js';
 	import { TAP_SLOP_PX, dragRatio, pinchRatio, wheelZoomRatio, orbitYaw } from './grab.js';
 	import {
 		isSoundingMaterial,
-		ringPitchHz,
 		synthImpact,
-		hearingBand,
-		formatFrequency,
+		contactTimeS,
+		peakForceN,
+		formatForce,
 		type SoundingMaterial,
 	} from './impact-sound.js';
+	import { system } from '$lib/stores/system.js';
 	import { audioEnabled } from '$lib/stores/url.js';
 	// The clip recorder is dynamic-imported with the rest of the scene
 	// (`C` below) — only its types are needed up front.
@@ -142,9 +146,9 @@
 	let clipFileName = $state('clip.mp4');
 	let canShareFile = $state(false);
 	let previewHost: HTMLDivElement | undefined = $state();
-	/** Transient "♪ 26.8 kHz — only Sat can hear this" caption after a landing. */
-	let ringCaption = $state<{ text: string; band: 'people' | 'dogs' | 'nobody' } | null>(null);
-	let ringCaptionTimer: ReturnType<typeof setTimeout> | null = null;
+	/** Transient "0.7 ms blow · 207 tons of force" caption after a landing. */
+	let blowCaption = $state<string | null>(null);
+	let blowCaptionTimer: ReturnType<typeof setTimeout> | null = null;
 	const soundOn = $derived($audioEnabled);
 	let videoEl: HTMLVideoElement | undefined = $state();
 	let clipFile: File | null = null;
@@ -582,21 +586,21 @@
 		const i = impactIntensity(nthImpactEnergyJ(e1, n));
 		if (clip && n === 1) clip.impactT = (now - clip.t0) / 1000;
 
-		// The ring. Loudness is compressed from the impact energy (the real
-		// range spans ~20 orders of magnitude); each bounce lands at
-		// restitution × the previous speed, so its ring is that much quieter.
+		// The sound. Loudness is compressed from the impact energy (the real
+		// range spans ~20 orders of magnitude, from a silent speck to a
+		// deafening monolith); each bounce lands at restitution × the previous
+		// speed, so its blow carries that much less impulse.
 		const id = commodity.id;
-		if (isSoundingMaterial(id)) {
-			const gain = (0.25 + 0.75 * impactIntensity(e1)) * Math.pow(RESTITUTION, n - 1);
-			if (clip) playRing(clip.ac, clip.bus, id, edge, gain);
+		const rho = commodity.densityGPerCm3;
+		if (isSoundingMaterial(id) && rho) {
+			const gain = impactIntensity(e1) * Math.pow(RESTITUTION, n - 1);
+			const cracks = exceedsBedrock(bearingPressurePa(rho, edge));
+			if (clip) playImpact(clip.ac, clip.bus, id, edge, rho, cracks, gain);
 			else if (soundOn) {
 				const ac = ensurePageAudio();
-				if (ac && pageBus) playRing(ac, pageBus, id, edge, gain);
+				if (ac && pageBus) playImpact(ac, pageBus, id, edge, rho, cracks, gain);
 			}
-			if (n === 1 && !clip) showRingCaption(ringPitchHz(id, edge));
-			// Sat hears what you can't: a ring between 20 and 45 kHz keeps his
-			// ears up well after the thud has gone quiet for everyone else.
-			if (n === 1 && hearingBand(ringPitchHz(id, edge)) === 'dogs') earPerkUntil = now + 3500;
+			if (n === 1 && !clip) showBlowCaption(id, edge, rho);
 		}
 		if (prefersReduced) return;
 		const sp = shakeProfile(i);
@@ -623,19 +627,19 @@
 		}
 	}
 
-	// ── Sound: the cube's ring ────────────────────────────────────────────────
+	// ── Sound: the landing ────────────────────────────────────────────────────
 	// One AudioContext for the page, created (or resumed) inside a user
 	// gesture — the speaker toggle, or any press while sound is on. Clips use
 	// their own context wired into the recording.
 	let pageAc: AudioContext | null = null;
 	let pageBus: AudioNode | null = null;
-	let ringCache: { key: string; buf: AudioBuffer } | null = null;
+	let impactCache: { key: string; buf: AudioBuffer } | null = null;
 
 	function ensurePageAudio(): AudioContext | null {
 		if (!pageAc) {
 			try {
 				pageAc = new AudioContext();
-				// Gentle limiter so the whole-supply gong can't clip the output.
+				// Gentle limiter so the whole-supply blow can't clip the output.
 				const comp = pageAc.createDynamicsCompressor();
 				comp.connect(pageAc.destination);
 				pageBus = comp;
@@ -659,21 +663,30 @@
 		if (next) ensurePageAudio();
 	}
 
-	/** The ring for this cube, rendered once per (material, edge, rate). */
-	function ringBuffer(ac: AudioContext, id: SoundingMaterial, edge: number): AudioBuffer {
-		const key = `${id}:${edge.toPrecision(5)}:${ac.sampleRate}`;
-		if (ringCache?.key === key) return ringCache.buf;
-		const data = synthImpact(id, edge, ac.sampleRate);
+	/** The landing for this cube, rendered once per (material, size, rate). */
+	function impactBuffer(ac: AudioContext, id: SoundingMaterial, edge: number, rho: number, cracks: boolean): AudioBuffer {
+		const key = `${id}:${edge.toPrecision(5)}:${cracks}:${ac.sampleRate}`;
+		if (impactCache?.key === key) return impactCache.buf;
+		const data = synthImpact({ id, edge, densityGPerCm3: rho, sampleRate: ac.sampleRate, cracks });
 		const buf = ac.createBuffer(1, data.length, ac.sampleRate);
 		buf.copyToChannel(data, 0);
-		ringCache = { key, buf };
+		impactCache = { key, buf };
 		return buf;
 	}
 
-	function playRing(ac: AudioContext, out: AudioNode, id: SoundingMaterial, edge: number, gain: number): void {
+	function playImpact(
+		ac: AudioContext,
+		out: AudioNode,
+		id: SoundingMaterial,
+		edge: number,
+		rho: number,
+		cracks: boolean,
+		gain: number
+	): void {
+		if (!(gain > 0)) return;
 		try {
 			const src = ac.createBufferSource();
-			src.buffer = ringBuffer(ac, id, edge);
+			src.buffer = impactBuffer(ac, id, edge, rho, cracks);
 			const g = ac.createGain();
 			g.gain.value = gain;
 			src.connect(g).connect(out);
@@ -683,12 +696,11 @@
 		}
 	}
 
-	function showRingCaption(hz: number): void {
-		const band = hearingBand(hz);
-		const who = band === 'people' ? '' : band === 'dogs' ? ' · only Sat can hear this' : ' · nobody can hear this';
-		ringCaption = { text: `♪ ${formatFrequency(hz)}${who}`, band };
-		if (ringCaptionTimer) clearTimeout(ringCaptionTimer);
-		ringCaptionTimer = setTimeout(() => (ringCaption = null), 3200);
+	function showBlowCaption(id: SoundingMaterial, edge: number, rho: number): void {
+		const unit = get(system);
+		blowCaption = `${formatDuration(contactTimeS(id, edge, rho))} blow · ${formatForce(peakForceN(id, edge, rho), unit)}`;
+		if (blowCaptionTimer) clearTimeout(blowCaptionTimer);
+		blowCaptionTimer = setTimeout(() => (blowCaption = null), 3200);
 	}
 
 	// ── Gaze tracking (brief §2.2) — head bone aims at the cube, post-mix ─────
@@ -1800,12 +1812,12 @@
 			window.removeEventListener('pointerdown', primeAudio);
 			window.removeEventListener('keydown', primeAudio);
 		}
-		if (ringCaptionTimer) clearTimeout(ringCaptionTimer);
-		ringCaption = null;
+		if (blowCaptionTimer) clearTimeout(blowCaptionTimer);
+		blowCaption = null;
 		void pageAc?.close().catch(() => {});
 		pageAc = null;
 		pageBus = null;
-		ringCache = null;
+		impactCache = null;
 		if (renderer) {
 			const el = renderer.domElement;
 			el.removeEventListener('pointerdown', onPointerDown);
@@ -1944,7 +1956,7 @@
 					class:stage-btn--on={soundOn}
 					onclick={toggleSound}
 					aria-pressed={soundOn}
-					title={soundOn ? 'Sound on — the cube rings at its real pitch when it lands' : 'Sound off — turn on to hear the cube ring at its real pitch'}
+					title={soundOn ? 'Sound on — hear the landing, modelled from the blow the floor takes' : 'Sound off — turn on to hear the landing'}
 				>
 					<svg class="stage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -1965,10 +1977,8 @@
 				</button>
 			{/if}
 		</div>
-		{#if ringCaption}
-			<div class="ring-caption" class:ring-caption--muted={ringCaption.band !== 'people'} aria-live="polite">
-				{ringCaption.text}
-			</div>
+		{#if blowCaption}
+			<div class="blow-caption" aria-live="polite">{blowCaption}</div>
 		{/if}
 
 		{#if hintVisible}
@@ -2065,7 +2075,7 @@
 	.loupe-svg,
 	.loupe-label,
 	.stage-buttons,
-	.ring-caption,
+	.blow-caption,
 	.stage-hint {
 		z-index: 2;
 	}
@@ -2134,7 +2144,7 @@
 		width: 14px;
 		height: 14px;
 	}
-	.ring-caption {
+	.blow-caption {
 		position: absolute;
 		top: 50px;
 		right: 12px;
@@ -2149,9 +2159,6 @@
 		letter-spacing: 0.01em;
 		pointer-events: none;
 		animation: hint-in 240ms ease both;
-	}
-	.ring-caption--muted {
-		color: #a1a1aa;
 	}
 	.rec-dot {
 		width: 8px;

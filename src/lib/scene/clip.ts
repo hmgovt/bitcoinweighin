@@ -5,9 +5,9 @@
  *
  * The clip is the same WebGL stage the page shows, recorded in real time —
  * nothing pre-rendered, nothing faked. `LiveStage` owns the timeline, the
- * MediaRecorder and the sound (the cube's physical ring, from
- * `impact-sound.ts`, always mixed into the file — even when the page itself
- * is muted); this module only lays out and draws the frame.
+ * MediaRecorder and the sound (the modelled landing from `impact-sound.ts`,
+ * always mixed into the file — even when the page itself is muted); this
+ * module only lays out and draws the frame.
  */
 
 export interface ClipInfo {
@@ -19,7 +19,7 @@ export interface ClipInfo {
 	massSecondary: string;
 	/** "$84,550 · Sep 24, 2026" */
 	valueLine: string;
-	/** "Falls 80 ms · hits with 0.19 J · rings at 26.8 kHz (only Sat can hear it)" */
+	/** "Falls 254 ms · hits with 1.91 kJ · peaks at 207 tons of force for 0.9 ms" */
 	dropLine: string;
 	/** Canonical share URL for this exact state. */
 	shareUrl: string;

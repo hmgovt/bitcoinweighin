@@ -9,7 +9,6 @@
     "build": "tsx scripts/build-sitemap.ts && tsx scripts/build-milestones.ts && vite build && tsx scripts/inline-critical-css.ts",
     "build-sitemap": "tsx scripts/build-sitemap.ts",
     "build-milestones": "tsx scripts/build-milestones.ts",
-    "build-cube-modes": "tsx scripts/build-cube-modes.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

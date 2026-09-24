@@ -1,11 +1,7 @@
 /**
- * Acoustic constants for the cube materials — the single source for both
- * the offline mode table (scripts/build-cube-modes.ts) and the runtime
- * sound (impact-sound.ts). Pure; no three.js, no JSON.
- *
- * Wave speeds are for the bulk polycrystalline material at room temperature.
- * Poisson's ratio follows from the two speeds:
- *   ν = (c_l² − 2 c_t²) / (2 (c_l² − c_t²)).
+ * Acoustic constants for the Drop's sound — the cube materials, the floor
+ * they land on, the air, and the room. Pure; no three.js. Every figure here
+ * is shown, with its source, on /methodology.
  */
 
 export interface MaterialAcoustics {
@@ -44,33 +40,48 @@ export const MATERIAL_ACOUSTICS: Record<'gold' | 'silver' | 'pu238', MaterialAco
 	},
 };
 
+/** Poisson's ratio from the two wave speeds. */
 export function poissonOf(m: MaterialAcoustics): number {
 	const l2 = m.cl * m.cl;
 	const t2 = m.ct * m.ct;
 	return (l2 - 2 * t2) / (2 * (l2 - t2));
 }
 
+/** Young's modulus, Pa, from the wave speeds and density (kg/m³). */
+export function youngsModulusOf(m: MaterialAcoustics, densityKgM3: number): number {
+	const l2 = m.cl * m.cl;
+	const t2 = m.ct * m.ct;
+	return (densityKgM3 * t2 * (3 * l2 - 4 * t2)) / (l2 - t2);
+}
+
 /**
- * How off-centre the landing is: the load across the bottom face varies by
- * ±LANDING_TILT from one edge to the other (its centroid sits ~4% of an edge
- * off-centre). No real drop lands perfectly flat and centred, and a perfect
- * one would excite only the fully symmetric modes — a purer, less metallic
- * tone than any real block makes. A modelling choice, stated on /methodology.
+ * The floor: a normal-weight concrete slab.
+ *  · E from ACI 318-19 §19.2.2.1: E_c = 4700 √f'c MPa, at f'c = 30 MPa
+ *    (ordinary structural concrete) → 25.7 GPa.
+ *  · ν = 0.2 for uncracked concrete (EN 1992-1-1 §3.1.3).
+ *  · 2,400 kg/m³; slab 15 cm thick — a typical ground-floor slab, and the
+ *    one figure here chosen rather than looked up.
  */
+export const FLOOR = {
+	youngsModulusPa: 4700 * Math.sqrt(30) * 1e6,
+	poisson: 0.2,
+	densityKgM3: 2400,
+	slabThicknessM: 0.15,
+} as const;
+
+/** Floor slab mass per unit area, kg/m². */
+export const FLOOR_SURFACE_DENSITY = FLOOR.densityKgM3 * FLOOR.slabThicknessM;
+
+/** Air at 20 °C. */
+export const AIR = { densityKgM3: 1.2, soundSpeedMs: 343 } as const;
+
+/**
+ * The room the stage stands in — a large, hard-floored studio. Staging, like
+ * the lighting: it shapes how the thud sounds, not how hard it is.
+ * RT60 is the time for the sound to decay by 60 dB.
+ */
+export const ROOM = { rt60S: 1.4, wet: 0.7 } as const;
+
+/** Off-centre load used by the (analysis-only) ring estimate — see modal.ts
+ *  and the "the ring is negligible" test. */
 export const LANDING_TILT = 0.25;
-
-/**
- * Quality factor of the ring. Annealed gold and silver on their own lose
- * very little energy per cycle (internal friction of order 10⁻⁴–10⁻³);
- * a block sitting on a floor loses far more into the floor. Q = 150 stands
- * in for that contact loss — the one assumption in the sound model, and the
- * reason the ring decays in ~Q/(π f) seconds. Stated on /methodology.
- */
-export const RING_Q = 150;
-
-/** Upper limit of human hearing, Hz (the conventional 20 kHz). */
-export const HUMAN_HEARING_MAX_HZ = 20_000;
-
-/** Upper limit of dog hearing, Hz — Heffner, "Hearing in large and small
- *  dogs", Behavioral Neuroscience 97(2), 1983: about 67 Hz to 45 kHz. */
-export const DOG_HEARING_MAX_HZ = 45_000;

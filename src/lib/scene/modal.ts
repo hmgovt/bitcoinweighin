@@ -1,7 +1,9 @@
 /**
- * Free-vibration modes of an elastic block — pure, tested, and used OFFLINE
- * only (by `scripts/build-cube-modes.ts`, which writes the dimensionless
- * table the site ships in `cube-modes.json`). Never imported by client code.
+ * Free-vibration modes of an elastic block — pure, tested, ANALYSIS ONLY.
+ * Never imported by client code. It backs the tested claim (see
+ * tests/impact-sound.test.ts, "the cube's own ring is negligible") that a
+ * block landing flat on concrete is heard through the floor's thud, not its
+ * own ring — which is why impact-sound.ts leaves the ring out.
  *
  * Method: Rayleigh–Ritz, as used in resonant ultrasound spectroscopy
  * (Visscher, Migliori, Bell & Reinert, "On the normal modes of free vibration

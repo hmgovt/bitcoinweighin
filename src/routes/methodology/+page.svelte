@@ -366,37 +366,47 @@
 			</p>
 			<h3>The sound</h3>
 			<p>
-				With the sound switched on, the cube rings when it lands, at the pitches a real block of
-				that material and size would ring at. We computed the free-vibration modes of an elastic
-				cube numerically, using the Rayleigh–Ritz method from resonant ultrasound spectroscopy
-				(Visscher et al., <em>J. Acoust. Soc. Am.</em> 90, 1991), and checked the solver against
-				beam theory for a long bar and against Lamé's exact solution for a cube. The inputs are
-				each material's speeds of sound: 3,240 m/s (compression) and 1,200 m/s (shear) for gold,
-				3,650 and 1,610 m/s for silver (CRC Handbook of Chemistry and Physics), and, for
-				plutonium dioxide, the ultrasonically measured shear modulus of 89 GPa and Poisson's
-				ratio of 0.32 (Kato &amp; Matsumoto, IAEA INIS), taken at the density modelled here. The
-				Young's modulus of 219 GPa in the same abstract would imply a Poisson's ratio nearer
-				0.23; the main note below doesn't depend on that ratio at all, so the discrepancy only
-				colours the timbre.
+				With the sound on, you hear the landing, and a block landing flat on a concrete floor is
+				heard mostly through the floor. The blow is modelled as a mass on a spring: the cube's
+				mass against the stiffness of its flat face pressed into the concrete (a flat punch on
+				an elastic half-space, in series with the cube's own stiffness). So it lasts
+				<em>τ = π√(m/k)</em> and delivers the cube's momentum, <em>m·v·(1 + e)</em>. The
+				concrete follows ACI 318: <em>E = 4,700√f′c</em> MPa at f′c = 30 MPa, about 25.7 GPa,
+				with Poisson's ratio 0.2 (Eurocode 2). Mass grows with the cube of the size and stiffness
+				only in proportion to it, so the blow lengthens in step with the edge: about 0.09 ms for 1
+				BTC of gold, 0.7 ms for 500 BTC, 26 ms for the whole supply. That is why small cubes tick
+				and big ones thud. The peak force is startling: about a tonne for 1 BTC dropped 3 cm, and
+				about 190 tonnes for 500 BTC.
 			</p>
 			<p>
-				The landing is modelled as a flat blow lasting as long as a compression wave takes to
-				cross the cube and come back, with the load slightly off-centre, because no real block
-				lands perfectly square. Every frequency then scales as one over the edge length: a cube
-				twice the size rings exactly an octave lower, and for twice as long. The loudest note is
-				Lamé's mode, at the shear wave speed divided by (√2 × edge). That puts 1 BTC of gold — a
-				3.2 cm cube — at about 27 kHz: above the roughly 20 kHz limit of human hearing but inside
-				a dog's, which reaches about 45 kHz (Heffner, <em>Behavioral Neuroscience</em> 97(2),
-				1983). So at that size you hear nothing and Sat's ears go up. At September 2026 prices gold
-				becomes audible to people at about 2.4 BTC; the whole supply rings at about 97 Hz.
-				Frequencies above what your device can play are left out rather than shifted down.
+				What you hear is that force pulse radiated by the floor slab, taken as 15 cm of concrete.
+				A point force on a plate, below the plate's coincidence frequency, radiates a pressure
+				that follows the force itself (Cremer, Heckl &amp; Petersson, <em>Structure-Borne
+				Sound</em>). On top of that comes a sharper crack from the cube itself stopping dead,
+				which dominates for small cubes. Past the building code's bedrock allowance, where the
+				floor is drawn cracked, a burst of fracture clicks is added; their timing and texture
+				are illustrative, and only whether the floor cracks is computed. The whole thing plays in
+				a stated room: a large, hard-floored studio with a 1.4-second reverberation time.
 			</p>
 			<p>
-				One figure is an assumption rather than a measurement: damping. Each mode is allowed to
-				ring for roughly 150 cycles (a quality factor of 150), standing in for the energy a block
-				loses into the floor it sits on; the metal on its own would ring far longer. Loudness is
-				compressed from the impact energy, since a real whole-supply drop would be deafening.
-				Sound is off unless you switch it on; the clip recorder always includes it.
+				The cube's own ring is left out on purpose. We computed its free-vibration modes with the
+				Rayleigh–Ritz method used in resonant ultrasound spectroscopy (Visscher et al.,
+				<em>J. Acoust. Soc. Am.</em> 90, 1991), checked against beam theory and against Lamé's
+				exact solution for a cube. Its loudest note is the shear wave speed divided by (√2 ×
+				edge): 27 kHz for 1 BTC of gold. But even undamped, the ring carries under a
+				three-hundredth of the thud's acoustic energy for a 500 BTC cube, and a block pressed flat
+				on concrete loses it into the floor within a few cycles. The wave speeds used are 3,240
+				and 1,200 m/s for gold and 3,650 and 1,610 m/s for silver (CRC Handbook of Chemistry and
+				Physics); for plutonium dioxide they come from the measured shear modulus of 89 GPa and
+				Poisson's ratio of 0.32 (Kato &amp; Matsumoto, IAEA INIS). That abstract's own Young's
+				modulus, 219 GPa, is 7% lower than those two imply, which would change the blow by less
+				than half a percent.
+			</p>
+			<p>
+				Loudness is compressed from the impact energy. A real whole-supply landing would be
+				deafening, and most of its energy is too low for a phone speaker to play; you would feel
+				it more than hear it. Sound is off unless you switch it on; the clip recorder always
+				includes it.
 			</p>
 			<h3>Camera optics</h3>
 			<p>
