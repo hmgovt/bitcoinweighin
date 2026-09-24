@@ -12,6 +12,7 @@
 		setDateFromPicker,
 		activatePreset,
 		hydrateFromUrl,
+		DEFAULT_BTC,
 	} from '$lib/stores/url.js';
 	import { formatBtc } from '$lib/format.js';
 	import { parseAmountInput } from '$lib/amount-input.js';
@@ -90,7 +91,7 @@
 
 	// Dual-mode slider: 'btc' adjusts BTC amount; 'date' locks BTC and scrubs through history.
 	let sliderMode = $state<'btc' | 'date'>('btc');
-	let lockedBtcForDateMode = $state(1);
+	let lockedBtcForDateMode = $state(DEFAULT_BTC);
 
 	const sortedDates = $derived(prices ? Object.keys(prices).sort() : []);
 
@@ -110,7 +111,7 @@
 		return dates[Math.max(0, Math.min(dates.length - 1, idx))];
 	}
 
-	let sliderPos = $state(btcToSlider(1));
+	let sliderPos = $state(btcToSlider(DEFAULT_BTC));
 
 	// ── Scene BTC + preset tween ────────────────────────────────
 	// `sceneBtc` is the value the hero stage, hero readout, and slider display
@@ -120,7 +121,7 @@
 	// — pre-launch review §1's "missed trick". The committed $btcAmount / URL /
 	// preset slug are set immediately by activatePreset (URL contract untouched);
 	// the tween is a visual animation on top, never written to the URL.
-	let sceneBtc = $state(1);
+	let sceneBtc = $state(DEFAULT_BTC);
 	let tweening = $state(false);
 	let tweenRaf = 0;
 	let reduceMotion = $state(false);
@@ -632,14 +633,14 @@
 			: pageDescription
 	);
 
-	// Default state (1 BTC, latest date, no preset/commodity) emits the
+	// Default state (DEFAULT_BTC, latest date, no preset/commodity) emits the
 	// bare canonical and an undated og-image. The SSR pass seeds
 	// selectedDate to the build day, which baked a dated og:url into the
 	// prerendered HTML — fragmenting the share graph by day and dating
 	// the share card for anyone sharing the bare homepage later (SEO
 	// audit C2). Dynamic values still apply after user interaction.
 	const isDefaultState = $derived(
-		$btcAmount === 1 &&
+		$btcAmount === DEFAULT_BTC &&
 			!$activePreset &&
 			!$scrollToCommodity &&
 			(!$selectedDate || $selectedDate === lastDate)
@@ -648,7 +649,7 @@
 	const ogPageUrl = $derived.by(() => {
 		if (isDefaultState) return 'https://bitcoinweighin.com/';
 		const params = new URLSearchParams();
-		if ($btcAmount !== 1) params.set('btc', String($btcAmount));
+		if ($btcAmount !== DEFAULT_BTC) params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
 		if ($activePreset) params.set('preset', $activePreset);
 		if ($scrollToCommodity) params.set('commodity', $scrollToCommodity);
@@ -657,7 +658,7 @@
 	});
 
 	const ogImageUrl = $derived.by(() => {
-		if (isDefaultState) return 'https://bitcoinweighin.com/og-image?btc=1';
+		if (isDefaultState) return `https://bitcoinweighin.com/og-image?btc=${DEFAULT_BTC}`;
 		const params = new URLSearchParams();
 		params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
