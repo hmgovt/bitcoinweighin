@@ -79,15 +79,6 @@ def jobs() -> list[Job]:
     out.append(Job(coke, coke.with_name("cocaine-lab@1x.webp"),
                    max_dim=350, quality=80))
 
-    # ── Brand mark (header.webp) ─────────────────────────────────
-    # Displays at 273×96 (height-capped via CSS). Moto G 1.75 DPR needs
-    # ~478 device px; we render the @2x at 560 wide so it still looks
-    # sharp on desktop 2× displays without paying for the old 960 master.
-    header = STATIC / "header.webp"
-    out.append(Job(header, header, max_dim=560, quality=82))
-    out.append(Job(header, header.with_name("header@1x.webp"),
-                   max_dim=280, quality=80))
-
     return out
 
 

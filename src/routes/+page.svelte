@@ -14,7 +14,8 @@
 		hydrateFromUrl,
 		DEFAULT_BTC,
 	} from '$lib/stores/url.js';
-	import { formatBtc } from '$lib/format.js';
+	import { formatBtc, formatMass, formatMassConsumer, formatNum } from '$lib/format.js';
+	import { system } from '$lib/stores/system.js';
 	import { parseAmountInput } from '$lib/amount-input.js';
 	import { applyDetent, DETENT_BTC_VALUES } from '$lib/detent.js';
 	import { clampBtc, roundBtc } from '$lib/scene/grab.js';
@@ -28,6 +29,9 @@
 	} from '$lib/playback.js';
 	import HeroStage from '$lib/components/HeroStage.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
+	import SiteHeader from '$lib/components/brand/SiteHeader.svelte';
+	import BrandMark from '$lib/components/brand/BrandMark.svelte';
+	import { commodityAccent } from '$lib/accents.js';
 	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
 	import MiningStrip from '$lib/components/mining/MiningStrip.svelte';
 	import {
@@ -571,6 +575,31 @@
 		) as Record<string, number | null>
 	);
 
+	// ── The answer beside the h1: what exactly 1 BTC buys ───────
+	// Follows the selected tab; independent of the slider (the stage below
+	// is where the amount changes). Same prices as everything else.
+	const ratio = $derived.by(() => {
+		const c = HERO_COMMODITIES.find((m) => m.id === selectedCommodity);
+		if (!c || !dayPrices) return null;
+		const amt = computeCommodityAmount(1, c, dayPrices);
+		if (amt === null || !isFinite(amt) || amt <= 0) return null;
+		const grams = amt * (c.unitMassGrams ?? 1);
+		const name = c.id === 'pu238' ? 'plutonium-238' : c.displayName.toLowerCase();
+		let big: string;
+		let of: string;
+		if (c.unit === 'troy_oz') {
+			big = `${formatNum(amt)} oz`;
+			of = `troy ounces of ${name} · ${formatMass(grams, $system)}`;
+		} else if (c.unit === 'note') {
+			big = Math.round(amt).toLocaleString('en-US');
+			of = `$1 bills, weighing ${formatMassConsumer(grams, $system)}`;
+		} else {
+			big = c.id === 'cocaine' ? formatMassConsumer(grams, $system) : formatMass(grams, $system);
+			of = `of ${name}`;
+		}
+		return { big, of, accent: commodityAccent(c.id) };
+	});
+
 	// ── Open Graph metadata (reactive) ──────────────────────────
 	// og:image points at /og-image (functions/og-image.ts) so the share
 	// preview reflects the current slider state. When ?commodity=X is set
@@ -774,24 +803,6 @@
 	<meta name="description" content={pageDescription} />
 	<link rel="canonical" href="https://bitcoinweighin.com/" />
 	<!--
-		header.webp is the confirmed LCP element (PageSpeed's LCP breakdown)
-		but had no preload hint, so the browser couldn't discover/start
-		fetching it until HTML parsing reached the <img> tag deep in the
-		body — well after the head's own preloaded fonts + shiba sprite were
-		already competing for bandwidth. Homepage-only (this file is the
-		only place header.webp is used), so this lives here rather than in
-		the shared app.html, which would waste the preload on every other
-		route.
-	-->
-	<link
-		rel="preload"
-		as="image"
-		href="/header.webp"
-		imagesrcset="/header@1x.webp 1x, /header.webp 2x"
-		type="image/webp"
-		fetchpriority="high"
-	/>
-	<!--
 		Open Graph + Twitter cards. The og:image hits the /og-image Pages
 		Function (functions/og-image.ts) with the current slider state, so
 		share previews reflect the URL's btc / date / commodity params.
@@ -823,6 +834,9 @@
 	<!-- Compact pinned bar — slides in once user has scrolled past the full controls. -->
 	<div class="sticky-bar" class:visible={showStickyBar} aria-hidden={!showStickyBar}>
 		<div class="mx-auto flex h-11 max-w-2xl items-center gap-3 px-4">
+			<a href="/" class="sticky-mark" aria-label="Bitcoin Weigh-In home" tabindex={showStickyBar ? 0 : -1}>
+				<BrandMark size={22} />
+			</a>
 			<span class="min-w-[3.25rem] whitespace-nowrap font-mono text-xs text-amber-400">
 				{sliderMode === 'btc' ? formatBtc(sceneBtc) : formatBtc(lockedBtcForDateMode)}
 			</span>
@@ -861,43 +875,37 @@
 	</div>
 
 	<!--
-		Header: two-zone layout. Brand left (image + subtitle), preset pills
-		right. The subscribe form lives in its own visible section after the
-		Hashweight panel (see .subscribe-section below) — not in the header.
+		Top: the site bar, then the page's question and its live answer. The
+		h1 stays keyword-stable (SEO); the answer beside it follows the
+		selected commodity tab, always for exactly 1 BTC.
 	-->
-	<div class="mx-auto max-w-[1280px] px-6 pt-4 sm:pt-6">
-		<header class="site-header">
-			<a href="/" class="brand" aria-label="Bitcoin Weigh-In home">
-				<picture>
-					<source
-						srcset="/header@1x.webp 1x, /header.webp 2x"
-						type="image/webp"
-					/>
-					<img
-						src="/header.jpg"
-						alt="Bitcoin Weigh-In"
-						width="960"
-						height="340"
-						fetchpriority="high"
-						decoding="async"
-						class="brand__mark"
-					/>
-				</picture>
-				<h1 class="brand__h1">
-					Bitcoin's purchasing power in physical commodities
-				</h1>
-				<p class="brand__subtitle">
+	<div class="mx-auto max-w-2xl md:max-w-[1100px] px-4 pt-2 sm:pt-3">
+		<SiteHeader />
+		<section class="intro" aria-labelledby="page-h1">
+			<div class="intro__copy">
+				<p class="intro__eyebrow">What does a bitcoin weigh?</p>
+				<h1 id="page-h1" class="intro__h1">Bitcoin's purchasing power in physical commodities</h1>
+				<p class="intro__lede">
 					How much gold, silver, cash or plutonium does 1 BTC buy? Live ratios, daily, since 2013.
 				</p>
-			</a>
-			<div class="header-pills">
-				<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
 			</div>
-		</header>
+			{#if ratio}
+				<aside class="ratio" style:--accent={ratio.accent} aria-live="polite">
+					<div class="ratio__label">1 BTC buys</div>
+					<div class="ratio__big">{ratio.big}</div>
+					<div class="ratio__of">{ratio.of}</div>
+					<div class="ratio__meta">
+						{#if $selectedDate === lastDate && livePrice}<span class="ratio__live" aria-hidden="true"></span>live ·
+						{:else}{formatDateReadout($selectedDate)} ·{/if}
+						${Math.round(dayPrices?.btc ?? 0).toLocaleString('en-US')}
+					</div>
+				</aside>
+			{/if}
+		</section>
 	</div>
 
 	<!-- Hero: one live WebGL stage + Au/Ag/Pu tabs + slider + readout (one-stage layout, pre-launch review §2) -->
-	<div class="mx-auto mt-8 max-w-2xl md:max-w-[1100px] px-4 pb-6 sm:pb-10">
+	<div class="mx-auto mt-5 max-w-2xl md:max-w-[1100px] px-4 pb-6 sm:pb-10">
 		<HeroStage
 			bind:this={heroStageEl}
 			commodities={HERO_COMMODITIES}
@@ -1080,6 +1088,13 @@
 							DATE
 						</button>
 					</div>
+				</div>
+
+				<div class="controls-presets">
+					<PresetBar
+						activePresetId={$activePreset}
+						onSelect={handlePresetSelect}
+					/>
 				</div>
 			</div>
 
@@ -1477,48 +1492,133 @@
 		color: #38bdf8;
 	}
 
-	.site-header {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-		padding-bottom: 0;
-	}
-	.brand {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		flex-shrink: 0;
-		text-decoration: none;
-		color: inherit;
-	}
-	.brand__mark {
-		display: block;
-		height: 80px;
-		width: auto;
-		max-width: 100%;
-	}
-	.brand__h1 {
-		margin: 4px 0 0;
-		font-size: 17px;
-		font-weight: 600;
-		line-height: 1.25;
-		color: #f5f0e6;
-		letter-spacing: -0.005em;
-		text-wrap: balance;
+	/* ── Intro: the question, and its live answer ─────────── */
+	.intro {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 18px;
+		padding: 22px 0 4px;
 	}
 	@media (min-width: 768px) {
-		.brand__h1 {
-			font-size: 18px;
+		.intro {
+			grid-template-columns: minmax(0, 1fr) auto;
+			align-items: end;
+			gap: 40px;
+			padding-top: 30px;
 		}
 	}
-	.brand__subtitle {
+	.intro__eyebrow {
+		margin: 0 0 10px;
+		font: 500 11px/1 'JetBrains Mono', ui-monospace, monospace;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: #71717a;
+	}
+	.intro__h1 {
 		margin: 0;
-		color: #71717a; /* zinc-500 — slightly more recessive */
-		font-size: 13px;
-		font-weight: 400;
-		line-height: 1.4;
+		max-width: 17em;
+		font: 600 clamp(28px, 4.2vw, 44px)/1.04 'Inter Tight', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+		letter-spacing: -0.03em;
+		color: #f5f0e6;
 		text-wrap: balance;
 	}
+	.intro__lede {
+		margin: 12px 0 0;
+		max-width: 52ch;
+		font-size: 15px;
+		line-height: 1.55;
+		color: #a1a1aa;
+		text-wrap: pretty;
+	}
+	.ratio {
+		min-width: 0;
+		padding: 14px 16px 13px;
+		border: 1px solid #27272a;
+		border-radius: 12px;
+		background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, #111113), #111113 70%);
+	}
+	@media (min-width: 768px) {
+		.ratio {
+			min-width: 250px;
+			text-align: right;
+			padding: 16px 18px 15px;
+		}
+	}
+	.ratio__label {
+		font: 500 10.5px/1 'JetBrains Mono', ui-monospace, monospace;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: #71717a;
+	}
+	.ratio__big {
+		margin-top: 9px;
+		font: 600 34px/1 'JetBrains Mono', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: -0.02em;
+		color: var(--accent);
+		transition: color 200ms ease;
+	}
+	.ratio__of {
+		margin-top: 7px;
+		font-size: 13px;
+		color: #d4d4d8;
+	}
+	.ratio__meta {
+		margin-top: 8px;
+		font: 11.5px/1.3 'JetBrains Mono', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		color: #71717a;
+	}
+	@media (max-width: 767px) {
+		/* Phones: one compact card, so the stage stays near the top. */
+		.ratio {
+			display: grid;
+			grid-template-columns: auto 1fr;
+			align-items: baseline;
+			column-gap: 12px;
+			padding: 11px 13px;
+		}
+		.ratio__label {
+			grid-column: 1 / -1;
+		}
+		.ratio__big {
+			margin-top: 7px;
+			font-size: 24px;
+		}
+		.ratio__of {
+			margin-top: 0;
+		}
+		.ratio__meta {
+			grid-column: 1 / -1;
+			margin-top: 6px;
+		}
+	}
+	.ratio__live {
+		display: inline-block;
+		width: 6px;
+		height: 6px;
+		margin-right: 6px;
+		vertical-align: 1px;
+		border-radius: 50%;
+		background: #4ade80;
+		box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.14);
+	}
+
+	.controls-presets {
+		margin: 2px -4px 0;
+		padding-top: 12px;
+		border-top: 1px solid #27272a;
+	}
+	.sticky-mark {
+		display: inline-flex;
+		flex-shrink: 0;
+		border-radius: 4px;
+	}
+	.sticky-mark:focus-visible {
+		outline: 2px solid #f7931a;
+		outline-offset: 2px;
+	}
+
 	.seo-section {
 		border-top: 1px solid #27272a; /* zinc-800 */
 		background: #09090b; /* zinc-950 */
@@ -1607,33 +1707,6 @@
 		line-height: 1.6;
 		color: #a1a1aa;
 	}
-	.header-pills {
-		width: 100%;
-	}
-
-	@media (min-width: 768px) {
-		.site-header {
-			flex-direction: row;
-			align-items: flex-start;
-			gap: 28px;
-		}
-		.brand {
-			/* Tighter brand column so pills have comfortable room to wrap */
-			flex: 0 0 260px;
-		}
-		.header-pills {
-			flex: 1 1 0;
-			min-width: 0;
-			/* Align pill rows' top with the logo top */
-			padding-top: 0;
-		}
-	}
-	@media (min-width: 1280px) {
-		.brand {
-			flex: 0 0 300px;
-		}
-	}
-
 	.sticky-bar {
 		position: fixed;
 		top: 0;
