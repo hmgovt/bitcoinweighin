@@ -405,7 +405,7 @@ export function createDiveScene(o: DiveOptions): DiveController {
 	let cur: Cam;
 	const yDie = () => Y_DIE + cur.e * EX.die + cur.f * EX.flipRise;
 	const LABELS: { beats: number[]; side: 'l' | 'r'; text: string; sub: string; at: () => THREE.Vector3 }[] = [
-		{ beats: [0], side: 'r', text: 'One mining chip', sub: 'around a hundred per board', at: () => V(hx + SUB / 2, Y_DIE + 0.3, hz + SUB / 2) },
+		{ beats: [0], side: 'r', text: 'One mining chip', sub: 'dozens per board, each ~1 TH/s', at: () => V(hx + SUB / 2, Y_DIE + 0.3, hz + SUB / 2) },
 		{ beats: [1], side: 'l', text: 'Silicon die', sub: 'polished back side; circuits face down', at: () => V(hx - DIE / 2, Y_DIE + DIEH / 2, hz - DIE / 2) },
 		{ beats: [1], side: 'r', text: 'Package substrate', sub: 'a tiny multilayer circuit board', at: () => V(hx + SUB / 2, Y_SUBTOP, hz + SUB / 2) },
 		{ beats: [1], side: 'l', text: 'Capacitors', sub: 'steady the chip’s power supply', at: () => V(hx - 6.1, 0.5, hz + 2.2) },

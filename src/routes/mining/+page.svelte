@@ -68,7 +68,7 @@
 		<header class="hero">
 			<h1>Inside a Bitcoin miner</h1>
 			<p class="lede">
-				Every bitcoin block is found by chips like this one, guessing, trillions of times a second. Take one apart,
+				Every bitcoin block is found by chips like this one, each guessing about a trillion times a second. Take one apart,
 				then watch a single hash core work through real block headers, slowed down far enough to see.
 			</p>
 		</header>

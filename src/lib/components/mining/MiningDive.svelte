@@ -11,7 +11,7 @@
 	let { ctl, onHandoff }: { ctl: MiningController | null; onHandoff: () => void } = $props();
 
 	const BEATS = [
-		{ name: 'Hashboard', title: 'One hashboard', text: 'An S21-class miner holds three of these boards, each carrying around a hundred identical chips under a heatsink (left off here). Every chip runs the pipeline this page shows, around the clock.' },
+		{ name: 'Hashboard', title: 'One hashboard', text: 'An S21-class miner holds three of these boards, each carrying dozens of identical chips under a heatsink (left off here). Every chip runs the pipeline this page shows, around the clock.' },
 		{ name: 'Chip', title: 'One chip', text: 'From above, a chip is a small square circuit board, the substrate, with a polished slab of silicon on top. That mirror finish is the back of the die. The circuits are on its underside, facing the board.' },
 		{ name: 'Exploded', title: 'Taken apart', text: 'Solder balls fix the package to the board. The substrate fans the die’s dense connections out to the wider ball grid. A tight grid of micro-bumps, sealed in epoxy underfill, carries power in and results out. The die sits on top, face-down. This is flip-chip packaging.' },
 		{ name: 'Die face', title: 'The die, turned over', text: 'Turn the die over and the circuitry faces you. Almost all of it is hash cores: one design, copied across the die. The outlined core is the one simulated on this page, and its glow follows that pipeline’s real switching activity.' },
