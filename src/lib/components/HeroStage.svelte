@@ -30,6 +30,19 @@
 	import QualityBadge from './QualityBadge.svelte';
 	import BillStage from '$lib/scene/BillStage.svelte';
 	import BillReadout from './BillReadout.svelte';
+	import { computeCubeEdgeMm } from '$lib/volume.js';
+	import { formatBtc, formatMass } from '$lib/format.js';
+	import { system } from '$lib/stores/system.js';
+	import {
+		dropHeightM,
+		fallTimeS,
+		impactEnergyJ,
+		formatDropLine,
+		formatDuration,
+		formatEnergy,
+	} from '$lib/scene/drop.js';
+	import type { ClipInfo } from '$lib/scene/clip.js';
+	import { isSoundingMaterial, blowSentence, contactTimeS, peakForceN, formatForce } from '$lib/scene/impact-sound.js';
 
 	const deltaObjects = deltaObjectsJson as unknown as DeltaObjectsFile;
 
@@ -42,6 +55,10 @@
 		prices,
 		selectedDate = '',
 		controls,
+		held = false,
+		dropSignal = 0,
+		grabEnabled = true,
+		ongrab,
 	}: {
 		/** Hero tabs in locked order: gold, silver, pu238, cocaine. */
 		commodities: Commodity[];
@@ -62,6 +79,14 @@
 		/** Slider/controls, rendered between the stage and the readout. The page
 		 *  owns the slider (URL sync + preset tween); the hero owns its position. */
 		controls?: Snippet;
+		/** The page is holding the cube (slider drag / preset tween) — see LiveStage. */
+		held?: boolean;
+		/** Increment to drop the cube (typed amount, key jumps) — see LiveStage. */
+		dropSignal?: number;
+		/** Whether a cube drag resizes it (BTC mode only). */
+		grabEnabled?: boolean;
+		/** Direct manipulation of the cube, forwarded to the page. */
+		ongrab?: (phase: 'start' | 'move' | 'end', ratio: number) => void;
 	} = $props();
 
 	const active = $derived(commodities.find((m) => m.id === selectedId) ?? commodities[0]);
@@ -114,6 +139,74 @@
 
 	const massGrams = $derived(amount > 0 ? (computeMassGrams(amount, active) ?? 0) : 0);
 	const massKg = $derived(massGrams / 1000);
+
+	// ── The Drop — its line under the readout, and the clip's captions ────
+	// Every figure comes from drop.ts (fall time, impact energy, bearing
+	// pressure vs IBC Table 1806.2) on the live cube edge and mass.
+	const isCube = $derived(active.renderStyle === 'cube' && !!active.densityGPerCm3);
+	const edgeM = $derived(isCube && amount > 0 ? computeCubeEdgeMm(amount, active) / 1000 : 0);
+	// …and the blow the floor takes: its duration and peak force (impact-sound.ts).
+	const sounding = $derived(isCube && edgeM > 0 && isSoundingMaterial(active.id));
+	const dropLine = $derived(
+		isCube && edgeM > 0
+			? formatDropLine({
+					edge: edgeM,
+					massGrams,
+					densityGPerCm3: active.densityGPerCm3!,
+					unit: $system,
+				}) +
+				(sounding && isSoundingMaterial(active.id)
+					? ' ' + blowSentence(active.id, edgeM, active.densityGPerCm3!, $system)
+					: '')
+			: ''
+	);
+
+	function formatUsdShort(v: number): string {
+		if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+		if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+		if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
+		if (v >= 1) return `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+		if (v > 0) return `$${v.toFixed(v >= 0.01 ? 2 : 6)}`;
+		return '$0';
+	}
+
+	function formatDateLong(d: string): string {
+		if (!d) return '';
+		return new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			timeZone: 'UTC',
+		});
+	}
+
+	const clipInfo = $derived.by((): ClipInfo | null => {
+		if (!isCube || !(massGrams > 0) || !(edgeM > 0)) return null;
+		const other = $system === 'imperial' ? 'metric' : 'imperial';
+		const h = dropHeightM(edgeM);
+		const name = active.displayName.toLowerCase();
+		const params = new URLSearchParams();
+		params.set('btc', String(btcAmount));
+		if (selectedDate) params.set('date', selectedDate);
+		params.set('commodity', active.id);
+		const btcSlug = formatBtc(btcAmount).replace(/[^0-9a-z.]+/gi, '').toLowerCase();
+		return {
+			headline: `${formatBtc(btcAmount)} of ${name}`,
+			massPrimary: formatMass(massGrams, $system),
+			massSecondary: formatMass(massGrams, other),
+			valueLine: [btcUsdPrice > 0 ? formatUsdShort(btcAmount * btcUsdPrice) : '', formatDateLong(selectedDate)]
+				.filter(Boolean)
+				.join(' · '),
+			dropLine:
+				`Falls ${formatDuration(fallTimeS(h))} · hits with ${formatEnergy(impactEnergyJ(massKg, h))}` +
+				(isSoundingMaterial(active.id)
+					? ` · peaks at ${formatForce(peakForceN(active.id, edgeM, active.densityGPerCm3!), $system)} for ${formatDuration(contactTimeS(active.id, edgeM, active.densityGPerCm3!))}`
+					: ''),
+			shareUrl: `https://bitcoinweighin.com/?${params.toString()}`,
+			fileStem: `bitcoinweighin-${btcSlug}-${active.id}${selectedDate ? '-' + selectedDate : ''}`,
+			accent,
+		};
+	});
 
 	// ── "1 sat. Also: one Sat." (brief §2.1) ──────────────────────
 	// The dog is named Sat. At exactly one satoshi the readout gets one quiet
@@ -282,7 +375,18 @@
 			<BillStage noteCount={amount} bind:staged={billStaged} bind:ready={billRendered} />
 		</div>
 	{:else}
-		<LiveStage commodity={active} {amount} bind:staged bind:this={liveStageEl} />
+		<LiveStage
+			commodity={active}
+			{amount}
+			bind:staged
+			bind:this={liveStageEl}
+			{held}
+			{dropSignal}
+			{grabEnabled}
+			{ongrab}
+			{clipInfo}
+			{accent}
+		/>
 	{/if}
 
 	{#if controls}
@@ -345,6 +449,14 @@
 					{deltaCaptionParts.main}<span class="delta-figure">{deltaCaptionParts.figure}</span>{deltaCaptionParts.tail}
 				{/if}
 			</p>
+			{#if dropLine}
+				<!--
+					The Drop, stated: fall time, impact energy, bearing pressure and
+					(past the clay allowance) the building-code comparison. Every
+					figure derives from the live cube — see src/lib/scene/drop.ts.
+				-->
+				<p class="drop-line">{dropLine}</p>
+			{/if}
 			{#if isOneSat}
 				<p class="sat-line">1 sat. Also: one Sat.</p>
 			{/if}
@@ -505,6 +617,17 @@
 		line-height: 1.5;
 		color: #71717a; /* zinc-500 */
 		letter-spacing: 0.005em;
+	}
+
+	/* The Drop line — same quiet register as the staging line. */
+	.drop-line {
+		margin: 0;
+		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+		font-size: 11px;
+		line-height: 1.6;
+		color: #71717a;
+		letter-spacing: 0.01em;
+		max-width: 760px;
 	}
 
 	.staging-line {

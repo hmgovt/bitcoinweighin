@@ -9,8 +9,16 @@ import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { getEntity } from '../holdings.js';
 
+/**
+ * The amount the page opens on, and the one the URL leaves implicit (no
+ * `?btc=` param). 500 BTC puts a ~25 cm gold cube beside Sat — both in the
+ * same shot, big enough to land with a proper thud. Shared links always
+ * carry an explicit `btc`, so they're unaffected.
+ */
+export const DEFAULT_BTC = 500;
+
 // ── Raw stores ──────────────────────────────────────────────────
-export const btcAmount = writable<number>(1);
+export const btcAmount = writable<number>(DEFAULT_BTC);
 export const selectedDate = writable<string>('');
 export const activePreset = writable<string | null>(null);
 export const scrollToCommodity = writable<string | null>(null);
@@ -40,7 +48,7 @@ function pushToUrl() {
 	debounceTimer = setTimeout(() => {
 		const params = new URLSearchParams();
 		const btc = get(btcAmount);
-		if (btc !== 1) params.set('btc', String(btc));
+		if (btc !== DEFAULT_BTC) params.set('btc', String(btc));
 
 		const date = get(selectedDate);
 		if (date) params.set('date', date);

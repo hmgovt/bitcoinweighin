@@ -339,6 +339,97 @@
 				foreground. Nothing on screen is ever resized by feel; the apparent sizes always follow
 				from the one declared camera geometry.
 			</p>
+			<h3>The drop</h3>
+			<p>
+				While you hold the slider, or drag the cube itself, the camera stays where it is and the
+				cube grows or shrinks in place — it is allowed to outgrow the shot rather than being
+				quietly re-framed. When you let go, the camera steps back to its proper framing and the
+				cube is dropped <em>from its own height</em> (its underside one edge-length above the
+				floor) under standard gravity, 9.80665 m/s², in real time. Nothing about the fall is
+				slowed down or sped up, which makes the fall time a scale cue in its own right: a speck
+				lands in milliseconds, the whole supply of gold takes more than a second. The readout
+				states the fall time and the impact energy, <em>m·g·h</em>; where that exceeds a gram of
+				TNT it also gives the TNT equivalent, using the standard convention of 4.184 GJ per tonne.
+				The camera shake, the dust and Sat's reaction are all driven by that one impact-energy
+				figure; none of them is tuned per amount.
+			</p>
+			<p>
+				The same line gives the cube's resting bearing pressure — its weight over its own
+				footprint, which for a cube reduces to <em>density × g × edge</em> — and compares it
+				with the presumptive load-bearing values in the International Building Code (Table
+				1806.2): 1,500 psf for clay, 2,000 for sand, 3,000 for gravel, 4,000 for sedimentary
+				rock and 12,000 for crystalline bedrock. Past the bedrock value the floor is drawn
+				cracked. These are <em>allowable</em> pressures, which include the code's safety margin,
+				so exceeding one means a structural engineer would not sign it off, not that the ground
+				would necessarily give way. A gold cube reaches the bedrock value at about 3.03 m on a
+				side, whatever the gold price.
+			</p>
+			<h3>The sound</h3>
+			<p>
+				With the sound on, you hear the landing, and a block landing flat on a concrete floor is
+				heard mostly through the floor. The blow is modelled as a mass on a spring: the cube's
+				mass against the stiffness of its flat face pressed into the concrete (a flat punch on
+				an elastic half-space, in series with the cube's own stiffness). So it lasts
+				<em>τ = π√(m/k)</em> and delivers the cube's momentum, <em>m·v·(1 + e)</em>. The
+				concrete follows ACI 318: <em>E = 4,700√f′c</em> MPa at f′c = 30 MPa, about 25.7 GPa,
+				with Poisson's ratio 0.2 (Eurocode 2). Mass grows with the cube of the size and stiffness
+				only in proportion to it, so the blow lengthens in step with the edge: about 0.09 ms for 1
+				BTC of gold, 0.7 ms for 500 BTC, 26 ms for the whole supply. That is why small cubes tick
+				and big ones thud. The peak force is startling: about a tonne for 1 BTC dropped 3 cm, and
+				about 190 tonnes for 500 BTC.
+			</p>
+			<p>
+				What you hear is that force pulse radiated by the floor slab, taken as 15 cm of concrete.
+				A point force on a plate, below the plate's coincidence frequency, radiates a pressure
+				that follows the force itself (Cremer, Heckl &amp; Petersson, <em>Structure-Borne
+				Sound</em>). On top of that comes a sharper crack from the cube itself stopping dead,
+				which dominates for small cubes. Past the building code's bedrock allowance, where the
+				floor is drawn cracked, a burst of fracture clicks is added; their timing and texture
+				are illustrative, and only whether the floor cracks is computed. The whole thing plays in
+				a stated room: a large, hard-floored studio with a 1.4-second reverberation time.
+			</p>
+			<p>
+				The cube's own ring is left out on purpose. We computed its free-vibration modes with the
+				Rayleigh–Ritz method used in resonant ultrasound spectroscopy (Visscher et al.,
+				<em>J. Acoust. Soc. Am.</em> 90, 1991), checked against beam theory and against Lamé's
+				exact solution for a cube. Its loudest note is the shear wave speed divided by (√2 ×
+				edge): 27 kHz for 1 BTC of gold. But even undamped, the ring carries under a
+				three-hundredth of the thud's acoustic energy for a 500 BTC cube, and a block pressed flat
+				on concrete loses it into the floor within a few cycles. The wave speeds used are 3,240
+				and 1,200 m/s for gold and 3,650 and 1,610 m/s for silver (CRC Handbook of Chemistry and
+				Physics); for plutonium dioxide they come from the measured shear modulus of 89 GPa and
+				Poisson's ratio of 0.32 (Kato &amp; Matsumoto, IAEA INIS). That abstract's own Young's
+				modulus, 219 GPa, is 7% lower than those two imply, which would change the blow by less
+				than half a percent.
+			</p>
+			<p>
+				Loudness is compressed from the impact energy. A real whole-supply landing would be
+				deafening, and most of its energy is too low for a phone speaker to play; you would feel
+				it more than hear it. Sound is off unless you switch it on; the clip recorder always
+				includes it.
+			</p>
+			<h3>Camera optics</h3>
+			<p>
+				The stage camera is modelled as a real one: a full-frame sensor (24 mm tall) with the
+				focal length its 35° field of view implies (about 38 mm), at f/2.8, focused on the cube.
+				Every pixel is blurred by that lens's thin-lens circle of confusion for its distance,
+				<em>c = A·f·|d − S| / (d·(S − f))</em>. That is why small amounts come out looking like
+				macro photographs, with Sat's paws soft behind a sharp speck of metal, and large amounts
+				come out sharp from front to back: a real camera at 20 cm and at 25 m behaves exactly that
+				way, and it is the same cue that makes tilt-shift photos of cities look like toys. The
+				blur is capped at 5% of the frame height for legibility, so it is only ever understated;
+				at the closest framings a real lens would blur the background more. No atmospheric haze
+				is added: over the distances in the scene (under about 100 m) real air adds none.
+			</p>
+			<h3>The magnifier</h3>
+			<p>
+				Below about eight pixels on screen the cube cannot be resolved at all, so a circular
+				magnifier appears. It re-renders the scene from the same camera position through a
+				narrower field of view — a true optical magnification, like a loupe or a telephoto lens —
+				and states its power, chosen from a fixed ladder (×2, ×5, ×10 … ×10,000) so that the
+				magnified cube reads at a legible size. One satoshi of gold, about 68 µm on a side,
+				appears at ×200 on a typical screen.
+			</p>
 		</section>
 
 		<section id="hashweight" class="prose-section">
