@@ -4,10 +4,10 @@
  * readout below), and the synthesised impact thud.
  *
  * The clip is the same WebGL stage the page shows, recorded in real time —
- * nothing pre-rendered, nothing faked. `LiveStage` owns the timeline and the
- * MediaRecorder; this module only draws and makes noise. The page itself
- * stays silent (house rule: no sound unless asked); the thud exists only
- * inside the exported file, where a silent drop would feel broken.
+ * nothing pre-rendered, nothing faked. `LiveStage` owns the timeline, the
+ * MediaRecorder and the sound (the cube's physical ring, from
+ * `impact-sound.ts`, always mixed into the file — even when the page itself
+ * is muted); this module only lays out and draws the frame.
  */
 
 export interface ClipInfo {
@@ -19,7 +19,7 @@ export interface ClipInfo {
 	massSecondary: string;
 	/** "$84,550 · Sep 24, 2026" */
 	valueLine: string;
-	/** "Falls 80 ms from its own height · hits with 0.19 J" */
+	/** "Falls 80 ms · hits with 0.19 J · rings at 26.8 kHz (only Sat can hear it)" */
 	dropLine: string;
 	/** Canonical share URL for this exact state. */
 	shareUrl: string;
@@ -249,74 +249,4 @@ export function drawClipFrame(
 	ctx.font = `600 36px ${MONO}`;
 	ctx.fillText('bitcoinweighin.com', W / 2, CLIP_H - 44);
 	ctx.restore();
-}
-
-// ── The thud ────────────────────────────────────────────────────────────────
-
-let noiseBuffer: AudioBuffer | null = null;
-function noise(ac: AudioContext): AudioBuffer {
-	if (noiseBuffer && noiseBuffer.sampleRate === ac.sampleRate) return noiseBuffer;
-	const len = ac.sampleRate * 3;
-	const buf = ac.createBuffer(1, len, ac.sampleRate);
-	const d = buf.getChannelData(0);
-	for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-	noiseBuffer = buf;
-	return buf;
-}
-
-/**
- * An impact thud at audio time `when`, shaped by the 0–1 impact intensity
- * (drop.ts): a small cube goes "tok", the whole supply goes BOOM with a long
- * rumble. Synthesised (no samples), in the same spirit as the Geiger clicks.
- */
-export function playThud(ac: AudioContext, out: AudioNode, when: number, intensity: number): void {
-	const i = Math.min(Math.max(intensity, 0), 1);
-	const decay = 0.12 + 1.5 * i * i;
-
-	// Body: a sine with a fast pitch drop.
-	const f0 = 170 - 128 * i;
-	const osc = ac.createOscillator();
-	osc.type = 'sine';
-	osc.frequency.setValueAtTime(f0 * 2, when);
-	osc.frequency.exponentialRampToValueAtTime(f0, when + 0.03);
-	osc.frequency.exponentialRampToValueAtTime(Math.max(f0 * 0.55, 20), when + decay);
-	const body = ac.createGain();
-	body.gain.setValueAtTime(0.0001, when);
-	body.gain.exponentialRampToValueAtTime(0.3 + 0.55 * i, when + 0.004);
-	body.gain.exponentialRampToValueAtTime(0.0001, when + decay);
-	osc.connect(body).connect(out);
-	osc.start(when);
-	osc.stop(when + decay + 0.05);
-
-	// Transient: a burst of filtered noise — brighter for small, darker for big.
-	const hit = ac.createBufferSource();
-	hit.buffer = noise(ac);
-	const lp = ac.createBiquadFilter();
-	lp.type = 'lowpass';
-	lp.frequency.value = 6000 - 5000 * i;
-	const hitGain = ac.createGain();
-	const hitLen = 0.035 + 0.3 * i;
-	hitGain.gain.setValueAtTime(0.0001, when);
-	hitGain.gain.exponentialRampToValueAtTime(0.25 + 0.35 * i, when + 0.002);
-	hitGain.gain.exponentialRampToValueAtTime(0.0001, when + hitLen);
-	hit.connect(lp).connect(hitGain).connect(out);
-	hit.start(when);
-	hit.stop(when + hitLen + 0.05);
-
-	// Rumble tail for heavy impacts.
-	if (i > 0.45) {
-		const r = ac.createBufferSource();
-		r.buffer = noise(ac);
-		const rlp = ac.createBiquadFilter();
-		rlp.type = 'lowpass';
-		rlp.frequency.value = 110;
-		const rg = ac.createGain();
-		const rLen = 0.4 + 2.4 * (i - 0.45);
-		rg.gain.setValueAtTime(0.0001, when);
-		rg.gain.exponentialRampToValueAtTime(0.9 * (i - 0.35), when + 0.05);
-		rg.gain.exponentialRampToValueAtTime(0.0001, when + rLen);
-		r.connect(rlp).connect(rg).connect(out);
-		r.start(when);
-		r.stop(when + rLen + 0.05);
-	}
 }

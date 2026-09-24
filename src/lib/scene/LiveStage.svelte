@@ -37,8 +37,13 @@
 	 *    state the dog-placement maths didn't solve for.
 	 *  · OPTICS. A physical depth-of-field pass (declared 38 mm f/2.8 lens) and,
 	 *    for cubes too small to resolve, a magnifier loupe with a declared power.
+	 *  · SOUND. The cube rings at its real free-vibration modes when it lands
+	 *    (`impact-sound.ts`): pitch ∝ 1/edge, so small cubes ring in
+	 *    ultrasound — silent to people, not to Sat. Off by default; the stage's
+	 *    speaker toggle shares the site's one audio switch (`audioEnabled`,
+	 *    `?audio=on`) with the Pu-238 Geiger counter.
 	 *  · CLIP. "Make a clip" records the Drop at the current amount as a
-	 *    vertical video (numbers and a synthesised thud baked in) to share.
+	 *    vertical video (numbers and the ring baked in) to share.
 	 *
 	 * The stage is a pure consumer of `(commodity, amount)`. `staged` is a
 	 * bindable the page reads to add the "Sat is standing nearer the camera"
@@ -52,6 +57,7 @@
 	import { computeMassGrams } from '$lib/volume.js';
 	import {
 		STANDARD_GRAVITY,
+		RESTITUTION,
 		dropHeightM,
 		dropOffset,
 		dropDurationS,
@@ -67,6 +73,15 @@
 		clearCameraFromCube,
 	} from './drop.js';
 	import { TAP_SLOP_PX, dragRatio, pinchRatio, wheelZoomRatio, orbitYaw } from './grab.js';
+	import {
+		isSoundingMaterial,
+		ringPitchHz,
+		synthImpact,
+		hearingBand,
+		formatFrequency,
+		type SoundingMaterial,
+	} from './impact-sound.js';
+	import { audioEnabled } from '$lib/stores/url.js';
 	// The clip recorder is dynamic-imported with the rest of the scene
 	// (`C` below) — only its types are needed up front.
 	import type { ClipInfo, ClipLoupe } from './clip.js';
@@ -127,6 +142,10 @@
 	let clipFileName = $state('clip.mp4');
 	let canShareFile = $state(false);
 	let previewHost: HTMLDivElement | undefined = $state();
+	/** Transient "♪ 26.8 kHz — only Sat can hear this" caption after a landing. */
+	let ringCaption = $state<{ text: string; band: 'people' | 'dogs' | 'nobody' } | null>(null);
+	let ringCaptionTimer: ReturnType<typeof setTimeout> | null = null;
+	const soundOn = $derived($audioEnabled);
 	let videoEl: HTMLVideoElement | undefined = $state();
 	let clipFile: File | null = null;
 
@@ -561,9 +580,23 @@
 		const massKg = (computeMassGrams(amount ?? 0, commodity) ?? 0) / 1000;
 		const e1 = impactEnergyJ(massKg, dropY0);
 		const i = impactIntensity(nthImpactEnergyJ(e1, n));
-		if (clip && C) {
-			if (n === 1) clip.impactT = (now - clip.t0) / 1000;
-			C.playThud(clip.ac, clip.bus, clip.ac.currentTime, i);
+		if (clip && n === 1) clip.impactT = (now - clip.t0) / 1000;
+
+		// The ring. Loudness is compressed from the impact energy (the real
+		// range spans ~20 orders of magnitude); each bounce lands at
+		// restitution × the previous speed, so its ring is that much quieter.
+		const id = commodity.id;
+		if (isSoundingMaterial(id)) {
+			const gain = (0.25 + 0.75 * impactIntensity(e1)) * Math.pow(RESTITUTION, n - 1);
+			if (clip) playRing(clip.ac, clip.bus, id, edge, gain);
+			else if (soundOn) {
+				const ac = ensurePageAudio();
+				if (ac && pageBus) playRing(ac, pageBus, id, edge, gain);
+			}
+			if (n === 1 && !clip) showRingCaption(ringPitchHz(id, edge));
+			// Sat hears what you can't: a ring between 20 and 45 kHz keeps his
+			// ears up well after the thud has gone quiet for everyone else.
+			if (n === 1 && hearingBand(ringPitchHz(id, edge)) === 'dogs') earPerkUntil = now + 3500;
 		}
 		if (prefersReduced) return;
 		const sp = shakeProfile(i);
@@ -577,7 +610,7 @@
 		// Sat reacts: ears up, a startle hop sized to the thud (real ballistic
 		// time for its height), tail tucked for a big one, and a shake-off if
 		// the dust cloud reaches him.
-		earPerkUntil = now + 1600;
+		earPerkUntil = Math.max(earPerkUntil, now + 1600);
 		if (i > 0.28 && M) {
 			hopH = M.DOG_TOTAL_HEIGHT_M * (0.025 + 0.085 * ((i - 0.28) / 0.72));
 			hopDur = 2 * Math.sqrt((2 * hopH) / STANDARD_GRAVITY);
@@ -588,6 +621,74 @@
 			const reach = dustRadiusM(edge, i);
 			if (Math.hypot(dog.position.x, dog.position.z) < reach * 1.6 || i > 0.85) shakeOffAt = now + 900;
 		}
+	}
+
+	// ── Sound: the cube's ring ────────────────────────────────────────────────
+	// One AudioContext for the page, created (or resumed) inside a user
+	// gesture — the speaker toggle, or any press while sound is on. Clips use
+	// their own context wired into the recording.
+	let pageAc: AudioContext | null = null;
+	let pageBus: AudioNode | null = null;
+	let ringCache: { key: string; buf: AudioBuffer } | null = null;
+
+	function ensurePageAudio(): AudioContext | null {
+		if (!pageAc) {
+			try {
+				pageAc = new AudioContext();
+				// Gentle limiter so the whole-supply gong can't clip the output.
+				const comp = pageAc.createDynamicsCompressor();
+				comp.connect(pageAc.destination);
+				pageBus = comp;
+			} catch {
+				return null;
+			}
+		}
+		if (pageAc.state === 'suspended') void pageAc.resume().catch(() => {});
+		return pageAc;
+	}
+
+	/** While sound is on, any press on the page primes the audio context, so
+	 *  the first drop after a slider release isn't swallowed by autoplay rules. */
+	function primeAudio(): void {
+		if (soundOn) ensurePageAudio();
+	}
+
+	function toggleSound(): void {
+		const next = !soundOn;
+		audioEnabled.set(next);
+		if (next) ensurePageAudio();
+	}
+
+	/** The ring for this cube, rendered once per (material, edge, rate). */
+	function ringBuffer(ac: AudioContext, id: SoundingMaterial, edge: number): AudioBuffer {
+		const key = `${id}:${edge.toPrecision(5)}:${ac.sampleRate}`;
+		if (ringCache?.key === key) return ringCache.buf;
+		const data = synthImpact(id, edge, ac.sampleRate);
+		const buf = ac.createBuffer(1, data.length, ac.sampleRate);
+		buf.copyToChannel(data, 0);
+		ringCache = { key, buf };
+		return buf;
+	}
+
+	function playRing(ac: AudioContext, out: AudioNode, id: SoundingMaterial, edge: number, gain: number): void {
+		try {
+			const src = ac.createBufferSource();
+			src.buffer = ringBuffer(ac, id, edge);
+			const g = ac.createGain();
+			g.gain.value = gain;
+			src.connect(g).connect(out);
+			src.start();
+		} catch {
+			/* audio unavailable — the drop still happens, silently */
+		}
+	}
+
+	function showRingCaption(hz: number): void {
+		const band = hearingBand(hz);
+		const who = band === 'people' ? '' : band === 'dogs' ? ' · only Sat can hear this' : ' · nobody can hear this';
+		ringCaption = { text: `♪ ${formatFrequency(hz)}${who}`, band };
+		if (ringCaptionTimer) clearTimeout(ringCaptionTimer);
+		ringCaptionTimer = setTimeout(() => (ringCaption = null), 3200);
 	}
 
 	// ── Gaze tracking (brief §2.2) — head bone aims at the cube, post-mix ─────
@@ -914,6 +1015,7 @@
 
 	function onPointerDown(e: PointerEvent): void {
 		if (!renderer || clip) return;
+		primeAudio();
 		pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 		if (pointers.size === 2 && grabEnabled) {
 			// Second finger: whatever the first was doing becomes a pinch.
@@ -1513,6 +1615,8 @@
 		el.addEventListener('pointercancel', onPointerCancel);
 		el.addEventListener('touchstart', onTouchStart, { passive: false });
 		el.addEventListener('wheel', onWheel, { passive: false });
+		window.addEventListener('pointerdown', primeAudio, { passive: true });
+		window.addEventListener('keydown', primeAudio);
 
 		// Which render path survived the probe — "full" (DOF + bloom + loupe) or
 		// "basic" (plain render). A stable hook for capture scripts and QA.
@@ -1691,7 +1795,17 @@
 		}
 		resizeObs?.disconnect();
 		viewObs?.disconnect();
-		if (browser) document.removeEventListener('visibilitychange', onVisibility);
+		if (browser) {
+			document.removeEventListener('visibilitychange', onVisibility);
+			window.removeEventListener('pointerdown', primeAudio);
+			window.removeEventListener('keydown', primeAudio);
+		}
+		if (ringCaptionTimer) clearTimeout(ringCaptionTimer);
+		ringCaption = null;
+		void pageAc?.close().catch(() => {});
+		pageAc = null;
+		pageBus = null;
+		ringCache = null;
 		if (renderer) {
 			const el = renderer.domElement;
 			el.removeEventListener('pointerdown', onPointerDown);
@@ -1822,10 +1936,39 @@
 			</div>
 		{/if}
 
-		{#if recordSupported && clipInfo && studio === 'idle'}
-			<button type="button" class="rec-btn" onclick={startClip} title="Record a short vertical video of this weigh-in">
-				<span class="rec-dot" aria-hidden="true"></span> Make a clip
-			</button>
+		<div class="stage-buttons">
+			{#if isSoundingMaterial(commodity.id)}
+				<button
+					type="button"
+					class="stage-btn"
+					class:stage-btn--on={soundOn}
+					onclick={toggleSound}
+					aria-pressed={soundOn}
+					title={soundOn ? 'Sound on — the cube rings at its real pitch when it lands' : 'Sound off — turn on to hear the cube ring at its real pitch'}
+				>
+					<svg class="stage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+						{#if soundOn}
+							<path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+							<path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+						{:else}
+							<line x1="22" y1="9" x2="16" y2="15" />
+							<line x1="16" y1="9" x2="22" y2="15" />
+						{/if}
+					</svg>
+					<span>{soundOn ? 'Sound on' : 'Sound'}</span>
+				</button>
+			{/if}
+			{#if recordSupported && clipInfo && studio === 'idle'}
+				<button type="button" class="stage-btn" onclick={startClip} title="Record a short vertical video of this weigh-in">
+					<span class="rec-dot" aria-hidden="true"></span> Make a clip
+				</button>
+			{/if}
+		</div>
+		{#if ringCaption}
+			<div class="ring-caption" class:ring-caption--muted={ringCaption.band !== 'people'} aria-live="polite">
+				{ringCaption.text}
+			</div>
 		{/if}
 
 		{#if hintVisible}
@@ -1921,7 +2064,8 @@
 	   an explicit stacking level to sit above it. */
 	.loupe-svg,
 	.loupe-label,
-	.rec-btn,
+	.stage-buttons,
+	.ring-caption,
 	.stage-hint {
 		z-index: 2;
 	}
@@ -1950,10 +2094,14 @@
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 	}
 
-	.rec-btn {
+	.stage-buttons {
 		position: absolute;
 		top: 12px;
 		right: 12px;
+		display: flex;
+		gap: 8px;
+	}
+	.stage-btn {
 		display: inline-flex;
 		align-items: center;
 		gap: 7px;
@@ -1970,13 +2118,40 @@
 		cursor: pointer;
 		transition: background 120ms ease, border-color 120ms ease;
 	}
-	.rec-btn:hover {
+	.stage-btn:hover {
 		background: rgba(24, 24, 27, 0.85);
 		border-color: rgba(255, 255, 255, 0.28);
 	}
-	.rec-btn:focus-visible {
+	.stage-btn:focus-visible {
 		outline: 2px solid #f59e0b;
 		outline-offset: 2px;
+	}
+	.stage-btn--on {
+		color: #fbbf24;
+		border-color: rgba(251, 191, 36, 0.45);
+	}
+	.stage-icon {
+		width: 14px;
+		height: 14px;
+	}
+	.ring-caption {
+		position: absolute;
+		top: 50px;
+		right: 12px;
+		padding: 4px 9px;
+		border-radius: 6px;
+		background: rgba(9, 9, 11, 0.62);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+		color: #e4e4e7;
+		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+		font-size: 11px;
+		letter-spacing: 0.01em;
+		pointer-events: none;
+		animation: hint-in 240ms ease both;
+	}
+	.ring-caption--muted {
+		color: #a1a1aa;
 	}
 	.rec-dot {
 		width: 8px;

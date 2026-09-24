@@ -42,6 +42,7 @@
 		formatEnergy,
 	} from '$lib/scene/drop.js';
 	import type { ClipInfo } from '$lib/scene/clip.js';
+	import { isSoundingMaterial, ringPitchHz, ringSentence, formatFrequency, hearingBand } from '$lib/scene/impact-sound.js';
 
 	const deltaObjects = deltaObjectsJson as unknown as DeltaObjectsFile;
 
@@ -144,6 +145,8 @@
 	// pressure vs IBC Table 1806.2) on the live cube edge and mass.
 	const isCube = $derived(active.renderStyle === 'cube' && !!active.densityGPerCm3);
 	const edgeM = $derived(isCube && amount > 0 ? computeCubeEdgeMm(amount, active) / 1000 : 0);
+	// …and the ring: the cube's real vibration pitch on landing (impact-sound.ts).
+	const ringHz = $derived(isCube && edgeM > 0 && isSoundingMaterial(active.id) ? ringPitchHz(active.id, edgeM) : 0);
 	const dropLine = $derived(
 		isCube && edgeM > 0
 			? formatDropLine({
@@ -151,7 +154,7 @@
 					massGrams,
 					densityGPerCm3: active.densityGPerCm3!,
 					unit: $system,
-				})
+				}) + (ringHz > 0 ? ' ' + ringSentence(ringHz) : '')
 			: ''
 	);
 
@@ -191,7 +194,12 @@
 			valueLine: [btcUsdPrice > 0 ? formatUsdShort(btcAmount * btcUsdPrice) : '', formatDateLong(selectedDate)]
 				.filter(Boolean)
 				.join(' · '),
-			dropLine: `Falls ${formatDuration(fallTimeS(h))} from its own height · hits with ${formatEnergy(impactEnergyJ(massKg, h))}`,
+			dropLine:
+				`Falls ${formatDuration(fallTimeS(h))} · hits with ${formatEnergy(impactEnergyJ(massKg, h))}` +
+				(ringHz > 0
+					? ` · rings at ${formatFrequency(ringHz)}` +
+						(hearingBand(ringHz) === 'dogs' ? ' (only Sat can hear it)' : hearingBand(ringHz) === 'nobody' ? ' (nobody can hear it)' : '')
+					: ''),
 			shareUrl: `https://bitcoinweighin.com/?${params.toString()}`,
 			fileStem: `bitcoinweighin-${btcSlug}-${active.id}${selectedDate ? '-' + selectedDate : ''}`,
 			accent,

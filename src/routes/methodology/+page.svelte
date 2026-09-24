@@ -364,6 +364,40 @@
 				would necessarily give way. A gold cube reaches the bedrock value at about 3.03 m on a
 				side, whatever the gold price.
 			</p>
+			<h3>The sound</h3>
+			<p>
+				With the sound switched on, the cube rings when it lands, at the pitches a real block of
+				that material and size would ring at. We computed the free-vibration modes of an elastic
+				cube numerically, using the Rayleigh–Ritz method from resonant ultrasound spectroscopy
+				(Visscher et al., <em>J. Acoust. Soc. Am.</em> 90, 1991), and checked the solver against
+				beam theory for a long bar and against Lamé's exact solution for a cube. The inputs are
+				each material's speeds of sound: 3,240 m/s (compression) and 1,200 m/s (shear) for gold,
+				3,650 and 1,610 m/s for silver (CRC Handbook of Chemistry and Physics), and, for
+				plutonium dioxide, the ultrasonically measured shear modulus of 89 GPa and Poisson's
+				ratio of 0.32 (Kato &amp; Matsumoto, IAEA INIS), taken at the density modelled here. The
+				Young's modulus of 219 GPa in the same abstract would imply a Poisson's ratio nearer
+				0.23; the main note below doesn't depend on that ratio at all, so the discrepancy only
+				colours the timbre.
+			</p>
+			<p>
+				The landing is modelled as a flat blow lasting as long as a compression wave takes to
+				cross the cube and come back, with the load slightly off-centre, because no real block
+				lands perfectly square. Every frequency then scales as one over the edge length: a cube
+				twice the size rings exactly an octave lower, and for twice as long. The loudest note is
+				Lamé's mode, at the shear wave speed divided by (√2 × edge). That puts 1 BTC of gold — a
+				3.2 cm cube — at about 27 kHz: above the roughly 20 kHz limit of human hearing but inside
+				a dog's, which reaches about 45 kHz (Heffner, <em>Behavioral Neuroscience</em> 97(2),
+				1983). So at that size you hear nothing and Sat's ears go up. At September 2026 prices gold
+				becomes audible to people at about 2.4 BTC; the whole supply rings at about 97 Hz.
+				Frequencies above what your device can play are left out rather than shifted down.
+			</p>
+			<p>
+				One figure is an assumption rather than a measurement: damping. Each mode is allowed to
+				ring for roughly 150 cycles (a quality factor of 150), standing in for the energy a block
+				loses into the floor it sits on; the metal on its own would ring far longer. Loudness is
+				compressed from the impact energy, since a real whole-supply drop would be deafening.
+				Sound is off unless you switch it on; the clip recorder always includes it.
+			</p>
 			<h3>Camera optics</h3>
 			<p>
 				The stage camera is modelled as a real one: a full-frame sensor (24 mm tall) with the
