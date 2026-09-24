@@ -16,6 +16,7 @@
 	import { formatBtc } from '$lib/format.js';
 	import { parseAmountInput } from '$lib/amount-input.js';
 	import { applyDetent, DETENT_BTC_VALUES } from '$lib/detent.js';
+	import { clampBtc, roundBtc } from '$lib/scene/grab.js';
 	import { getEntity } from '$lib/holdings.js';
 	import { createKonamiTracker } from '$lib/konami.js';
 	import {
@@ -84,12 +85,7 @@
 
 	function sliderToBtc(pos: number): number {
 		const log = LOG_MIN + (pos / SLIDER_STEPS) * (LOG_MAX - LOG_MIN);
-		const raw = Math.pow(10, log);
-		if (raw >= 1000) return Math.round(raw);
-		if (raw >= 1) return Math.round(raw * 100) / 100;
-		if (raw >= 0.001) return Math.round(raw * 10000) / 10000;
-		if (raw >= 0.00001) return Math.round(raw * 100000000) / 100000000;
-		return Math.round(raw * 100000000) / 100000000;
+		return roundBtc(Math.pow(10, log)); // shared with the cube grab (scene/grab.ts)
 	}
 
 	// Dual-mode slider: 'btc' adjusts BTC amount; 'date' locks BTC and scrubs through history.
@@ -170,6 +166,38 @@
 			if (Math.abs(newPos - sliderPos) > 1) sliderPos = newPos;
 		}
 	});
+
+	// ── The Drop: hold while dragging, drop on release ──────────
+	// While the visitor holds the BTC slider (or a preset tweens), the hero
+	// stage freezes its camera and lets the cube grow or shrink in place; on
+	// release it stumbles back to frame it and drops the cube from its own
+	// height (src/lib/scene/LiveStage.svelte, drop.ts). Commits that have no
+	// hold — a typed amount, a decade key jump — drop it via `dropSignal`.
+	let sliderHeld = $state(false);
+	let dropSignal = $state(0);
+	const heroHeld = $derived(sliderHeld || tweening);
+
+	function handleSliderPointerDown() {
+		if (sliderMode === 'btc') sliderHeld = true;
+	}
+	function releaseSlider() {
+		if (sliderHeld) sliderHeld = false;
+	}
+
+	// Direct manipulation: dragging / pinching the cube itself reports a
+	// ratio against the amount at grab start; it commits through the same
+	// setter as the slider so the URL contract is unchanged.
+	let grabStartBtc = 1;
+	function handleGrab(phase: 'start' | 'move' | 'end', ratio: number) {
+		if (sliderMode !== 'btc') return;
+		if (phase === 'start') {
+			cancelTween();
+			stopPlayback();
+			grabStartBtc = $btcAmount;
+		} else if (phase === 'move') {
+			setBtcFromSlider(roundBtc(clampBtc(grabStartBtc * ratio)));
+		}
+	}
 
 	// ── Detents (delight brief §1.5b) ───────────────────────────
 	// Magnetic snap in slider space at the meaningful BTC values. Positions
@@ -365,6 +393,7 @@
 		if (sliderMode === 'btc') {
 			const next = Math.min(BTC_MAX, Math.max(BTC_MIN, $btcAmount * (up ? 10 : 0.1)));
 			setBtcFromSlider(next);
+			dropSignal++;
 		} else if (sortedDates.length > 1 && $selectedDate) {
 			const targetYear = Number($selectedDate.slice(0, 4)) + (up ? 1 : -1);
 			const target = `${targetYear}${$selectedDate.slice(4)}`;
@@ -435,6 +464,7 @@
 		cancelTween();
 		stopPlayback(); // defensive — amount edit only reachable in btc mode anyway
 		setBtcFromSlider(parsed);
+		dropSignal++;
 	}
 
 	function handleAmountKeydown(e: KeyboardEvent) {
@@ -736,7 +766,7 @@
 
 <!-- Global keys (brief §1.5c): g/s/p/c switch hero tabs, t toggles BTC/date.
      Guarded inside the handler — never fires while an input owns focus. -->
-<svelte:window onkeydown={handleGlobalKeydown} />
+<svelte:window onkeydown={handleGlobalKeydown} onpointerup={releaseSlider} onpointercancel={releaseSlider} />
 
 <svelte:head>
 	<title>{pageTitle}</title>
@@ -805,6 +835,7 @@
 					max={SLIDER_STEPS}
 					value={sliderPos}
 					oninput={handleSliderInput}
+					onpointerdown={handleSliderPointerDown}
 					ondblclick={handleSliderDblClick}
 					onkeydown={handleSliderKeydown}
 					class="w-full"
@@ -875,6 +906,10 @@
 			btcUsdPrice={dayPrices?.btc ?? 0}
 			{prices}
 			selectedDate={$selectedDate}
+			held={heroHeld}
+			{dropSignal}
+			grabEnabled={sliderMode === 'btc'}
+			ongrab={handleGrab}
 		>
 			{#snippet controls()}
 			<!-- Controls — two-row compact panel (~120px tall) -->
@@ -909,6 +944,7 @@
 								max={SLIDER_STEPS}
 								value={sliderPos}
 								oninput={handleSliderInput}
+								onpointerdown={handleSliderPointerDown}
 								ondblclick={handleSliderDblClick}
 								onkeydown={handleSliderKeydown}
 								class="slider"
