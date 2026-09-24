@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * The homepage's way into /mining, at the foot of the Hashweight panel:
-	 * a silent loop of a chip coming apart, and a live count of the hashes the
+	 * The homepage's way into /mining, just above the Hashweight panel: a
+	 * silent loop of a chip coming apart, and a live count of the hashes the
 	 * network has tried since the strip came into view.
 	 *
 	 * The clip only loads once the strip nears the viewport, plays only while
@@ -10,13 +10,16 @@
 	 */
 	import { onMount } from 'svelte';
 	import { fmtBig } from '$lib/mining/format.js';
+	import { fetchHashrateEH } from '$lib/network-weight.js';
 
-	let { hashrateEH }: { hashrateEH: number | null } = $props();
+	/** Mirrors NetworkWeightPanel's offline fallback. */
+	const HASHRATE_FALLBACK_EH = 800;
 
 	let el: HTMLElement | undefined = $state();
 	let video: HTMLVideoElement | undefined = $state();
 	let loadVideo = $state(false);
 	let hashes = $state(0);
+	let hashrateEH = HASHRATE_FALLBACK_EH;
 
 	onMount(() => {
 		if (!el) return;
@@ -28,13 +31,14 @@
 			if (!e.isIntersecting) return;
 			near.disconnect();
 			if (!still) loadVideo = true;
+			void fetchHashrateEH().then((eh) => { if (eh) hashrateEH = eh; });
 		}, { rootMargin: '400px 0px' });
 		const onScreen = new IntersectionObserver(([e]) => {
 			if (e.isIntersecting) {
 				if (!started) {
 					started = performance.now();
 					timer = window.setInterval(() => {
-						hashes = (hashrateEH ?? 800) * 1e18 * ((performance.now() - started) / 1000);
+						hashes = hashrateEH * 1e18 * ((performance.now() - started) / 1000);
 					}, 100);
 				}
 				void video?.play().catch(() => {});
@@ -57,10 +61,10 @@
 	</div>
 	<div class="ms-copy">
 		<p class="ms-eyebrow"><span>New</span> · Inside a miner</p>
-		<h3 class="ms-title">Now step inside one of those machines</h3>
+		<h2 class="ms-title">Step inside a Bitcoin miner</h2>
 		<p class="ms-body">
-			Take a mining chip apart down to the silicon, then watch one hash core check real block headers,
-			one SHA-256 round at a time, until it finds a real block.
+			Millions of machines secure Bitcoin, each packed with chips guessing about a trillion times a second.
+			Take one apart down to the silicon, then watch a single hash core find a real block.
 		</p>
 		<div class="ms-live">
 			<div class="ms-num">{hashes > 0 ? fmtBig(hashes) : '0'}</div>
@@ -73,13 +77,14 @@
 </a>
 
 <style>
+	/* Same card as the Hashweight panel below it, so the two read as a pair. */
 	.ms {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
 		gap: 20px;
-		margin-top: 32px;
-		padding-top: 28px;
-		border-top: 1px solid #27272a;
+		background: #09090b;
+		border-radius: 12px;
+		padding: 28px 24px;
 		color: inherit;
 		text-decoration: none;
 	}

@@ -74,7 +74,15 @@ export function computeNetworkWeight(hashrateEH: number): NetworkWeightEstimate 
  * Fetch the current network hashrate from mempool.space.
  * Returns hashrate in EH/s, or null on failure.
  */
-export async function fetchHashrateEH(): Promise<number | null> {
+// The homepage asks twice (the /mining strip and the Hashweight panel); both share one request.
+let hashrateRequest: Promise<number | null> | null = null;
+
+export function fetchHashrateEH(): Promise<number | null> {
+	hashrateRequest ??= requestHashrateEH();
+	return hashrateRequest;
+}
+
+async function requestHashrateEH(): Promise<number | null> {
 	try {
 		const res = await fetch('https://mempool.space/api/v1/mining/hashrate/1w');
 		if (!res.ok) return null;

@@ -7,7 +7,6 @@
 	import type MiningGlobeType from './MiningGlobe.svelte';
 	import AsicSound from './AsicSound.svelte';
 	import HashweightSparkline from './HashweightSparkline.svelte';
-	import MiningStrip from './mining/MiningStrip.svelte';
 	import {
 		fetchHashrateEH,
 		computeNetworkWeight,
@@ -226,9 +225,6 @@
 		</div>
 
 	</div>
-
-	<!-- The way into /mining: one of those machines, taken apart. -->
-	<MiningStrip hashrateEH={estimate?.hashrateEH ?? null} />
 
 </section>
 

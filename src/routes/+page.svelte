@@ -27,6 +27,7 @@
 	import HeroStage from '$lib/components/HeroStage.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
 	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
+	import MiningStrip from '$lib/components/mining/MiningStrip.svelte';
 	import {
 		organizationJsonLd,
 		websiteJsonLd,
@@ -1058,6 +1059,11 @@
 			<div bind:this={sentinelEl} aria-hidden="true" class="h-px"></div>
 			{/snippet}
 		</HeroStage>
+
+		<!-- The way into /mining, right above the Hashweight panel. -->
+		<div class="mt-12">
+			<MiningStrip />
+		</div>
 
 		<!-- Hashweight panel — unchanged. -->
 		<div class="mt-12">
