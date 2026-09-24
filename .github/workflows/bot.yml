@@ -53,6 +53,9 @@ jobs:
       - name: Install Playwright chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Install ffmpeg (for the weekly /mining video)
+        run: command -v ffmpeg >/dev/null || (sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg)
+
       - name: Run bot
         env:
           SITE_BASE_URL: https://bitcoinweighin.com

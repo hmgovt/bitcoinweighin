@@ -8,6 +8,12 @@
 	import HashCoreRealtime from '$lib/components/mining/HashCoreRealtime.svelte';
 	import { CLOCK_HZ, MiningController } from '$lib/mining/controller.svelte.js';
 	import { fmtDur, n0 } from '$lib/mining/format.js';
+	import { BLOCKS, BLOCKS_FETCHED_AT } from '$lib/mining/blocks.js';
+	import { parseTemplate } from '$lib/mining/sha256.js';
+
+	const [older, newer] = BLOCKS.map(parseTemplate);
+	const fetchedOn = BLOCKS_FETCHED_AT.slice(0, 10);
+	const rolled = [older, newer].filter((t) => (t.version & 0x1fffe000) !== 0).length;
 
 	const PAGE_URL = 'https://bitcoinweighin.com/mining';
 	const TITLE = 'Inside a Bitcoin Miner: How an ASIC Finds a Block';
@@ -104,10 +110,10 @@
 		<footer class="notes">
 			<h2>How this page works</h2>
 			<ul>
-				<li>The headers are the real 80-byte headers of blocks 968,389 and 968,390, taken from mempool.space. Every hash on this page is computed in your browser, one SHA-256 round at a time, and the winning nonces reproduce the real block hashes.</li>
+				<li>The headers are the real 80-byte headers of blocks {n0(older.height)} and {n0(newer.height)}, the newest blocks with a confirmation when this page was last updated ({fetchedOn}); they're refreshed from mempool.space every day. Every hash on this page is computed in your browser, one SHA-256 round at a time, and the winning nonces reproduce the real block hashes.</li>
 				<li>The clock is an assumption: 500 MHz, with a fully pipelined core finishing one double-SHA-256 per clock. Real chips differ in clock speed, core count and pipeline layout. The time-dilation figures scale with this number.</li>
 				<li>Real chips cut work further. Rounds 1–3 of pass 1 don't depend on the nonce, so they're computed once per job. The hash's top 32 bits are already fixed after round 61 of pass 2, so many designs check there and skip the last three rounds.</li>
-				<li>Both blocks' version fields have bits set inside the BIP 320 range (<code>0x1fffe000</code>), meaning the miner rolled version bits too. That changes block 1 and so the midstate. This page keeps the version fixed.</li>
+				<li>Miners also roll version bits inside the BIP 320 range (<code>0x1fffe000</code>), which changes block 1 and so the midstate. {rolled === 2 ? 'Both of these blocks' : rolled === 1 ? 'One of these blocks' : 'Neither of these blocks'} did. This page keeps the version fixed.</li>
 				<li>The ~50-bit real share target is an estimate: an S21 at 234 TH/s submitting roughly one share every 5 seconds does about 2⁵⁰ hashes per share. The 8-bit share target here is only so you can see shares happen.</li>
 				<li>Replay sets the counter 103 nonces before the real winning nonce. Every hash along the way is a real attempt on the real template, but the original miner didn't necessarily try those exact neighbours.</li>
 				<li>The 3D model follows flip-chip packaging, which teardown analysis shows recent Bitmain chips use (<a href="https://www.techinsights.com/products/apq-2211-801" rel="noopener">TechInsights on the BM1366</a>). Bitmain publishes no datasheets, so dimensions, bump and ball counts, the board layout and the number of chips shown are illustrative. The heatsink that normally covers the chips is left off.</li>

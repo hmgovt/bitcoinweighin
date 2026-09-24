@@ -27,6 +27,16 @@ export function fmtBig(n: number): string {
 	return Math.round(n).toLocaleString('en-US');
 }
 
+/** "7 hours ago" — for how long ago a block was found. */
+export function fmtAgo(seconds: number): string {
+	const s = Math.max(0, seconds);
+	const unit = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'} ago`;
+	if (s < 90) return 'just now';
+	if (s < 5400) return unit(Math.round(s / 60), 'minute');
+	if (s < 172800) return unit(Math.round(s / 3600), 'hour');
+	return unit(Math.round(s / 86400), 'day');
+}
+
 /** Seconds → the most readable unit, from nanoseconds to 10¹⁵ years. */
 export function fmtDur(s: number): string {
 	if (s < 1e-6) return `${(s * 1e9).toFixed(0)} ns`;
