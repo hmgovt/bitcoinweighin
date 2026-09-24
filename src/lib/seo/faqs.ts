@@ -46,4 +46,9 @@ export const HOMEPAGE_FAQS: FaqEntry[] = [
 		answer:
 			"It depends on the amount and the date, but the site computes it exactly: stacked to the real 0.10922 mm note thickness (Bureau of Engraving and Printing), then compared to real-world landmarks from a doorway up to the edge of space. See the Cash tab on the homepage, or /btc/cash for the current figure.",
 	},
+	{
+		question: 'How does a Bitcoin miner actually find a block?',
+		answer:
+			"It guesses. A mining chip hashes the 80-byte block header twice with SHA-256, changing a 32-bit number called the nonce each time, and checks whether the result falls below the network's target. Almost every guess fails and is thrown away instantly; at today's difficulty the whole network needs more than 10²³ guesses per block. /mining takes a chip apart in 3D and simulates one hash core working through real block headers, including a replay of the moment a real block was found.",
+	},
 ];
