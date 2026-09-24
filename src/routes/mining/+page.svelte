@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { breadcrumbJsonLd, webPageJsonLd } from '$lib/seo/jsonld.js';
+	import SiteHeader from '$lib/components/brand/SiteHeader.svelte';
 	import MiningDive from '$lib/components/mining/MiningDive.svelte';
 	import HashCoreJob from '$lib/components/mining/HashCoreJob.svelte';
 	import HashCoreInstrument from '$lib/components/mining/HashCoreInstrument.svelte';
@@ -69,7 +70,7 @@
 
 <div class="mining">
 	<div class="wrap">
-		<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Bitcoin Weigh-In</a> <span aria-hidden="true">/</span> Mining</nav>
+		<SiteHeader current="mining" />
 
 		<header class="hero">
 			<h1>Inside a Bitcoin miner</h1>
@@ -153,10 +154,7 @@
 		line-height: 1.5;
 		min-height: 100vh;
 	}
-	.wrap { max-width: 1120px; margin-inline: auto; padding-inline: 20px; padding-block: 20px 72px; display: flex; flex-direction: column; gap: 44px; }
-	.crumbs { font-size: 12.5px; color: var(--ink-3); margin-bottom: -24px; }
-	.crumbs a { color: var(--ink-2); text-decoration: none; }
-	.crumbs a:hover { color: var(--ink); text-decoration: underline; }
+	.wrap { max-width: 1120px; margin-inline: auto; padding-inline: 20px; padding-block: 8px 72px; display: flex; flex-direction: column; gap: 44px; }
 	h1 { font: 600 clamp(34px, 5.2vw, 50px)/1.02 var(--sans); letter-spacing: -0.025em; margin: 0; text-wrap: balance; }
 	.lede { margin: 14px 0 0; max-width: 64ch; color: var(--ink-2); font-size: 16px; line-height: 1.55; }
 	.core-intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 48px; align-items: end; margin-bottom: -16px; }

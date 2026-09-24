@@ -1,5 +1,7 @@
 <script lang="ts">
+	import SiteHeader from '$lib/components/brand/SiteHeader.svelte';
 	import { breadcrumbJsonLd, webPageJsonLd } from '$lib/seo/jsonld.js';
+	import { MACHINES, machineKg, LIFETIME_YEARS, SMOOTH_DAYS } from '$lib/hashweight/fleet.js';
 	const sections = [
 		{ id: 'what-this-is', title: 'What this is' },
 		{ id: 'data-sources', title: 'Data sources' },
@@ -37,6 +39,7 @@
 
 <div class="methodology-page">
 	<main class="mx-auto max-w-3xl px-4 py-8 text-zinc-800">
+		<div class="mb-6 -mt-4"><SiteHeader tone="light" current="methodology" /></div>
 		<header class="mb-8 border-b border-zinc-200 pb-6">
 			<h1 class="text-2xl font-semibold tracking-tight">Methodology</h1>
 			<p class="mt-2 text-sm text-zinc-600">
@@ -450,34 +453,83 @@
 				Current network hashrate is fetched at page load from the
 				<a href="https://mempool.space/api/v1/mining/hashrate/1w" class="underline hover:no-underline">mempool.space
 				mining API</a> (<code>/api/v1/mining/hashrate/1w</code>), which returns a 7-day
-				rolling average in H/s. The historical sparkline uses
+				rolling average in H/s. The fleet model and its timeline use
 				<code>/api/v1/mining/hashrate/all</code>, which provides weekly averages back to
-				Bitcoin's origin. If the API is unreachable, the panel falls back to a recent
-				known-good value (800 EH/s).
+				Bitcoin's origin (the panel starts in 2014). If the history is unreachable, the panel
+				shows today only, from the fixed fleet average described at the end of this section;
+				if the live figure is unreachable too, it falls back to 800 EH/s.
 			</p>
 			<h3>ASIC fleet model</h3>
 			<p>
-				The installed ASIC fleet is modelled with two blended constants:
+				Hashrate alone doesn't give a weight: one exahash per second took about 870,000
+				machines in 2015 and about 3,700 in 2026. So the panel models the fleet in cohorts
+				(<code>src/lib/hashweight/fleet.ts</code>):
 			</p>
-			<ul class="my-3 list-disc pl-6 text-sm">
+			<ol class="my-3 list-decimal pl-6 text-sm">
 				<li>
-					<strong>150 TH/s per machine</strong> — a blend of S19-era hardware
-					(Antminer S19 Pro: 110 TH/s, S19 XP: 140 TH/s) and S21-era hardware
-					(Antminer S21: 200 TH/s, S21 Pro: 234 TH/s). Older S9-class machines
-					(~100 TH/s) and early retirements pull the average down; cutting-edge
-					deployments push it up.
+					<strong>Capacity.</strong> Installed capacity is the running maximum of the
+					{SMOOTH_DAYS}-day mean hashrate. Machines switched off during a dip still exist and
+					still weigh: when the 2021 China ban halved the hashrate for months, the machines were
+					in transit, not destroyed.
 				</li>
 				<li>
-					<strong>13.5 kg per machine</strong> — S19-class units average ~13.2–14.3 kg;
-					S21-class units average ~14.2–14.9 kg; older hardware is lighter (~4.3 kg for
-					S9). The blended fleet average lies between those bounds.
+					<strong>Arrivals.</strong> Every rise in capacity is built from the most efficient
+					machine on sale at the time (the frontier, below).
 				</li>
-			</ul>
+				<li>
+					<strong>Retirement.</strong> Each cohort runs for {LIFETIME_YEARS} years, then is
+					replaced, like for like in hashrate, by that day's frontier machine.
+				</li>
+			</ol>
 			<p>
-				ASIC count = hashrate (TH/s) ÷ 150. ASIC mass = ASIC count × 13.5 kg.
-				At ~950 EH/s this yields ~6.3 million machines weighing ~85,000 metric tonnes.
-				The model over-counts recently retired machines still in transit and under-counts
-				very new hardware not yet fully deployed; ±30% is a reasonable uncertainty band.
+				The frontier is Bitmain's Antminer line, the most-deployed family. Weights include the
+				separate power supply the S5–S9 generation needed; later models have it built in.
+			</p>
+			<div class="my-3 overflow-x-auto">
+				<table class="w-full text-left text-xs">
+					<thead>
+						<tr class="border-b border-zinc-300">
+							<th class="py-1 pr-3">Machine</th>
+							<th class="py-1 pr-3">From</th>
+							<th class="py-1 pr-3">TH/s</th>
+							<th class="py-1 pr-3">kg (with supply)</th>
+							<th class="py-1">Source</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each MACHINES as m (m.id)}
+							<tr class="border-b border-zinc-100 align-top">
+								<td class="py-1 pr-3 whitespace-nowrap">{m.name}</td>
+								<td class="py-1 pr-3 whitespace-nowrap">{m.from}</td>
+								<td class="py-1 pr-3">{m.ths}</td>
+								<td class="py-1 pr-3">{machineKg(m).toFixed(1)}</td>
+								<td class="py-1 text-zinc-600">{m.source}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+			<p>
+				Before the S5 shipped (December 2014) the model still uses it, though earlier ASICs
+				were heavier per TH/s, so figures for 2014 are a lower bound. Other makers (MicroBT,
+				Canaan), fleets that lag the frontier and slower retirements all move the answer, so
+				treat every figure as ±30%. In September 2026 the model gives roughly 5–6 million
+				machines and 80,000–90,000 tonnes.
+			</p>
+			<h3>The pile</h3>
+			<p>
+				The scene stacks every machine case edge to edge (plus the S5–S9 era's separate supplies)
+				into one cube and draws it in true-scale side elevation beside a 1.75 m person, a 40-ft
+				ISO shipping container (12.19 × 2.59 m) and RMS Titanic, keel to funnel tops (269 m long,
+				53 m tall, out of the water). Close up, the cube's face shows the front of one machine
+				per cell. "Per bitcoin in existence" divides the fleet's mass by the supply at that
+				date, interpolated between halvings.
+			</p>
+			<h3>Without the history</h3>
+			<p>
+				If the history can't be fetched, today's figure falls back to two blended constants:
+				150 TH/s and 13.5 kg per machine (an S19/S21 mix). That is within the ±30% band of the
+				cohort model.
 			</p>
 			<h3>Node mass</h3>
 			<p>

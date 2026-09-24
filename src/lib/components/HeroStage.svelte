@@ -33,6 +33,7 @@
 	import { computeCubeEdgeMm } from '$lib/volume.js';
 	import { formatBtc, formatMass } from '$lib/format.js';
 	import { system } from '$lib/stores/system.js';
+	import { commodityAccent } from '$lib/accents.js';
 	import {
 		dropHeightM,
 		fallTimeS,
@@ -116,22 +117,6 @@
 	}
 
 	const accent = $derived(commodityAccent(active.id));
-	function commodityAccent(id: string): string {
-		switch (id) {
-			case 'gold':
-				return '#d4a14a';
-			case 'silver':
-				return '#c5cdd6';
-			case 'pu238':
-				return '#7ed4ff';
-			case 'cocaine':
-				return '#e8e0d2';
-			case 'cash':
-				return '#85bb65';
-			default:
-				return '#d4a14a';
-		}
-	}
 
 	const isPu = $derived(active.glowScales === true);
 	const showGeiger = $derived(active.geigerCrackle === true);
@@ -345,7 +330,9 @@
 					onclick={() => selectTab(m.id)}
 					onkeydown={(e) => onTabKey(e, i)}
 				>
-					{m.displayName}
+					<span class="tab__dot" aria-hidden="true"></span>
+					<span class="tab__full">{m.displayName}</span>
+					{#if m.id === 'pu238'}<span class="tab__short" aria-hidden="true">Pu-238</span>{/if}
 				</button>
 			{/each}
 		</div>
@@ -508,38 +495,84 @@
 	}
 
 	.tabs {
-		display: inline-flex;
-		gap: 6px;
-		background: #18181b;
-		padding: 4px;
-		border-radius: 8px;
+		display: flex;
+		gap: 2px;
+		background: #111113;
+		padding: 3px;
+		border-radius: 10px;
 		border: 1px solid #27272a;
-		flex-wrap: wrap;
+		max-width: 100%;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.tabs::-webkit-scrollbar {
+		display: none;
 	}
 	.tab {
 		appearance: none;
+		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
 		background: transparent;
 		color: #a1a1aa;
 		border: 1px solid transparent;
-		border-radius: 6px;
-		padding: 6px 14px;
+		border-radius: 7px;
+		padding: 7px 13px;
 		font-family: 'Inter Tight', -apple-system, system-ui, sans-serif;
 		font-size: 14px;
 		font-weight: 600;
+		line-height: 1;
+		white-space: nowrap;
 		cursor: pointer;
 		transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+	}
+	.tab__dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--accent);
+		opacity: 0.45;
+		transition: opacity 120ms ease, box-shadow 120ms ease;
+	}
+	.tab__short {
+		display: none;
 	}
 	.tab:hover {
 		color: #e4e4e7;
 	}
+	.tab:hover .tab__dot {
+		opacity: 0.8;
+	}
 	.tab.on {
-		color: var(--accent);
-		border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-		background: color-mix(in srgb, var(--accent) 10%, transparent);
+		color: #f5f0e6;
+		border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+		background: color-mix(in srgb, var(--accent) 11%, #18181b);
+	}
+	.tab.on .tab__dot {
+		opacity: 1;
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 	}
 	.tab:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
+	}
+	@media (max-width: 520px) {
+		.tab {
+			padding: 7px 8px;
+			gap: 5px;
+			font-size: 13.5px;
+		}
+		.tab__dot {
+			width: 6px;
+			height: 6px;
+		}
+		.tab__full:has(+ .tab__short) {
+			display: none;
+		}
+		.tab__short {
+			display: inline;
+		}
 	}
 
 	.geiger-slot {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SiteHeader from '$lib/components/brand/SiteHeader.svelte';
 	import { breadcrumbJsonLd, webPageJsonLd } from '$lib/seo/jsonld.js';
 
 	let { data } = $props();
@@ -72,6 +73,7 @@
 
 <div class="snapshot-page">
 	<main class="mx-auto max-w-3xl px-4 py-8 text-zinc-800">
+		<div class="mb-6 -mt-4"><SiteHeader tone="light" /></div>
 		<nav aria-label="Breadcrumb" class="mb-4 text-xs text-zinc-500">
 			<a href="/" class="hover:text-zinc-800 hover:underline">Home</a>
 			<span class="mx-1">›</span>

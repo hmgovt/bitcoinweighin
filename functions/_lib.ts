@@ -268,3 +268,21 @@ export function formatUsd(usd: number): string {
 	if (abs < 1e12) return `$${(usd / 1e9).toFixed(2)}B`;
 	return `$${(usd / 1e12).toFixed(2)}T`;
 }
+
+// ── Brand mark ─────────────────────────────────────────────────
+// The cast-weight mark (src/lib/components/brand/BrandMark.svelte), flattened
+// for the share card: the ₿ is painted in the card's background colour rather
+// than masked out, so the image renderer needs no <mask> support.
+const BRAND_MARK_SVG =
+	'<svg xmlns="http://www.w3.org/2000/svg" viewBox="2 5 60 55">' +
+	'<defs><clipPath id="b"><path d="M13.6 21h36.8a2 2 0 0 1 1.9 1.5l8.4 33.3A1.7 1.7 0 0 1 59 58H5a1.7 1.7 0 0 1-1.7-2.2l8.4-33.3a2 2 0 0 1 1.9-1.5z"/></clipPath>' +
+	'<linearGradient id="f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffac45"/><stop offset="1" stop-color="#e2790a"/></linearGradient></defs>' +
+	'<path d="M25 22.5V13a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v9.5z" fill="#f7931a"/><rect x="25" y="19.5" width="14" height="3.5" fill="#a65306"/>' +
+	'<rect x="28.6" y="13.2" width="6.8" height="3.4" rx="1.7" fill="#09090b"/>' +
+	'<g clip-path="url(#b)"><rect x="0" y="20" width="64" height="40" fill="url(#f)"/><path d="M11.5 20h41l1.2 4.6H10.3z" fill="#ffd79a"/>' +
+	'<path d="M52.5 20L62 58H52z" fill="#b25a06"/><path d="M11.5 20L2 58h9.6z" fill="#ffc774" opacity=".85"/><rect x="0" y="54.2" width="64" height="4" fill="#a65306"/></g>' +
+	'<g transform="translate(-0.8 0.5)" stroke="#09090b" fill="none">' +
+	'<path d="M26.5 31.5h8.2a4.1 4.1 0 0 1 0 8.2h-8.2zM26.5 39.7h9.4a4.35 4.35 0 0 1 0 8.7h-9.4z" stroke-width="3.6" stroke-linejoin="round"/>' +
+	'<path d="M29 27.6v4M34 27.6v4M29 48.4v4M34 48.4v4" stroke-width="3.2"/></g></svg>';
+
+export const BRAND_MARK_DATA_URL = `data:image/svg+xml;base64,${btoa(BRAND_MARK_SVG)}`;

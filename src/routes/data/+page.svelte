@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SiteHeader from '$lib/components/brand/SiteHeader.svelte';
 	import {
 		datasetJsonLd,
 		breadcrumbJsonLd,
@@ -149,6 +150,7 @@ const prices = await res.json();`,
 
 <div class="dataset-page">
 	<main class="mx-auto max-w-5xl px-4 py-8 text-zinc-800">
+		<div class="mb-6 -mt-4"><SiteHeader tone="light" current="data" /></div>
 		<header class="mb-8 border-b border-zinc-200 pb-6">
 			<h1 class="text-2xl font-semibold tracking-tight">Bitcoin Weigh-In Dataset</h1>
 			<p class="mt-2 text-sm text-zinc-600">

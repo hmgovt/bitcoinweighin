@@ -31,6 +31,7 @@ import {
 	formatHeadlineAmount,
 	formatBtc,
 	formatUsd,
+	BRAND_MARK_DATA_URL,
 	type OgCommodity,
 	type PricesFile,
 } from './_lib';
@@ -215,8 +216,11 @@ function renderSceneHtml(
 <div style="display: flex; flex-direction: column; width: 1200px; height: 630px; background: #09090b; color: #f4f4f5; font-family: 'Inter', system-ui, sans-serif; padding: 48px 64px; box-sizing: border-box;">
 	<div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%;">
 		<div style="display: flex; flex-direction: row; align-items: center;">
-			<div style="display: flex; font-size: 34px; font-weight: 700; color: ${r.accent}; margin-right: 12px; line-height: 1;">₿</div>
-			<div style="display: flex; font-size: 26px; font-weight: 700; color: #f4f4f5; letter-spacing: -0.01em;">Bitcoin Weigh-In</div>
+			<img src="${BRAND_MARK_DATA_URL}" width="52" height="48" style="margin-right: 14px;" />
+			<div style="display: flex; flex-direction: column;">
+				<div style="display: flex; font-size: 24px; font-weight: 700; color: #f7931a; letter-spacing: 0.12em; line-height: 0.9;">BITCOIN</div>
+				<div style="display: flex; font-size: 24px; font-weight: 700; color: #f5f0e6; line-height: 0.9;">WEIGH-IN</div>
+			</div>
 		</div>
 		<div style="display: flex; font-size: 18px; color: #71717a;">${r.dateLabel}</div>
 	</div>
@@ -250,8 +254,11 @@ function renderTextOnlyHtml(r: ReadoutLines): string {
 <div style="display: flex; flex-direction: column; width: 1200px; height: 630px; background: #09090b; color: #f4f4f5; font-family: 'Inter', system-ui, sans-serif; padding: 64px 72px; box-sizing: border-box;">
 	<div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%;">
 		<div style="display: flex; flex-direction: row; align-items: center;">
-			<div style="display: flex; font-size: 36px; font-weight: 700; color: ${r.accent}; margin-right: 12px; line-height: 1;">₿</div>
-			<div style="display: flex; font-size: 26px; font-weight: 700; color: #f4f4f5; letter-spacing: -0.01em;">Bitcoin Weigh-In</div>
+			<img src="${BRAND_MARK_DATA_URL}" width="52" height="48" style="margin-right: 14px;" />
+			<div style="display: flex; flex-direction: column;">
+				<div style="display: flex; font-size: 24px; font-weight: 700; color: #f7931a; letter-spacing: 0.12em; line-height: 0.9;">BITCOIN</div>
+				<div style="display: flex; font-size: 24px; font-weight: 700; color: #f5f0e6; line-height: 0.9;">WEIGH-IN</div>
+			</div>
 		</div>
 		<div style="display: flex; font-size: 18px; color: #71717a;">${r.dateLabel}</div>
 	</div>
