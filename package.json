@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "bootstrap": "tsx scripts/bootstrap.ts",
     "fetch-daily": "tsx scripts/fetch-daily.ts",
+    "fetch-blocks": "tsx scripts/fetch-latest-blocks.ts",
     "build-prices": "tsx scripts/build-prices-json.ts",
     "compress-shiba": "tsx scripts/compress-shiba.ts",
     "compress-bill": "tsx scripts/compress-bill.ts",

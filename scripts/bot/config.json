@@ -42,6 +42,14 @@
 	},
 	"slots": [
 		{
+			"id": "mining-short",
+			"commodity": "mining",
+			"format": "mining",
+			"btc": 0,
+			"weekday": 3,
+			"_note": "Wednesday-only ~15 s vertical video of the /mining dive (scripts/bot/make-mining-short.ts), captioned with the block the page replays; first reply links /mining. Captured from the live site, so it needs ffmpeg (installed by bot.yml). Listed first because '*' mode posts one slot per cron and there are 6 crons a day: a 7th slot never fires, so on Wednesdays the last daily slot (pu238-night) is the one skipped."
+		},
+		{
 			"id": "gold-am",
 			"commodity": "gold",
 			"format": "absolute",

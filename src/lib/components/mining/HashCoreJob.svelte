@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { MiningController } from '$lib/mining/controller.svelte.js';
 	import { hex8 } from '$lib/mining/sha256.js';
-	import { fmtDur, n0 } from '$lib/mining/format.js';
+	import { fmtAgo, fmtDur, n0 } from '$lib/mining/format.js';
 	import { S21_HS } from '$lib/mining/controller.svelte.js';
 
 	let { ctl }: { ctl: MiningController } = $props();
@@ -12,12 +12,13 @@
 	const entering = $derived.by(() => { void ctl.rev; return pipe.stations[0]?.nonce ?? null; });
 	const rolled = $derived((tpl.version & 0x1fffe000) !== 0);
 	const time = $derived(new Date(tpl.time * 1000).toISOString().replace('T', ' ').replace('.000Z', ' UTC'));
+	const ago = $derived(fmtAgo(Date.now() / 1000 - tpl.time));
 </script>
 
 <section class="job" aria-labelledby="job-h">
 	<div class="sechead">
 		<h3 id="job-h">The job</h3>
-		<p>Block {n0(tpl.height)}'s real header, from mempool.space</p>
+		<p>Block {n0(tpl.height)}'s real header, found {ago}, from mempool.space</p>
 		<p class="verify" class:bad={!verify.ok}>
 			{#if verify.ok}
 				<b>Verified in your browser:</b> with its winning nonce, this header double-hashes to

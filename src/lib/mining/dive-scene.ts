@@ -455,7 +455,8 @@ export function createDiveScene(o: DiveOptions): DiveController {
 	function camFor(i: number): { t: [number, number, number]; r: number; az: number; el: number } {
 		const aspect = stage.clientWidth / Math.max(1, stage.clientHeight);
 		switch (i) {
-			case 0: return { t: [hx * 0.45, 0, hz * 0.4 + 2], r: 100 * Math.max(1, 1.2 / aspect), az: -0.5, el: aspect < 1 ? 0.5 : 0.36 };
+			// Portrait frames get closer and higher, so the board fills the frame instead of a strip of it.
+			case 0: return { t: [hx * 0.45, 0, hz * 0.4 + 2], r: 100 * Math.sqrt(Math.max(1, 1.2 / aspect)), az: -0.5, el: aspect < 1 ? 0.5 + 0.35 * (1 - aspect) : 0.36 };
 			case 1: return { t: [hx, 1.3, hz], r: 30 * Math.max(1, 1.25 / aspect), az: -0.62, el: 0.5 };
 			case 2: return { t: [hx, 9.4, hz], r: 50 * Math.max(1, 0.8 / aspect), az: -0.8, el: 0.24 };
 			case 3: return { t: dieFinal, r: 17 * Math.max(1, 1.15 / aspect), az: -0.32, el: 1.1 };
