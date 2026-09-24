@@ -349,6 +349,11 @@
 				having roughly ±30% uncertainty — derived from three independently sourced inputs:
 				live network hashrate, published ASIC specifications, and publicly disclosed node counts.
 			</p>
+			<p>
+				To see what one of those machines does inside, the
+				<a href="/mining" class="underline hover:no-underline">Inside a Bitcoin miner</a> page takes a mining
+				chip apart and simulates a single SHA-256 hash core on real block headers.
+			</p>
 			<h3>Live hashrate</h3>
 			<p>
 				Current network hashrate is fetched at page load from the
