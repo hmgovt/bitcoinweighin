@@ -139,6 +139,24 @@
 				cross-checked in that file's tests against the Bureau's own public trivia that a
 				banded strap of 100 notes runs about 0.43&nbsp;inches thick.
 			</p>
+			<h3>The cash stage</h3>
+			<p>
+				The Cash tab draws every note at that true size, in the units cash is actually
+				handled in (<code>cashParts</code> in <code>src/lib/billStack.ts</code>): a loose
+				stack under 100 notes; from 100, <strong>straps</strong> of 100 under the blue
+				$100 band (the American Bankers Association colour for a strap of $1s), in piles of six;
+				from 1,000, <strong>bundles</strong> of ten straps, stacked roughly as a cube; from ten
+				million, <strong>pallets</strong> of 1,000 bundles (10 × 10 × 10, 0.66 × 1.56 × 1.09&nbsp;m
+				and one tonne of paper, on a 14&nbsp;cm wooden pallet under shrink-wrap). Past 60 pallets
+				they stand as one block faced with its pallets. The count is exact: a remainder is a
+				shorter last bundle or a part-loaded last pallet, never rounded up to a whole one, and
+				the few notes lying loose on the floor (up to seven, curled, folded or face down) come
+				out of that remainder — never an extra, and never by breaking open a whole strap or
+				bundle. The note art is printed at runtime and is deliberately not a reproduction of
+				genuine Federal Reserve Note artwork: Sat takes the portrait, the serials are invented,
+				and the note is "weighed, not signed". The bundle and pallet arrangement is set
+				dressing; the sizes, counts and mass are not.
+			</p>
 		</section>
 
 		<section id="forward-fill" class="prose-section">

@@ -171,3 +171,72 @@ export function nearestHeightComparison(heightM: number): HeightComparisonResult
 		text: `about ${formatMultiple(multiple)}x ${best.label}`,
 	};
 }
+
+/** Notes per pallet load (10 × 10 × 10 bundles). */
+export const NOTES_PER_PALLET = NOTES_PER_BUNDLE * 1000;
+/** Horizontal pitch between pallets, × the load's footprint (the aisle). */
+export const PALLET_PITCH = 1.12;
+/** Height of the wooden pallet under a load, m. */
+export const PALLET_DECK_M = 0.144;
+/** Loose notes scattered around a stack, taken from the count, never added. */
+export const STRAY_MAX = 7;
+
+export interface CashParts {
+	/** Loose notes scattered on the floor (curled, folded, flat). */
+	strays: number;
+	/** Loose notes in a small stack. */
+	loose: number;
+	/** Banded straps of 100. */
+	straps: number;
+	/** Bundles of 1,000 (ten straps). */
+	bundles: number;
+	/** Pallet loads of 1,000,000. */
+	pallets: number;
+	/** A last, part-filled bundle (bundle/cube tiers) or pallet (pallet tier), in notes. */
+	partialNotes: number;
+}
+
+/**
+ * How the stage draws `noteCount` notes, in the units cash is actually
+ * handled in. Exact: the parts always add back up to the (whole) count —
+ * the loose notes on the floor come out of it (from the remainder, never
+ * by breaking open a whole strap or bundle), and a remainder is drawn as a
+ * shorter bundle or pallet rather than rounded up to a whole one.
+ */
+export function cashParts(noteCount: number): CashParts {
+	const parts: CashParts = { strays: 0, loose: 0, straps: 0, bundles: 0, pallets: 0, partialNotes: 0 };
+	const n = Math.max(0, Math.floor(noteCount + 1e-6));
+	const tier = selectBillTier(n);
+	if (!tier) return parts;
+	if (tier === 'pallet') {
+		parts.pallets = Math.floor(n / NOTES_PER_PALLET);
+		parts.partialNotes = n % NOTES_PER_PALLET;
+		return parts;
+	}
+	if (tier === 'cube') {
+		parts.bundles = Math.floor(n / NOTES_PER_BUNDLE);
+		parts.partialNotes = n % NOTES_PER_BUNDLE;
+		return parts;
+	}
+	// Strays come out of what's left over after whole straps/bundles, so a
+	// scattered note never breaks open a unit (exactly 1,000 is one bundle).
+	const unit = tier === 'loose' ? 1 : tier === 'strap' ? NOTES_PER_STRAP : NOTES_PER_BUNDLE;
+	const whole = Math.floor(n / unit) * unit;
+	const spare = tier === 'loose' ? n : n - whole;
+	parts.strays = n >= 10 ? Math.min(STRAY_MAX, Math.floor(n / 10), spare) : 0;
+	if (tier === 'loose') {
+		parts.loose = n - parts.strays;
+	} else if (tier === 'strap') {
+		parts.straps = whole / NOTES_PER_STRAP;
+		parts.loose = spare - parts.strays;
+	} else {
+		parts.bundles = whole / NOTES_PER_BUNDLE;
+		parts.partialNotes = spare - parts.strays;
+	}
+	return parts;
+}
+
+/** Notes represented by `parts` — equals the whole note count by construction. */
+export function cashPartsTotal(p: CashParts): number {
+	return p.strays + p.loose + p.straps * NOTES_PER_STRAP + p.bundles * NOTES_PER_BUNDLE + p.pallets * NOTES_PER_PALLET + p.partialNotes;
+}
