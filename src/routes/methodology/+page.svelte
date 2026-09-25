@@ -261,6 +261,21 @@
 				how other commodities are priced (standardised purity, kilogram-scale transactions).
 				As-of date: 2024-12-31.
 			</p>
+			<h3>The cocaine stage</h3>
+			<p>
+				The Cocaine tab draws the bought mass at true scale beside Sat, in the units it would
+				actually come in (<code>src/lib/cocaine-scene.ts</code>): under a gram, <strong>lines</strong>
+				of 30 mg chopped out on a mirror, each ~6 cm × 4.5 mm and, at a loose-powder bulk density
+				of 0.5 g/cm³, under half a millimetre tall, with a 43 × 22 mm razor blade alongside; from
+				1 g, <strong>1 g zip-lock baggies</strong> (5 × 6 cm) heaped where they fall; from 1 kg,
+				<strong>pressed, taped 1 kg bricks</strong> (21 × 14 × 3.8 cm, about a hardback book,
+				~0.9 g/cm³ as wrapped), in a row and then stacked five by seven, a pallet's layer; from
+				1 t, <strong>shrink-wrapped pallets</strong> (1.2 × 1.0 m) of 1,000 bricks, 29 courses
+				high. Past 120 pallets they stand as one warehouse block at the true pallet count. A
+				trailing part-unit is drawn (a short line, a half-filled bag, a cut brick, a part-load)
+				once it reaches 15% of a unit; the count above the stage carries the exact figure. The
+				tape colours and the ink stamp are set dressing; sizes, counts and masses are not.
+			</p>
 			<h3>Impossibility lines</h3>
 			<p>
 				Past a certain quantity, comparing to a real-world object stops being honest — there is no
