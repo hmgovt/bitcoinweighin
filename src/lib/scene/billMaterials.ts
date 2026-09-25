@@ -84,6 +84,10 @@ export interface CashMaterials {
 	warehouse(colsX: number, layers: number, colsZ: number): THREE.Material[];
 	/** A block of `notes` notes with the bundle look, e.g. a part-bundle. */
 	partial(notes: number): THREE.Material[];
+	/** One column of loose notes (the Moon ride), drawn a segment at a time:
+	 *  `span` keeps the note edges continuous as the segment moves. Fresh
+	 *  edge materials each call — the caller disposes them (and their maps). */
+	column(): { materials: THREE.Material[]; span(bottomM: number, lengthM: number): void };
 	/** The materials this module owns — never dispose these per render. */
 	shared(): Set<THREE.Material>;
 	dispose(): void;
@@ -180,6 +184,7 @@ export function makeCashMaterials(maxAnisotropy = 8): CashMaterials {
 		pfl: T(tex(pfl)),
 		pfe: T(tex(pfe)),
 		ptc: T(tex(ptc)),
+		pc: T(tex(pc)),
 	};
 	/** Untracked clone: `block`/`partial` materials belong to the caller's render. */
 	const fresh = (t: THREE.Texture) => {
@@ -269,6 +274,26 @@ export function makeCashMaterials(maxAnisotropy = 8): CashMaterials {
 		return [long, long, strapTop, strapBottom, end, end];
 	}
 
+	function column(): { materials: THREE.Material[]; span(bottomM: number, lengthM: number): void } {
+		const lt = fresh(base.pc);
+		const et = fresh(base.pc);
+		const long = new THREE.MeshStandardMaterial({ map: lt, color: PAPER_TINT, roughness: 0.9 });
+		const end = new THREE.MeshStandardMaterial({ map: et, color: PAPER_TINT, roughness: 0.9 });
+		const strapM = (EDGE_NOTES * BILL_THICKNESS_MM) / 1000;
+		return {
+			materials: [long, long, noteFace, noteBack, end, end],
+			span(bottomM: number, lengthM: number) {
+				// Repeat per strap's worth of edges; the offset is taken mod 1 so
+				// texture coordinates stay small (and precise) at any altitude.
+				const off = (bottomM / strapM) % 1;
+				for (const t of [lt, et]) {
+					t.repeat.set(1, lengthM / strapM);
+					t.offset.set(0, off);
+				}
+			},
+		};
+	}
+
 	/** Everything this module keeps (callers must not dispose these). */
 	const shared = (): Set<THREE.Material> => new Set(owned.m);
 
@@ -281,6 +306,7 @@ export function makeCashMaterials(maxAnisotropy = 8): CashMaterials {
 		block,
 		warehouse,
 		partial,
+		column,
 		shared,
 		dispose() {
 			for (const m of owned.m) m.dispose();

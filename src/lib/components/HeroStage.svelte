@@ -362,7 +362,7 @@
 		</div>
 	{:else if isCash}
 		<div class="bill-frame">
-			<BillStage noteCount={amount} bind:staged={billStaged} bind:ready={billRendered} />
+			<BillStage noteCount={amount} btcUsd={btcUsdPrice} bind:staged={billStaged} bind:ready={billRendered} />
 		</div>
 	{:else}
 		<LiveStage

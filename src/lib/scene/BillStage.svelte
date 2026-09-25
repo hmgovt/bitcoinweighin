@@ -23,20 +23,28 @@
 	 * the SAME tested rig LiveStage drives its cube from (`M.cameraTransform`
 	 * + `M.dogStagePosition` in `./maths.js`).
 	 */
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { browser } from '$app/environment';
 	import type * as THREE from 'three';
 	// The same money-first shot the cocaine stage uses: a raised camera that
 	// frames the load, Sat beside it (or behind a small pile), walking out to
 	// the foreground only once the load is big.
 	import { stageCamera, dogBeside, shotBounds, groundMark, DOG_REACH_M, type Extent } from '../cocaine-scene.js';
+	import { system } from '$lib/stores/system.js';
+	import { formatLength } from '$lib/format.js';
+	import { nearestHeightComparison } from '../billStack.js';
+	import { NOTE_M, stackHeightM, rideAvailable, rideSummary } from '../moonRide.js';
+	import type { MoonRide, RideState } from './moonRideScene.js';
 
 	let {
 		noteCount = 0,
+		btcUsd = 0,
 		staged = $bindable(false),
 		ready = $bindable(false),
 	}: {
 		noteCount?: number;
+		/** Today's BTC price — the Moon ride's closing card weighs the whole supply. */
+		btcUsd?: number;
 		/** True when the dog has walked to the foreground (readout honesty line). */
 		staged?: boolean;
 		/** True once the bill scene has actually rendered a frame AND the Shiba
@@ -82,6 +90,7 @@
 	let palletMats: { wood: THREE.MeshStandardMaterial; film: THREE.MeshPhysicalMaterial } | null = null;
 	let sharedMats = new Set<THREE.Material>();
 	let groundGeometry: THREE.BufferGeometry | null = null;
+	let groundMesh: THREE.Mesh | null = null;
 	let groundMaterial: THREE.MeshStandardMaterial | null = null;
 
 	let width = 0;
@@ -562,6 +571,11 @@
 		const now = performance.now();
 		const dt = Math.min((now - clock.last) / 1000 || 0, 0.05);
 		clock.last = now;
+		if (riding && ride) {
+			mixer?.update(dt);
+			stepRide(ridePaused ? 0 : dt);
+			return;
+		}
 		const k = 1 - Math.exp(-dt * 3.2); // same damping constant as LiveStage
 		camPos.lerp(wantPos, k);
 		camAim.lerp(wantAim, k);
@@ -651,6 +665,7 @@
 		const ground = new three.Mesh(groundGeometry, groundMaterial);
 		ground.receiveShadow = true;
 		scene.add(ground);
+		groundMesh = ground;
 
 		camPos = new three.Vector3(0.3, 0.15, 0.4);
 		camAim = new three.Vector3(0, 0.02, 0);
@@ -742,6 +757,7 @@
 				// Re-run the current framing so the dog is positioned immediately
 				// instead of waiting for the next noteCount change.
 				dogResolved = true;
+				if (riding) ride?.placeDog();
 				refreshStage(noteCount);
 				updateReady();
 			},
@@ -758,6 +774,10 @@
 
 	function render(): void {
 		if (!renderer || !scene || !camera) return;
+		if (riding && ride) {
+			ride.render();
+			return;
+		}
 		renderer.render(scene, camera);
 	}
 
@@ -784,6 +804,10 @@
 		// renderer.dispose() resets WebGLProperties' tracking (see the note
 		// below).
 		clearTierGroup();
+		ride?.dispose();
+		ride = null;
+		riding = false;
+		rideState = null;
 
 		// Shared resources, freed once. This MUST run before
 		// renderer.dispose(): WebGLRenderer.dispose() resets WebGLProperties'
@@ -814,6 +838,7 @@
 		sharedMats = new Set();
 		groundGeometry = null;
 		groundMaterial = null;
+		groundMesh = null;
 		tierGroup = null;
 		envTexture = null;
 		dog = mixer = idleAction = null;
@@ -847,10 +872,27 @@
 	let dogResolved = false;
 	function updateReady(): void {
 		ready = renderedOnce && dogResolved;
+		// Dev only: `?ride=<seconds>` freezes the Moon ride at that moment,
+		// for screenshots (the ride's rAF pacing is unreliable headless).
+		if (ready && devRideAt !== null && !riding) {
+			const at = devRideAt;
+			devRideAt = null;
+			void startRide().then(() => {
+				ridePaused = true;
+				ride?.seek(at);
+				stepRide(0);
+			});
+		}
 	}
 
 	function refreshStage(count: number): void {
 		if (!canvasActive || !T || !M || !BS || !BM || !cash) return;
+		if (riding) {
+			// A new amount ends the ride; a resize or late dog just redraws it.
+			if (count !== rideNotes) exitRide();
+			else stepRide(0);
+			return;
+		}
 		renderTiered(T, BS, count);
 		reframe(T);
 		render();
@@ -860,12 +902,151 @@
 
 	$effect(() => {
 		const count = noteCount;
-		if (!canvasActive) return;
-		refreshStage(count);
+		if (!canvasActive || !cash) return;
+		// Track only the amount and readiness — not the ride's own state,
+		// which refreshStage reads but must not re-trigger on.
+		untrack(() => refreshStage(count));
 	});
+
+	// ── The Moon ride (maths: ../moonRide.ts; scene: ./moonRideScene.ts) ──
+	// The same notes restacked as one column, true height, and a ride up it.
+	let ride: MoonRide | null = null;
+	let riding = $state(false);
+	let rideState: RideState | null = $state(null);
+	let rideNotes = 0;
+	let ridePaused = false;
+	let devRideAt: number | null =
+		import.meta.env.DEV && browser ? parseRideParam(new URLSearchParams(location.search).get('ride')) : null;
+	const stackM = $derived(stackHeightM(noteCount));
+	const rideOffered = $derived(rideAvailable(stackM));
+	const summary = $derived(rideSummary(noteCount, btcUsd));
+	const stackCmp = $derived(nearestHeightComparison(summary.heightM));
+	const supplyCmp = $derived(nearestHeightComparison(summary.supplyHeightM));
+
+	function parseRideParam(v: string | null): number | null {
+		if (v === null) return null;
+		const n = Number(v);
+		return Number.isFinite(n) ? n : 0;
+	}
+
+	async function startRide(): Promise<void> {
+		if (!T || !renderer || !scene || !camera || !cash || !camPos || !camAim || !groundMesh) return;
+		if (!ride) {
+			const mod = await import('./moonRideScene.js');
+			if (destroyed || !T || !renderer || !scene || !camera || !cash || !groundMesh || !BS) return;
+			ride = mod.createMoonRide(T, {
+				renderer,
+				scene,
+				camera,
+				column: cash.column(),
+				noteW: BS.BILL_WIDTH_MM / 1000,
+				noteL: BS.BILL_LENGTH_MM / 1000,
+				hide: () => (tierGroup ? [tierGroup] : []),
+				ground: groundMesh,
+				dog: () => dog,
+				formatLength: (m) => formatLength(m, $system),
+			});
+		}
+		rideNotes = noteCount;
+		ridePaused = false;
+		ride.start(stackM, { pos: camPos, aim: camAim }, prefersReduced);
+		riding = true;
+		staged = false;
+		stepRide(0);
+		startLoop();
+	}
+
+	function stepRide(dt: number): void {
+		if (!ride) return;
+		rideState = ride.update(dt, width, height);
+		ride.render();
+	}
+
+	function exitRide(): void {
+		if (!riding) return;
+		riding = false;
+		rideState = null;
+		ride?.stop();
+		// Snap back to the pile's shot rather than dolly home from orbit.
+		framedOnce = false;
+		refreshStage(noteCount);
+	}
+
+	function dollars(v: number): string {
+		if (v >= 1e12) return `$${(v / 1e12).toFixed(2)} trillion`;
+		if (v >= 1e9) return `$${(v / 1e9).toFixed(2)} billion`;
+		if (v >= 1e6) return `$${(v / 1e6).toFixed(1)} million`;
+		return `$${Math.round(v).toLocaleString('en-US')}`;
+	}
 </script>
 
-<div class="bill-stage" bind:this={containerEl}></div>
+<div class="bill-stage" bind:this={containerEl}>
+	{#if canvasActive && rideOffered && !riding}
+		<button type="button" class="ride-btn" onclick={startRide}>
+			<span class="ride-btn__arrow" aria-hidden="true">↑</span>
+			<span>Ride the stack</span>
+			<span class="ride-btn__len">{formatLength(stackM, $system)} of $1 notes</span>
+		</button>
+	{/if}
+	{#if riding && rideState}
+		{#if rideState.phase === 'pull' || rideState.phase === 'done'}
+			{#each rideState.labels as l (l.text)}
+				{#if l.kind === 'body'}
+					<span
+						class="ride-ring"
+						style="left: {l.x}px; top: {l.y}px; width: {2 * (l.r ?? 8)}px; height: {2 * (l.r ?? 8)}px;"
+					></span>
+					<span class="ride-label ride-label--body" style="left: {l.x + (l.r ?? 8) + 6}px; top: {l.y}px;"
+						>{l.text}</span
+					>
+				{:else}
+					<span class="ride-label ride-label--{l.kind}" style="left: {l.x}px; top: {l.y}px;">{l.text}</span>
+				{/if}
+			{/each}
+		{:else}
+			<div class="ride-alt" aria-hidden="true">
+				<div class="ride-alt__num">{formatLength(rideState.altM, $system)}</div>
+				<div class="ride-alt__sub">{dollars(rideState.belowM / NOTE_M)} in $1 notes below</div>
+				{#if rideState.passed}
+					<div class="ride-alt__pass">
+						Past {rideState.passed.label} · {formatLength(rideState.passed.metres, $system)}
+					</div>
+				{/if}
+			</div>
+		{/if}
+		{#if rideState.phase === 'done'}
+			<div class="ride-card" role="status">
+				<p>
+					Your stack: <strong>{formatLength(summary.heightM, $system)}</strong> of $1 notes{stackCmp
+						? ` — ${stackCmp.text}`
+						: ''}.
+				</p>
+				{#if btcUsd > 0}
+					<p>
+						{#if Math.abs(summary.heightM - summary.supplyHeightM) <= summary.supplyHeightM * 0.001}
+							That's all 21 million bitcoin.
+						{:else}
+							All 21 million bitcoin would stack {formatLength(summary.supplyHeightM, $system)}{supplyCmp
+								? ` — ${supplyCmp.text}`
+								: ''}.
+						{/if}
+						{#if summary.supplyMoonShare < 1}
+							They reach the Moon when 1 BTC is worth ${Math.round(summary.moonPriceUsd).toLocaleString('en-US')}.
+						{:else}
+							At today's price they already reach it.
+						{/if}
+					</p>
+				{/if}
+				<div class="ride-card__actions">
+					<button type="button" onclick={startRide}>Ride again</button>
+					<button type="button" onclick={exitRide}>Back to the pile</button>
+				</div>
+			</div>
+		{:else}
+			<button type="button" class="ride-exit" onclick={exitRide}>Exit</button>
+		{/if}
+	{/if}
+</div>
 
 <style>
 	.bill-stage {
@@ -882,5 +1063,138 @@
 		width: 100%;
 		height: 100%;
 		display: block;
+	}
+
+	/* ── The Moon ride ── */
+	.ride-btn {
+		position: absolute;
+		left: 12px;
+		bottom: 12px;
+		z-index: 2;
+		display: inline-flex;
+		align-items: baseline;
+		gap: 8px;
+		padding: 8px 14px 8px 12px;
+		border: 1px solid rgba(247, 147, 26, 0.45);
+		border-radius: 999px;
+		background: rgba(14, 14, 16, 0.78);
+		backdrop-filter: blur(4px);
+		color: #fafafa;
+		font: 600 13px/1.2 'Inter Tight', system-ui, sans-serif;
+		cursor: pointer;
+	}
+	.ride-btn:hover {
+		border-color: #f7931a;
+	}
+	.ride-btn:focus-visible {
+		outline: 2px solid #f7931a;
+		outline-offset: 2px;
+	}
+	.ride-btn__arrow {
+		color: #f7931a;
+		font-weight: 800;
+	}
+	.ride-btn__len {
+		font: 500 11.5px/1.2 'JetBrains Mono', ui-monospace, monospace;
+		color: #a1a1aa;
+	}
+	.ride-alt {
+		position: absolute;
+		left: 12px;
+		top: 12px;
+		z-index: 2;
+		padding: 8px 12px 9px;
+		border-radius: 8px;
+		background: rgba(14, 14, 16, 0.72);
+		backdrop-filter: blur(4px);
+		pointer-events: none;
+	}
+	.ride-alt__num {
+		font: 600 34px/1.05 'JetBrains Mono', ui-monospace, monospace;
+		color: #fafafa;
+		letter-spacing: -0.02em;
+		font-variant-numeric: tabular-nums;
+	}
+	.ride-alt__sub {
+		margin-top: 4px;
+		font: 500 12.5px/1.3 'JetBrains Mono', ui-monospace, monospace;
+		color: #d4d4d8;
+	}
+	.ride-alt__pass {
+		margin-top: 8px;
+		font: 600 13px/1.3 'Inter Tight', system-ui, sans-serif;
+		color: #f7931a;
+	}
+	.ride-label {
+		position: absolute;
+		z-index: 2;
+		transform: translateY(-50%);
+		pointer-events: none;
+		white-space: nowrap;
+		font: 500 11.5px/1.2 'JetBrains Mono', ui-monospace, monospace;
+		color: #a1a1aa;
+		text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+	}
+	.ride-label--stack {
+		color: #f7931a;
+		font-weight: 600;
+	}
+	.ride-label--next,
+	.ride-label--body {
+		color: #e4e4e7;
+	}
+	.ride-ring {
+		position: absolute;
+		z-index: 2;
+		transform: translate(-50%, -50%);
+		border: 1px solid rgba(228, 228, 231, 0.7);
+		border-radius: 50%;
+		pointer-events: none;
+	}
+	.ride-card {
+		position: absolute;
+		left: 12px;
+		right: 12px;
+		bottom: 12px;
+		z-index: 2;
+		max-width: 360px;
+		padding: 12px 14px;
+		border: 1px solid #27272a;
+		border-radius: 10px;
+		background: rgba(14, 14, 16, 0.86);
+		backdrop-filter: blur(4px);
+		color: #d4d4d8;
+		font: 400 13px/1.45 'Inter Tight', system-ui, sans-serif;
+	}
+	.ride-card p {
+		margin: 0 0 6px;
+	}
+	.ride-card strong {
+		color: #fafafa;
+	}
+	.ride-card__actions {
+		display: flex;
+		gap: 8px;
+		margin-top: 10px;
+	}
+	.ride-card__actions button,
+	.ride-exit {
+		padding: 6px 12px;
+		border: 1px solid #3f3f46;
+		border-radius: 999px;
+		background: #18181b;
+		color: #e4e4e7;
+		font: 600 12.5px/1.2 'Inter Tight', system-ui, sans-serif;
+		cursor: pointer;
+	}
+	.ride-card__actions button:first-child {
+		border-color: rgba(247, 147, 26, 0.6);
+	}
+	.ride-exit {
+		position: absolute;
+		right: 12px;
+		top: 12px;
+		z-index: 2;
+		background: rgba(14, 14, 16, 0.7);
 	}
 </style>

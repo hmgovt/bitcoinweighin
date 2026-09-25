@@ -157,6 +157,27 @@
 				and the note is "weighed, not signed". The bundle and pallet arrangement is set
 				dressing; the sizes, counts and mass are not.
 			</p>
+			<h3>The Moon ride</h3>
+			<p>
+				Once the notes would stack taller than a doorway, the Cash stage offers to restack them
+				as one column of notes laid flat, 0.10922&nbsp;mm each (1 BTC at $84,550 is 9.2&nbsp;m),
+				and to ride up it (<code>src/lib/moonRide.ts</code>). The climb is logarithmic in
+				altitude, every factor of ten taking the same time, because the tallest stack spans nine
+				orders of magnitude. It passes real heights: the Statue of Liberty (93&nbsp;m), the
+				Eiffel Tower (330&nbsp;m) and the Burj Khalifa (828&nbsp;m), drawn as true-scale
+				silhouettes around the column, then Mount Everest (8,849&nbsp;m), airliners' cruising
+				height (about 11&nbsp;km), the edge of space (the Kármán line, 100&nbsp;km), the
+				International Space Station (about 408&nbsp;km), the GPS satellites (20,200&nbsp;km) and
+				geostationary orbit (35,786&nbsp;km). The Moon is at its average distance,
+				384,400&nbsp;km, the same figure the readout's "of the way to the Moon" has always used,
+				drawn with its near side there. The Earth is painted from the site's own world map, with
+				the column standing at New York. In the closing side view the stack is drawn as a line
+				once its true width falls under a couple of pixels, and the Earth and the Moon, drawn at
+				true size, are ringed, because at that scale they are a few pixels across. The closing
+				card gives the whole 21-million supply's height at today's price, and the price at which
+				it reaches the Moon: about $167,595 per BTC. That figure doesn't move with the market,
+				since one note is one dollar (384,400&nbsp;km ÷ 0.10922&nbsp;mm ÷ 21,000,000).
+			</p>
 		</section>
 
 		<section id="forward-fill" class="prose-section">
