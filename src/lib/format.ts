@@ -122,6 +122,7 @@ export function unitLabel(unit: string): string {
 		case 'gram': return 'g';
 		case 'kg': return 'kg';
 		case 'pellet': return 'pellets';
+		case 'm2': return 'm²';
 		default: return unit;
 	}
 }
@@ -192,6 +193,28 @@ export function formatLength(metres: number, unit: UnitSystem): string {
 	if (mm < 1000) return `${formatNum(mm / 10)} cm`;
 	if (metres < 1000) return `${formatNum(metres)} m`;
 	return `${formatNum(metres / 1000)} km`;
+}
+
+// ── Area formatting (the Manhattan tab) ────────────────────────
+
+const M2_PER_SQFT = 0.09290304;
+
+/** Metric: mm² → cm² → m² → hectares → km². Imperial: sq in → sq ft → acres → sq mi. */
+export function formatArea(m2: number, unit: UnitSystem): string {
+	if (!(m2 > 0)) return unit === 'imperial' ? '0 sq ft' : '0 m²';
+	if (unit === 'imperial') {
+		const sqft = m2 / M2_PER_SQFT;
+		if (sqft < 1) return `${formatNum(sqft * 144)} sq in`;
+		if (sqft < 43_560) return `${formatNum(sqft)} sq ft`;
+		const acres = sqft / 43_560;
+		if (acres < 640) return `${formatNum(acres)} acres`;
+		return `${formatNum(acres / 640)} sq mi`;
+	}
+	if (m2 < 1e-4) return `${formatNum(m2 * 1e6)} mm²`;
+	if (m2 < 1) return `${formatNum(m2 * 1e4)} cm²`;
+	if (m2 < 10_000) return `${formatNum(m2)} m²`;
+	if (m2 < 1e6) return `${formatNum(m2 / 10_000)} hectares`;
+	return `${formatNum(m2 / 1e6)} km²`;
 }
 
 // ── Two-unit pair formatting ───────────────────────────────────

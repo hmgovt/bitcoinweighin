@@ -17,7 +17,13 @@
 	import type { Commodity } from '$lib/commodities.js';
 	import type { PriceData } from '$lib/prices.js';
 	import { computeMassGrams } from '$lib/volume.js';
-	import { computeDelta, type CommodityId as DeltaCommodityId, type DeltaObjectsFile } from '$lib/deltas.js';
+	import {
+		computeDelta,
+		COMMODITIES as DELTA_COMMODITIES,
+		type CommodityId as DeltaCommodityId,
+		type DeltaObjectsFile,
+	} from '$lib/deltas.js';
+	import { USD_PER_M2 as MANHATTAN_USD_PER_M2 } from '$lib/manhattan.js';
 	import deltaObjectsJson from '$lib/delta-objects.json';
 	import LiveStage from '$lib/scene/LiveStage.svelte';
 	import ReadoutStrip from './ReadoutStrip.svelte';
@@ -30,8 +36,10 @@
 	import QualityBadge from './QualityBadge.svelte';
 	import BillStage from '$lib/scene/BillStage.svelte';
 	import BillReadout from './BillReadout.svelte';
+	import LandStage from '$lib/scene/LandStage.svelte';
+	import LandReadout from './LandReadout.svelte';
 	import { computeCubeEdgeMm } from '$lib/volume.js';
-	import { formatBtc, formatMass } from '$lib/format.js';
+	import { formatArea, formatBtc, formatMass } from '$lib/format.js';
 	import { system } from '$lib/stores/system.js';
 	import { commodityAccent } from '$lib/accents.js';
 	import {
@@ -95,6 +103,7 @@
 
 	const isCocaine = $derived(active.id === 'cocaine');
 	const isCash = $derived(active.id === 'cash');
+	const isLand = $derived(active.id === 'manhattan');
 
 	// True when the dog is staged to the foreground — LiveStage binds this and
 	// the readout adds the honesty line. False in poster / fallback / cocaine.
@@ -238,6 +247,17 @@
 		const currDay = prices?.[currDate];
 		if (!prevDay || !currDay) return null;
 
+		// Manhattan is land, not a weight: the move in square metres 1 BTC buys.
+		if (isLand) {
+			const d = (currDay.btc - prevDay.btc) / MANHATTAN_USD_PER_M2;
+			const since = sincePhrase ?? "yesterday's close";
+			if (Math.abs(d) < 1e-4) return { caption: `In Manhattan, 1 BTC buys the same land as at ${since}.` };
+			return {
+				caption: `In Manhattan, 1 BTC buys ${d > 0 ? 'more' : 'less'} land than at ${since} (${d > 0 ? '+' : '−'}${formatArea(Math.abs(d), $system)}).`,
+			};
+		}
+		if (!(DELTA_COMMODITIES as string[]).includes(active.id)) return null;
+
 		return computeDelta(
 			deltaObjects,
 			active.id as DeltaCommodityId,
@@ -273,8 +293,25 @@
 	// could capture a blank stage.
 	let billRendered = $state(false);
 	const billReady = $derived(isCash && billRendered);
+	// LandStage: first frame of the map rendered + Sat resolved (or its
+	// no-WebGL note shown).
+	let landRendered = $state(false);
+	let landStaged = $state(false);
+	const landReady = $derived(isLand && landRendered);
 	const dataCommodity = $derived(
-		isCocaine ? (brickReady ? 'cocaine' : '') : isCash ? (billReady ? 'cash' : '') : selectedId
+		isCocaine
+			? brickReady
+				? 'cocaine'
+				: ''
+			: isCash
+				? billReady
+					? 'cash'
+					: ''
+				: isLand
+					? landReady
+						? 'manhattan'
+						: ''
+					: selectedId
 	);
 
 	// Pu-238 readout extras (mirrors CommoditySection's derivations).
@@ -339,7 +376,7 @@
 				</button>
 			{/each}
 		</div>
-		{#if isCocaine}
+		{#if isCocaine || isLand}
 			<div class="badge-slot">
 				<QualityBadge quality={active.dataQuality} />
 			</div>
@@ -359,6 +396,10 @@
 		-->
 		<div class="brick-frame">
 			<CocaineStage {massGrams} bind:staged={cokeStaged} bind:ready={cokeRendered} />
+		</div>
+	{:else if isLand}
+		<div class="land-frame">
+			<LandStage areaM2={amount} bind:staged={landStaged} bind:ready={landRendered} />
 		</div>
 	{:else if isCash}
 		<div class="bill-frame">
@@ -396,6 +437,15 @@
 			{#if cokeStaged}
 				<p class="staging-line">Sat is standing nearer the camera — true perspective, not rescaled.</p>
 			{/if}
+		</div>
+	{:else if isLand}
+		<div class="readout-wrap">
+			<LandReadout m2={amount} {accent} />
+			<p class="delta-line">
+				{#if deltaCaptionParts}
+					{deltaCaptionParts.main}<span class="delta-figure">{deltaCaptionParts.figure}</span>{deltaCaptionParts.tail}
+				{/if}
+			</p>
 		</div>
 	{:else if isCash}
 		<div class="readout-wrap">
@@ -595,6 +645,10 @@
 	}
 
 	.bill-frame {
+		width: 100%;
+	}
+
+	.land-frame {
 		width: 100%;
 	}
 

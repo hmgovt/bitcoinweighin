@@ -14,7 +14,7 @@
 		hydrateFromUrl,
 		DEFAULT_BTC,
 	} from '$lib/stores/url.js';
-	import { formatBtc, formatMass, formatMassConsumer, formatNum } from '$lib/format.js';
+	import { formatArea, formatBtc, formatMass, formatMassConsumer, formatNum } from '$lib/format.js';
 	import { system } from '$lib/stores/system.js';
 	import { parseAmountInput } from '$lib/amount-input.js';
 	import { applyDetent, DETENT_BTC_VALUES } from '$lib/detent.js';
@@ -593,6 +593,9 @@
 		} else if (c.unit === 'note') {
 			big = Math.round(amt).toLocaleString('en-US');
 			of = `$1 bills, weighing ${formatMassConsumer(grams, $system)}`;
+		} else if (c.unit === 'm2') {
+			big = formatArea(amt, $system);
+			of = 'of Manhattan land';
 		} else {
 			big = c.id === 'cocaine' ? formatMassConsumer(grams, $system) : formatMass(grams, $system);
 			of = `of ${name}`;
@@ -623,6 +626,7 @@
 						: amt.toPrecision(3);
 			return `${formatted} troy oz`;
 		}
+		if (ogCommodity.unit === 'm2') return formatArea(amt, 'imperial');
 		// Grams-unit commodities use the consumer ladder (kg/tonnes at scale).
 		if (ogCommodity.unit === 'gram' && ogCommodity.unitMassGrams) {
 			// Inline grams formatter — mirrors functions/_lib.ts formatHeadlineAmount

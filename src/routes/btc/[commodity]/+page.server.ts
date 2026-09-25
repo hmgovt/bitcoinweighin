@@ -16,6 +16,7 @@ import { join } from 'path';
 import { error } from '@sveltejs/kit';
 import type { EntryGenerator, PageServerLoad } from './$types';
 import { LAUNCH_COMMODITIES, getCommodity } from '$lib/commodities.js';
+import { formatArea } from '$lib/format.js';
 import { computeCommodityAmount, type DayPrices } from '$lib/prices.js';
 import { COMMODITY_CONTENT } from '$lib/seo/commodity-content.js';
 import { listYears } from '$lib/seo/snapshots.js';
@@ -105,6 +106,8 @@ function formatRatio(amount: number, commodityId: string): string {
 		if (amount >= 1_000_000) return formatNoteCountForRatio(amount);
 		return `${Math.round(amount).toLocaleString('en-US')} $1 bills`;
 	}
+
+	if (c.unit === 'm2') return `${formatArea(amount, 'imperial')} (${formatArea(amount, 'metric')})`;
 
 	return `${amount.toFixed(2)} ${c.unit}`;
 }

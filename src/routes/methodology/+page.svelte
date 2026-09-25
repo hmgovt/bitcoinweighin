@@ -178,6 +178,37 @@
 				it reaches the Moon: about $167,595 per BTC. That figure doesn't move with the market,
 				since one note is one dollar (384,400&nbsp;km ÷ 0.10922&nbsp;mm ÷ 21,000,000).
 			</p>
+			<h3 id="manhattan">Manhattan (land, not a commodity)</h3>
+			<p>
+				The Manhattan tab shows how much of Manhattan's ground a sum of bitcoin buys
+				(<code>src/lib/manhattan.ts</code>). The price is the ground itself, from the most
+				thorough estimate of the island's land value: Jason Barr, Fred Smith and Sayali Kulkarni,
+				"What's Manhattan worth? A land values index from 1950 to 2014" (<em>Regional Science
+				and Urban Economics</em>, 2018), which valued all of Manhattan's developable land at about
+				$1.74&nbsp;trillion in 2014 (range $1.54–1.95&nbsp;trillion), from some 3,600 sales of
+				vacant lots. That total is spread evenly over the developable land as drawn, so the share
+				of the island a sum buys is simply its value over $1.74&nbsp;trillion, whatever the exact
+				area. Land, not apartment prices: an apartment's price per square foot is for floor
+				space stacked many storeys up, while an area on a map is ground. It is a 2014 figure, the
+				latest rigorous total, so the tab is marked illustrative, like cocaine. All 21 million
+				bitcoin buy the whole island's developable land once one bitcoin is worth about $82,900.
+			</p>
+			<p>
+				The map is New York City's own open data, built once by
+				<code>scripts/build-manhattan.ts</code> into a 3.6&nbsp;MB file the page loads: the
+				Department of Finance's digital tax map (every tax lot), the Department of City Planning's
+				PLUTO land use and shoreline-clipped borough boundary, and building footprints with
+				measured roof heights (Office of Technology and Innovation). Tax-lot outlines run out over
+				the rivers in places, so every lot is clipped to the shoreline first: 42.3&nbsp;km² of
+				lot outlines become 32.4&nbsp;km² of dry land, once parks and open space (PLUTO land use
+				9) are left out as the land-value study did — about 55% of the borough's 59&nbsp;km², close
+				to the study's 60%. Your land fills lot by lot in order up the island from the Battery,
+				whole lots at a time with their buildings, and the last lot part-owned as a slice from its
+				southern edge; then the outer islands. A sum smaller than a lot is a true-size square on
+				the most open ground of the first lot (the build finds the spot farthest from any wall).
+				The cross street named in the readout is the northernmost whose land to the south the sum
+				covers.
+			</p>
 		</section>
 
 		<section id="forward-fill" class="prose-section">

@@ -65,18 +65,25 @@ describe('manhattan land — filling lots', () => {
 
 	it('names the cross street the frontier has reached', () => {
 		const streets = [
-			{ name: 'Wall Street', y: -100 },
-			{ name: '14th Street', y: 50 },
-			{ name: '42nd Street', y: 300 },
+			{ name: 'Wall Street', areaM2: 100 },
+			{ name: '14th Street', areaM2: 500 },
+			{ name: '42nd Street', areaM2: 900 },
 		];
-		expect(frontierStreet(-200, streets)).toBeNull();
-		expect(frontierStreet(60, streets)).toBe('14th Street');
-		expect(frontierStreet(1000, streets)).toBe('42nd Street');
+		expect(frontierStreet(50, streets)).toBeNull();
+		expect(frontierStreet(600, streets)).toBe('14th Street');
+		expect(frontierStreet(1e9, streets)).toBe('42nd Street');
 	});
 
 	it('ships a cross-street table that climbs the island in order', () => {
 		expect(map.streets.length).toBeGreaterThan(150);
-		for (let i = 1; i < map.streets.length; i++) expect(map.streets[i].y).toBeGreaterThan(map.streets[i - 1].y);
+		for (let i = 1; i < map.streets.length; i++) {
+			expect(map.streets[i].y).toBeGreaterThan(map.streets[i - 1].y);
+			expect(map.streets[i].areaM2).toBeGreaterThanOrEqual(map.streets[i - 1].areaM2);
+		}
+		// All of the island south of 42nd Street: ~11.6 km², ~7.4M BTC at today's price.
+		const s42 = map.streets.find((s) => s.name === '42nd Street')!;
+		expect(s42.areaM2 / 1e6).toBeGreaterThan(10);
+		expect(s42.areaM2 / 1e6).toBeLessThan(13);
 		expect(map.streets[0].name).toBe('Wall Street');
 		expect(map.streets.some((s) => s.name === '42nd Street')).toBe(true);
 	});

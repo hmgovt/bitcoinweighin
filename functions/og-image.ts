@@ -29,6 +29,9 @@ import {
 	formatMassMetric,
 	formatCubeEdge,
 	formatHeadlineAmount,
+	formatAreaImperial,
+	formatAreaMetric,
+	MANHATTAN_DEVELOPABLE_M2,
 	formatBtc,
 	formatUsd,
 	BRAND_MARK_DATA_URL,
@@ -318,7 +321,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 	let primaryReadout = '—';
 	let secondary = '—';
 	let cubeEdgeM = 0;
-	if (amount !== null && isFinite(amount) && amount > 0) {
+	if (amount !== null && isFinite(amount) && amount > 0 && commodity.unit === 'm2') {
+		// Manhattan: an area, not a mass — imperial primary, metric and the
+		// share of the island's developable land second.
+		primaryReadout = formatAreaImperial(amount);
+		const share = (amount / MANHATTAN_DEVELOPABLE_M2) * 100;
+		secondary = `${formatAreaMetric(amount)}  ·  ${share >= 0.1 ? `${share < 10 ? share.toFixed(1) : Math.round(share)}%` : 'a sliver'} of Manhattan's developable land`;
+	} else if (amount !== null && isFinite(amount) && amount > 0) {
 		primaryReadout = formatHeadlineAmount(amount, commodity);
 		const g = massGrams(amount, commodity);
 		const parts: string[] = [];

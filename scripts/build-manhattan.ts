@@ -250,6 +250,31 @@ function main(): void {
 		for (const poly of polysOf(f.geometry)) if (polyArea(poly) > 2) bldgs.push({ poly, h, lot });
 	}
 
+	// Where a patch smaller than a lot goes: the most open spot (farthest
+	// from any building or lot edge) on the first lots in fill order, so a
+	// doormat of Manhattan sits on open ground at the Battery, not inside
+	// a building.
+	const segDist = (px: number, py: number, [ax, ay]: Pt, [bx, by]: Pt) => {
+		const dx = bx - ax, dy = by - ay;
+		const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
+		return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+	};
+	let patch = { lot: 0, x: dev[0].c[0], y: dev[0].c[1], clearanceM: 0 };
+	for (let li = 0; li < Math.min(40, dev.length) && patch.clearanceM < 6; li++) {
+		const l = dev[li];
+		const onLot = bldgs.filter((b) => b.lot === li).map((b) => b.poly);
+		const rings = [...l.poly, ...onLot.flat()];
+		const [x0, y0, x1, y1] = bboxOf(l.poly[0]);
+		for (let x = x0; x <= x1; x += 1)
+			for (let y = y0; y <= y1; y += 1) {
+				if (!inRing([x, y], l.poly[0]) || l.poly.slice(1).some((h) => inRing([x, y], h))) continue;
+				if (onLot.some((b) => inRing([x, y], b[0]))) continue;
+				let d = Infinity;
+				for (const r of rings) for (let i = 0, j = r.length - 1; i < r.length; j = i++) d = Math.min(d, segDist(x, y, r[j], r[i]));
+				if (d > patch.clearanceM) patch = { lot: li, x, y, clearanceM: d };
+			}
+	}
+
 	// Cross streets up the island, for "from the Battery to …" in the readout:
 	// the median y of the lots on each street, kept only where it rises.
 	const byStreet = new Map<string, number[]>();
@@ -269,6 +294,20 @@ function main(): void {
 		const y = Math.round(median(ys));
 		if (!streets.length || y > streets[streets.length - 1].y + 20) streets.push({ name, y });
 	}
+	// How much of the fill lies south of each street: the readout names the
+	// frontier from the owned area alone, before the map has loaded.
+	const cumByLot: number[] = [];
+	dev.reduce((a, l, i) => (cumByLot[i] = a + l.area), 0);
+	const streetArea = (y: number) => {
+		// Lots are sorted by y on the main island; the area of those south of y.
+		let lo = 0, hi = dev.length;
+		while (lo < hi) {
+			const mid = (lo + hi) >> 1;
+			if (dev[mid].main && dev[mid].c[1] <= y) lo = mid + 1;
+			else hi = mid;
+		}
+		return lo ? cumByLot[lo - 1] : 0;
+	};
 	const label = (n: string) => (/^\d+$/.test(n) ? `${n}${suffix(Number(n))} Street` : `${n.charAt(0)}${n.slice(1).toLowerCase()} Street`);
 
 	// ── Quantise and pack ─────────────────────────────────────────────────
@@ -342,7 +381,9 @@ function main(): void {
 		parksM2: Math.round(parks.reduce((a, p) => a + polyArea(p), 0)),
 		/** Fill runs up the island from here (y of the southernmost lot), metres, centred frame. */
 		fillStartY: Math.round(dev[0].c[1] - cy),
-		streets: streets.map((s) => ({ name: label(s.name), y: s.y - Math.round(cy) })),
+		/** Open ground on an early lot for patches smaller than a lot (centred frame, m). */
+		patch: { lot: patch.lot, x: +(patch.x - cx).toFixed(1), y: +(patch.y - cy).toFixed(1), clearanceM: +patch.clearanceM.toFixed(1) },
+		streets: streets.map((s) => ({ name: label(s.name), y: s.y - Math.round(cy), areaM2: Math.round(streetArea(s.y)) })),
 	};
 	writeFileSync(OUT_META, JSON.stringify(meta, null, '\t') + '\n');
 	console.log(

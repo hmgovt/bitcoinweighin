@@ -65,6 +65,13 @@ export function nearestYardstick(m2: number): { label: string; multiple: number 
 	return best ? { label: best.label, multiple: m2 / best.m2 } : null;
 }
 
+/**
+ * Below this, the stage draws a true-size square patch on open ground at the
+ * Battery (the clearing the build found on the first lot); above, whole lots.
+ * Set so the square fits its clearing: (2 × clearance)².
+ */
+export const PATCH_MAX_M2 = Math.floor((2 * map.patch.clearanceM) ** 2);
+
 /** Running totals of lot areas in fill order: cum[i] = area of lots 0…i−1. */
 export function cumulativeAreas(areas: ArrayLike<number>): Float64Array {
 	const cum = new Float64Array(areas.length + 1);
@@ -93,11 +100,18 @@ export function lotsFor(m2: number, cum: Float64Array): { whole: number; fractio
 	return { whole: lo, fraction: next > 0 ? (a - cum[lo]) / next : 0, spare: 0 };
 }
 
-/** The cross street a frontier `y` (m up the island, map frame) has reached. */
-export function frontierStreet(y: number, streets: { name: string; y: number }[] = map.streets): string | null {
+/**
+ * How far up the island `m2` of land reaches, filled from the Battery: the
+ * last cross street whose land to the south it covers (null below Wall
+ * Street). `streets` carries each street's cumulative area, from the build.
+ */
+export function frontierStreet(
+	m2: number,
+	streets: { name: string; areaM2: number }[] = map.streets
+): string | null {
 	let best: string | null = null;
 	for (const s of streets) {
-		if (s.y <= y) best = s.name;
+		if (s.areaM2 <= m2) best = s.name;
 		else break;
 	}
 	return best;
