@@ -6,7 +6,7 @@
 	 * The three cube metals share one live `LiveStage` (WebGL cube + Shiba,
 	 * poster-first). Cocaine and Cash are custom tabs: selecting either unmounts
 	 * LiveStage (tearing down the single WebGL context — we never run two) and
-	 * renders a bespoke visual (`CocaineBrickStack` SVG, or `BillStage`'s own
+	 * renders a bespoke visual (`CocaineStage`'s or `BillStage`'s own
 	 * WebGL scene) in the same frame, with a matching custom readout below.
 	 * Switching back to a metal re-mounts LiveStage, which re-hydrates on the
 	 * next interaction/idle.
@@ -25,7 +25,7 @@
 	import Pu238FactCard from './Pu238FactCard.svelte';
 	import GeigerCrackle from './GeigerCrackle.svelte';
 	import ShareButton from './ShareButton.svelte';
-	import CocaineBrickStack from './CocaineBrickStack.svelte';
+	import CocaineStage from '$lib/scene/CocaineStage.svelte';
 	import CocaineReadout from './CocaineReadout.svelte';
 	import QualityBadge from './QualityBadge.svelte';
 	import BillStage from '$lib/scene/BillStage.svelte';
@@ -262,8 +262,11 @@
 	// satisfies that; for cocaine we only advertise the attr once the brick SVG
 	// has actually mounted (bound below), so the card never captures a blank
 	// frame mid-swap.
-	let brickEl: HTMLElement | undefined = $state();
-	const brickReady = $derived(isCocaine && !!brickEl);
+	// CocaineStage reports readiness itself (first frame + Sat resolved, or its
+	// SVG fallback mounted), same contract as BillStage below.
+	let cokeRendered = $state(false);
+	let cokeStaged = $state(false);
+	const brickReady = $derived(isCocaine && cokeRendered);
 	// BillStage reports readiness itself (first frame rendered + Shiba
 	// resolved) — gating on the frame div alone would advertise
 	// data-commodity before the WebGL scene exists, and the bot's card
@@ -354,8 +357,8 @@
 			stack fills the same frame; brickReady flips once it mounts so the
 			bot's data-commodity attr only advertises a rendered frame.
 		-->
-		<div class="brick-frame" bind:this={brickEl}>
-			<CocaineBrickStack {massGrams} />
+		<div class="brick-frame">
+			<CocaineStage {massGrams} bind:staged={cokeStaged} bind:ready={cokeRendered} />
 		</div>
 	{:else if isCash}
 		<div class="bill-frame">
@@ -390,6 +393,9 @@
 	{#if isCocaine}
 		<div class="readout-wrap">
 			<CocaineReadout {massGrams} {btcAmount} {btcUsdPrice} {accent} />
+			{#if cokeStaged}
+				<p class="staging-line">Sat is standing nearer the camera — true perspective, not rescaled.</p>
+			{/if}
 		</div>
 	{:else if isCash}
 		<div class="readout-wrap">
