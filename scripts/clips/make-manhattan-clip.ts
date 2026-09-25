@@ -48,13 +48,26 @@ async function main() {
 	try {
 		const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: dpr });
 		// The virtual clock (see dive-capture.ts): real time until __vt is set.
+		// The virtual clock: real time until __vt is set, then performance.now()
+		// only moves when we say, and animation-frame callbacks wait in a queue
+		// until __flush() — so the (slow, software) map renders exactly once
+		// per captured frame, never in between.
 		await page.addInitScript(() => {
 			const realNow = performance.now.bind(performance);
-			const w = window as unknown as { __vt: number | null };
+			const realRaf = window.requestAnimationFrame.bind(window);
+			const w = window as unknown as { __vt: number | null; __flush: () => void; __present: () => Promise<void> };
+			const queue: FrameRequestCallback[] = [];
 			w.__vt = null;
 			performance.now = () => w.__vt ?? realNow();
-			const raf = window.requestAnimationFrame.bind(window);
-			window.requestAnimationFrame = (cb) => raf(() => cb(performance.now()));
+			window.requestAnimationFrame = (cb) => {
+				if (w.__vt === null) return realRaf(() => cb(performance.now()));
+				queue.push(cb);
+				return 0;
+			};
+			w.__flush = () => {
+				for (const cb of queue.splice(0)) cb(performance.now());
+			};
+			w.__present = () => new Promise((r) => realRaf(() => r()));
 		});
 		const url = `${base}/clip/manhattan?holder=${holder}&price=${price}&date=${date}`;
 		console.log(`→ ${url}`);
@@ -62,11 +75,15 @@ async function main() {
 		await page.waitForFunction(() => (window as unknown as { __clipReady?: () => boolean }).__clipReady?.(), null, { timeout: 900_000, polling: 1000 });
 		await page.evaluate(() => document.fonts.ready);
 
+		/** Move the clock; unless the frame is hidden behind a card, render it. Returns whether it was hidden. */
 		const advance = (ms: number) =>
 			page.evaluate(async (ms) => {
-				const w = window as unknown as { __vt: number };
+				const w = window as unknown as { __vt: number; __clipOpaque?: () => boolean; __flush: () => void; __present: () => Promise<void> };
 				w.__vt += ms;
-				await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+				if (w.__clipOpaque?.()) return true;
+				w.__flush();
+				await w.__present();
+				return false;
 			}, ms);
 		await page.evaluate(() => {
 			const w = window as unknown as { __vt: number | null };
@@ -79,9 +96,13 @@ async function main() {
 		const duration = only ?? (await page.evaluate(() => (window as unknown as { __clipDuration: number }).__clipDuration));
 		const total = Math.round(duration * fps);
 		const t0 = Date.now();
+		let held: Buffer | null = null;
 		for (let i = 0; i < total; i++) {
-			await advance(i === 0 ? 0 : 1000 / fps);
-			await writeFile(join(dir, `f${String(i).padStart(4, '0')}.png`), await page.screenshot());
+			// Behind an opaque card the frame can't change: shoot it once, repeat it.
+			const opaque = await advance(i === 0 ? 0 : 1000 / fps);
+			const png: Buffer = opaque && held ? held : await page.screenshot();
+			held = opaque ? png : null;
+			await writeFile(join(dir, `f${String(i).padStart(4, '0')}.png`), png);
 			if (i % 30 === 0) console.log(`  frame ${i}/${total}  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
 		}
 

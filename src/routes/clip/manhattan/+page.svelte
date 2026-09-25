@@ -58,10 +58,22 @@
 		// capture script drives virtually (one frame at a time).
 		let t0: number | null = null;
 		let raf = 0;
-		const w = window as unknown as { __clipStart: () => void; __clipReady: () => boolean; __clipDuration: number };
+		const w = window as unknown as {
+			__clipStart: () => void;
+			__clipReady: () => boolean;
+			__clipDuration: number;
+			__clipOpaque: () => boolean;
+		};
 		w.__clipStart = () => (t0 = performance.now());
 		w.__clipReady = () => ready && price > 0;
 		w.__clipDuration = BEATS.duration;
+		// A full-screen card hides the map, so the capture can repeat the
+		// frame without rendering it. Read from the clock, not the last paint.
+		w.__clipOpaque = () => {
+			if (t0 === null) return false;
+			const c = clipFrame((performance.now() - t0) / 1000, holder.btc, price);
+			return c.quote >= 1 || c.endCard >= 1;
+		};
 		const tick = () => {
 			raf = requestAnimationFrame(tick);
 			if (t0 !== null) t = (performance.now() - t0) / 1000;
