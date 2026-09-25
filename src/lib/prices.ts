@@ -7,6 +7,7 @@
 
 import type { Commodity } from './commodities.js';
 import illustrativePrices from './illustrative-prices.json';
+import { USD_PER_M2 as MANHATTAN_USD_PER_M2 } from './manhattan.js';
 
 export interface DayPrices {
 	btc: number;
@@ -72,6 +73,12 @@ export function getCommodityPrice(
 	// pricing table below.
 	if (commodity.id === 'cash') {
 		return 1;
+	}
+
+	// Manhattan: USD per square metre of its developable land — Barr et
+	// al.'s 2014 total spread evenly over the land (manhattan.ts).
+	if (commodity.id === 'manhattan') {
+		return MANHATTAN_USD_PER_M2;
 	}
 
 	if (commodity.dataQuality === 'illustrative') {

@@ -8,7 +8,7 @@
 export interface OgCommodity {
 	id: string;
 	displayName: string;
-	unit: 'troy_oz' | 'gram' | 'kg' | 'lb' | 'barrel' | 'pellet';
+	unit: 'troy_oz' | 'gram' | 'kg' | 'lb' | 'barrel' | 'pellet' | 'm2';
 	unitLabel: string;
 	unitMassGrams?: number;
 	densityGPerCm3?: number;
@@ -21,6 +21,9 @@ export interface OgCommodity {
 	/** Relative path under /sprites/og/ — fetched and inlined into the OG. */
 	cubeSpritePath?: string;
 }
+
+/** Manhattan's developable land as drawn, m² (src/lib/manhattan-map.json developableM2). */
+export const MANHATTAN_DEVELOPABLE_M2 = 32413413;
 
 export const OG_COMMODITIES: Record<string, OgCommodity> = {
 	gold: {
@@ -88,7 +91,38 @@ export const OG_COMMODITIES: Record<string, OgCommodity> = {
 		illustrativePricePerUnit: 1, // one $1 note is worth exactly one dollar
 		accentColor: '#85bb65',
 	},
+	manhattan: {
+		id: 'manhattan',
+		displayName: 'Manhattan land',
+		unit: 'm2',
+		unitLabel: 'm²',
+		priceField: 'manhattan_m2', // unused — see illustrativePricePerUnit
+		dataQuality: 'illustrative',
+		// USD per m²: Barr, Smith & Kulkarni's $1.74T (2014) over Manhattan's
+		// developable land as drawn (src/lib/manhattan.ts, USD_PER_M2);
+		// guarded by tests/drift.test.ts.
+		illustrativePricePerUnit: 1.74e12 / MANHATTAN_DEVELOPABLE_M2,
+		accentColor: '#f7931a',
+	},
 };
+
+/** Area — imperial primary: sq ft, then acres, then sq mi. */
+export function formatAreaImperial(m2: number): string {
+	const sqft = m2 / 0.09290304;
+	if (sqft < 1) return `${sigFigs(sqft * 144)} sq in`;
+	if (sqft < 43_560) return `${sigFigs(sqft)} sq ft`;
+	const acres = sqft / 43_560;
+	if (acres < 640) return `${sigFigs(acres)} acres`;
+	return `${sigFigs(acres / 640)} sq mi`;
+}
+
+/** Area — metric secondary: cm², m², hectares, km². */
+export function formatAreaMetric(m2: number): string {
+	if (m2 < 1) return `${sigFigs(m2 * 1e4)} cm²`;
+	if (m2 < 10_000) return `${sigFigs(m2)} m²`;
+	if (m2 < 1e6) return `${sigFigs(m2 / 10_000)} hectares`;
+	return `${sigFigs(m2 / 1e6)} km²`;
+}
 
 // Sprite-canvas geometry, measured directly from the shipped 1600×1600
 // assets and mirrored from src/lib/volume.ts so the OG scene matches the

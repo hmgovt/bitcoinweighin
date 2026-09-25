@@ -7,7 +7,7 @@
 		type DayPrices,
 		type PriceData,
 	} from '$lib/prices.js';
-	import { formatBtc, formatMass, formatMassConsumer } from '$lib/format.js';
+	import { formatArea, formatBtc, formatMass, formatMassConsumer } from '$lib/format.js';
 
 	interface Props {
 		/** Loaded price dataset; used to compute the readout for the share text. */
@@ -70,6 +70,7 @@
 		if (c.unit === 'gram' && c.unitMassGrams) {
 			return formatMassConsumer(amt * c.unitMassGrams, 'metric');
 		}
+		if (c.unit === 'm2') return formatArea(amt, 'imperial');
 		const formatted =
 			amt >= 1000 ? Math.round(amt).toLocaleString('en-US')
 				: amt >= 1 ? amt.toFixed(2)
@@ -77,12 +78,22 @@
 		return `${formatted} ${c.unit.replace('_', ' ')}`;
 	});
 
-	const commodityName = $derived(commodity?.displayName.toLowerCase() ?? 'gold');
+	const isLand = $derived(commodity?.unit === 'm2');
+	const commodityName = $derived(
+		isLand ? 'Manhattan land' : (commodity?.displayName.toLowerCase() ?? 'gold')
+	);
 
 	function buildShareText(): string {
 		const btc = formatBtc($btcAmount);
 		if (!readout) {
 			return `What does ${btc} weigh? Find out at Bitcoin Weigh-In.`;
+		}
+		if (isLand) {
+			const land = [
+				`${btc} buys ${readout} of Manhattan. How much of the island does yours buy?`,
+				`${readout} of Manhattan land — that's what ${btc} gets you today.`,
+			];
+			return land[Math.floor(Math.random() * land.length)];
 		}
 		const templates = [
 			`${btc} buys ${readout} of ${commodityName}. What does yours buy?`,

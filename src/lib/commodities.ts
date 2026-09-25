@@ -8,6 +8,7 @@
  *   3. pu238
  *   4. cocaine
  *   5. cash
+ *   6. manhattan (2026-09-25: land, not a commodity — how much of Manhattan's ground)
  *
  * Other commodities (copper, oil_brent, uranium_fuel_pellet, platinum, coffee)
  * remain in this file flagged `mvpLaunch: false`. They re-enter post-launch.
@@ -17,6 +18,7 @@ export type RenderStyle =
 	| 'cube' // gold, silver, Pu-238 — live WebGL cube + Shiba
 	| 'still_with_readout' // cocaine — inline-SVG brick stack + pricing readout
 	| 'bill_stack' // cash — live WebGL dollar-bill stack + pricing readout
+	| 'land_patch' // manhattan — live WebGL map of Manhattan's lots, the owned land filled in
 	| 'progression' // legacy, unused at MVP
 	| 'vessel' // legacy, unused at MVP
 	| 'bulk'; // legacy, unused at MVP
@@ -90,7 +92,7 @@ export interface Commodity {
 	brandVoiceClarification?: string;
 	/** Key into quantity-anchors.json for proximity fact-card firing. */
 	quantityAnchorsKey?: string;
-	unit: 'troy_oz' | 'lb' | 'barrel' | 'gram' | 'kg' | 'pellet' | 'note';
+	unit: 'troy_oz' | 'lb' | 'barrel' | 'gram' | 'kg' | 'pellet' | 'note' | 'm2';
 	unitMassGrams?: number;
 	densityGPerCm3?: number;
 	bulkDensityKgPerM3?: number;
@@ -276,6 +278,22 @@ const cash: Commodity = {
 	expectedHeightPx: { mobile: 1010, desktop: 1130 },
 };
 
+const manhattan: Commodity = {
+	id: 'manhattan',
+	displayName: 'Manhattan',
+	mvpLaunch: true,
+	pageOrder: 6,
+	renderStyle: 'land_patch',
+	unit: 'm2',
+	sourceId: 'manhattan',
+	sourceName:
+		"Barr, Smith & Kulkarni (2018), Manhattan's land value; NYC Open Data (tax lots, land use, buildings)",
+	dataQuality: 'illustrative', // a 2014 academic estimate, spread evenly over the land
+	priceField: 'manhattan_m2', // sentinel — never looked up, see getCommodityPrice's special case
+	facts: [],
+	expectedHeightPx: { mobile: 1010, desktop: 1130 },
+};
+
 const copper: Commodity = {
 	id: 'copper',
 	displayName: 'Copper',
@@ -428,6 +446,7 @@ export const ALL_COMMODITIES: Commodity[] = [
 	pu238,
 	cocaine,
 	cash,
+	manhattan,
 	copper,
 	oil_brent,
 	uranium_fuel_pellet,
@@ -437,7 +456,7 @@ export const ALL_COMMODITIES: Commodity[] = [
 
 /**
  * Launch commodities, sorted by `pageOrder`. Single source of truth for the
- * page render loop: 1=gold, 2=silver, 3=pu238, 4=cocaine, 5=cash.
+ * page render loop: 1=gold, 2=silver, 3=pu238, 4=cocaine, 5=cash, 6=manhattan.
  */
 export const LAUNCH_COMMODITIES: Commodity[] = ALL_COMMODITIES.filter(
 	(c) => c.mvpLaunch

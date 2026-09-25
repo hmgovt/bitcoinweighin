@@ -106,9 +106,15 @@
 					<strong>See it at scale.</strong>
 					<a href={deeplinkHref} class="underline hover:no-underline"
 						>Open the live visualisation</a
-					> — the panel renders {data.displayName.toLowerCase()} at true relative
-					scale next to a constant 9-kg Shiba Inu, with a slider scrubbing
-					through BTC amounts from 1 sat to 21 M BTC.
+					>{#if data.renderStyle === 'land_patch'}
+						— a 3-D map of every lot and building in Manhattan, with the land a
+						bitcoin amount buys filled in orange from the Battery northward, and a
+						slider scrubbing from 1 sat to 21 M BTC.
+					{:else}
+						— the panel renders {data.displayName.toLowerCase()} at true relative
+						scale next to a constant 9-kg Shiba Inu, with a slider scrubbing
+						through BTC amounts from 1 sat to 21 M BTC.
+					{/if}
 				</p>
 			</div>
 		{/if}

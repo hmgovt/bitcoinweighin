@@ -65,3 +65,13 @@ describe('src/lib/delta-objects.json pricing vs src/lib/illustrative-prices.json
 		if (rule.kind === 'fixed') expect(rule.usdPerGram).toBe(illustrativePrices.pu238.pricePerUnit);
 	});
 });
+
+import { USD_PER_M2, DEVELOPABLE_M2 } from '../src/lib/manhattan.js';
+import { MANHATTAN_DEVELOPABLE_M2 } from '../functions/_lib.js';
+
+describe('functions/_lib.ts Manhattan land vs src/lib/manhattan.ts', () => {
+	it('prices a square metre the same on the share card as on the site', () => {
+		expect(MANHATTAN_DEVELOPABLE_M2).toBe(DEVELOPABLE_M2);
+		expect(OG_COMMODITIES.manhattan.illustrativePricePerUnit).toBeCloseTo(USD_PER_M2, 6);
+	});
+});

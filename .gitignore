@@ -71,3 +71,6 @@ static/sprites/gold/bar_test_*.png
 static/sprites/gold/coin_test*.png
 static/sprites/gold/grain_test*.png
 static/sprites/gold/good_delivery_single@2x.png
+
+# Downloaded map data (scripts/build-manhattan.ts caches raw Overpass responses here)
+.cache/
