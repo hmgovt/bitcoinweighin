@@ -2,30 +2,38 @@ import { describe, it, expect } from 'vitest';
 import {
 	DEVELOPABLE_M2,
 	USD_PER_M2,
+	LAND_VALUE_USD,
 	LAND_YARDSTICKS,
 	landM2,
 	manhattanShare,
 	nearestYardstick,
+	cumulativeAreas,
+	lotsFor,
+	frontierStreet,
 } from '../src/lib/manhattan.js';
+import map from '../src/lib/manhattan-map.json';
 
 const PRICE = 84_249; // BTC-USD in the dataset, 2026-09-24
 
-describe('manhattan land', () => {
-	it('prices developable land at ~$49,000/m² (~$4,560/sq ft)', () => {
-		expect(DEVELOPABLE_M2 / 1e6).toBeCloseTo(35.48, 2);
-		expect(USD_PER_M2).toBeGreaterThan(48_500);
-		expect(USD_PER_M2).toBeLessThan(49_500);
-		expect(USD_PER_M2 * 0.09290304).toBeCloseTo(4_556, -1);
+describe('manhattan land — valuation', () => {
+	it('spreads $1.74T over the drawn developable land (~32 km², about half the borough)', () => {
+		expect(DEVELOPABLE_M2 / 1e6).toBeGreaterThan(30);
+		expect(DEVELOPABLE_M2 / 1e6).toBeLessThan(36); // Barr et al.: ~60% of 59 km²
+		expect(USD_PER_M2 * DEVELOPABLE_M2).toBeCloseTo(LAND_VALUE_USD, -3);
+		expect(USD_PER_M2).toBeGreaterThan(48_000);
+		expect(USD_PER_M2).toBeLessThan(58_000);
 	});
 
-	it('buys under 2 m² per bitcoin and ~860 m² for 500', () => {
-		expect(landM2(1, PRICE)).toBeCloseTo(1.72, 2);
-		expect(landM2(500, PRICE)).toBeCloseTo(859, 0);
+	it('buys under 2 m² per bitcoin and several hundred m² for 500', () => {
+		expect(landM2(1, PRICE)).toBeGreaterThan(1.4);
+		expect(landM2(1, PRICE)).toBeLessThan(1.8);
+		expect(landM2(500, PRICE)).toBeCloseTo(500 * landM2(1, PRICE), 6);
 		expect(landM2(-1, PRICE)).toBe(0);
 	});
 
-	it('fits the whole 21M supply on the island — about all of it', () => {
+	it('fits the whole 21M supply on the island — about all of it, whatever the area', () => {
 		const share = manhattanShare(21_000_000, PRICE);
+		expect(share).toBeCloseTo((21_000_000 * PRICE) / LAND_VALUE_USD, 9);
 		expect(share).toBeGreaterThan(0.95);
 		expect(share).toBeLessThan(1.1);
 	});
@@ -36,6 +44,40 @@ describe('manhattan land', () => {
 		}
 		expect(nearestYardstick(0.1)).toBeNull();
 		expect(nearestYardstick(landM2(500, PRICE))!.label).toBe('a brownstone lot');
-		expect(nearestYardstick(landM2(500, PRICE))!.multiple).toBeCloseTo(4.62, 1);
+	});
+});
+
+describe('manhattan land — filling lots', () => {
+	const cum = cumulativeAreas([100, 50, 200]);
+
+	it('owns whole lots in fill order, then part of the next — exactly', () => {
+		expect(lotsFor(0, cum)).toEqual({ whole: 0, fraction: 0, spare: 0 });
+		expect(lotsFor(40, cum)).toEqual({ whole: 0, fraction: 0.4, spare: 0 });
+		expect(lotsFor(100, cum)).toEqual({ whole: 1, fraction: 0, spare: 0 });
+		expect(lotsFor(125, cum)).toEqual({ whole: 1, fraction: 0.5, spare: 0 });
+		expect(lotsFor(250, cum).whole).toBe(2);
+		expect(lotsFor(250, cum).fraction).toBeCloseTo(0.5, 9);
+	});
+
+	it('stops at the whole island and says what is left over', () => {
+		expect(lotsFor(400, cum)).toEqual({ whole: 3, fraction: 0, spare: 50 });
+	});
+
+	it('names the cross street the frontier has reached', () => {
+		const streets = [
+			{ name: 'Wall Street', y: -100 },
+			{ name: '14th Street', y: 50 },
+			{ name: '42nd Street', y: 300 },
+		];
+		expect(frontierStreet(-200, streets)).toBeNull();
+		expect(frontierStreet(60, streets)).toBe('14th Street');
+		expect(frontierStreet(1000, streets)).toBe('42nd Street');
+	});
+
+	it('ships a cross-street table that climbs the island in order', () => {
+		expect(map.streets.length).toBeGreaterThan(150);
+		for (let i = 1; i < map.streets.length; i++) expect(map.streets[i].y).toBeGreaterThan(map.streets[i - 1].y);
+		expect(map.streets[0].name).toBe('Wall Street');
+		expect(map.streets.some((s) => s.name === '42nd Street')).toBe(true);
 	});
 });
