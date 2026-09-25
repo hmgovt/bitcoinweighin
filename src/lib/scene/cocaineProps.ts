@@ -551,17 +551,17 @@ export function makeBrickGeometry(fill = 1): THREE.BufferGeometry {
 	return g;
 }
 
-/** A 1.2 × 1.0 m pallet: bottom boards, three stringers, seven deck boards. */
-export function makePalletGeometry(): THREE.BufferGeometry {
+/** A pallet (1.2 × 1.0 m by default): bottom boards, three stringers along
+ *  x, deck boards across them. The cash stage sizes it to its own loads. */
+export function makePalletGeometry(L: number = PALLET.lengthM, W: number = PALLET.widthM): THREE.BufferGeometry {
 	const parts: THREE.BufferGeometry[] = [];
-	const L = PALLET.lengthM;
-	const W = PALLET.widthM;
 	const bottom = 0.022;
 	const stringer = 0.1;
 	const top = PALLET.deckM - bottom - stringer;
-	for (let i = 0; i < 5; i++) {
+	const nBottom = Math.max(3, Math.round(L / 0.3) + 1);
+	for (let i = 0; i < nBottom; i++) {
 		const b = new THREE.BoxGeometry(0.1, bottom, W);
-		b.translate(-L / 2 + 0.05 + (i * (L - 0.1)) / 4, bottom / 2, 0);
+		b.translate(-L / 2 + 0.05 + (i * (L - 0.1)) / (nBottom - 1), bottom / 2, 0);
 		parts.push(b);
 	}
 	for (let i = 0; i < 3; i++) {
@@ -569,9 +569,10 @@ export function makePalletGeometry(): THREE.BufferGeometry {
 		s.translate(0, bottom + stringer / 2, -W / 2 + 0.0225 + (i * (W - 0.045)) / 2);
 		parts.push(s);
 	}
-	for (let i = 0; i < 7; i++) {
+	const nDeck = Math.max(3, Math.round(L / 0.19) + 1);
+	for (let i = 0; i < nDeck; i++) {
 		const d = new THREE.BoxGeometry(0.14, top, W);
-		d.translate(-L / 2 + 0.07 + (i * (L - 0.14)) / 6, bottom + stringer + top / 2, 0);
+		d.translate(-L / 2 + 0.07 + (i * (L - 0.14)) / (nDeck - 1), bottom + stringer + top / 2, 0);
 		parts.push(d);
 	}
 	const merged = mergeGeometries(parts)!;

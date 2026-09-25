@@ -1,297 +1,292 @@
 /**
- * Procedural, stylized dollar-bill textures — deliberately NOT a
- * reproduction of genuine Federal Reserve Note artwork (see
- * docs/handoff/14-cash.md, "3D model": the source glb's baked-in texture
- * was a watermarked stock photo of a real note and was stripped in
- * scripts/compress-bill.ts). Canvas-drawn at runtime, same technique as
- * materials.ts's makeRoughnessMap — client-only, imported after hydration.
+ * The Cash stage's materials: $1 notes, strapped stacks, bundles and pallet
+ * loads, all printed from noteArt.ts at runtime (canvas → texture). The
+ * art is deliberately NOT a reproduction of genuine Federal Reserve Note
+ * artwork (docs/handoff/14-cash.md, and see noteArt.ts); what's realistic
+ * is the paper, the inks, the straps and how a stack looks edge-on.
+ *
+ * Geometry convention (BillStage): notes and blocks are boxes of
+ * (width, height, length) — length along z. BoxGeometry face order is
+ * [+x, −x, +y, −y, +z, −z]: the ±x faces are the long sides (where a strap
+ * shows as a band down the middle), ±z the ends, +y the top note's face
+ * and −y the bottom note's back. Face art is drawn length-across, so the
+ * top/bottom textures are rotated a quarter turn onto the box.
  */
 import * as THREE from 'three';
+import {
+	drawNoteFace,
+	drawNoteBack,
+	drawStrapAcross,
+	drawStackSide,
+	drawPalletFace,
+	drawPalletTop,
+	NOTE_ASPECT,
+} from './noteArt.js';
+import { PALLET_PITCH, PALLET_DECK_M, BILL_THICKNESS_MM } from '../billStack.js';
 
-// Palette note: these bases look noticeably deeper/greener than a scanned
-// note would, ON PURPOSE. The stage renders through ACES tone mapping at
-// exposure 1.3 with a full softbox env as diffuse irradiance — anything in
-// the near-white #e6+ range washes out to plain white paper on screen. The
-// sage/olive family below is what actually survives that pipeline and
-// reads as "dollar green" at the camera.
-// These bases sit MUCH deeper than a scanned note's actual paper color:
-// the stage's key light + environment + ACES tone mapping at exposure 1.3
-// lift albedos hard, and anything above ~0.6 luminance renders as plain
-// white on screen. Screen-calibrated (not swatch-calibrated) so the
-// stacks read as worn grey-green currency under the shared lighting rig.
-const PAPER = '#aeb992'; // face background wash — worn-note grey-green
-const PAPER_EDGE = '#a2ad87'; // side-face paper: desaturated sage
-const PAPER_BUNDLE = '#98a37d'; // bundle-unit paper: a step deeper again (pallet-distance legibility)
-const INK = '#2f5d3a';
-const SEAM = '#6b7551'; // grey-olive lamination seam
-const SEAM_DARK = '#5c6545'; // deeper olive seam variant for bundle-unit texture
-const CATCH_LIGHT = '#bcc7a0'; // seam catch-light — green-tinted, deliberately NOT white
-const MEDALLION_FILL = '#8e9873'; // desaturated moss
-const SILHOUETTE = '#59613f';
-const STRAP_BLUE = '#4a6fa5'; // ABA standard blue strap for $100-of-$1s (per reference imagery)
-const STRAP_BLUE_LIGHT = '#7d9cc4'; // the strap's paler woven center stripe
+const FACE_W = 1536;
+const FACE_H = Math.round(FACE_W / NOTE_ASPECT);
+/** A touch of grey on the paper: the canvas art is drawn at full paper
+ *  white, and under the stage's softbox it otherwise reads bleached. */
+const PAPER_TINT = 0xdcddd3;
 
-/** The bill's face — top/bottom of a bundle or block, and the up-close
- *  view for loose/strap tiers and the stray notes scattered around the
- *  stack (see BillStage's addStrayNotes). Nested border, circled corner
- *  numerals, a central oval with an abstract bust, guilloche-suggestion
- *  ellipses, a faint background grid, and two flanking seals — enough
- *  structure to read unmistakably as a stylized dollar bill up close
- *  while staying clearly abstract (see the file header). */
-export function makeBillFaceTexture(): THREE.CanvasTexture {
-	const canvas = document.createElement('canvas');
-	canvas.width = 1024;
-	canvas.height = 435; // matches the 155.956:66.294 (~2.353:1) bill aspect ratio
-	const ctx = canvas.getContext('2d')!;
-	const W = canvas.width;
-	const H = canvas.height;
-	const cx = W / 2;
-	const cy = H / 2;
-
-	ctx.fillStyle = PAPER;
-	ctx.fillRect(0, 0, W, H);
-
-	// Fine-grid background tint — a guilloche-adjacent texture cue under
-	// everything else, low-contrast enough to read as engraved paper
-	// texture rather than a pattern in its own right (but strong enough to
-	// survive the tone-mapping wash — see the palette note above).
-	ctx.strokeStyle = 'rgba(47, 93, 58, 0.09)';
-	ctx.lineWidth = 1;
-	for (let gx = 0; gx <= W; gx += 16) {
-		ctx.beginPath();
-		ctx.moveTo(gx, 0);
-		ctx.lineTo(gx, H);
-		ctx.stroke();
-	}
-	for (let gy = 0; gy <= H; gy += 16) {
-		ctx.beginPath();
-		ctx.moveTo(0, gy);
-		ctx.lineTo(W, gy);
-		ctx.stroke();
-	}
-
-	// Nested double border — weights sized to stay legible at mid-distance
-	// framings (a bundle top a few metres from camera), not just up close.
-	ctx.strokeStyle = INK;
-	ctx.lineWidth = 8;
-	ctx.strokeRect(14, 14, W - 28, H - 28);
-	ctx.lineWidth = 3;
-	ctx.strokeRect(26, 26, W - 52, H - 52);
-
-	// Simple corner ornaments — small diamonds at the outer border's corners.
-	ctx.fillStyle = INK;
-	for (const [ox, oy] of [
-		[14, 14],
-		[W - 14, 14],
-		[14, H - 14],
-		[W - 14, H - 14],
-	] as const) {
-		ctx.save();
-		ctx.translate(ox, oy);
-		ctx.rotate(Math.PI / 4);
-		ctx.fillRect(-6, -6, 12, 12);
-		ctx.restore();
-	}
-
-	// Ornate-circled "1" numerals in all four corners.
-	ctx.textAlign = 'center';
-	ctx.textBaseline = 'middle';
-	for (const [nx, ny] of [
-		[70, 70],
-		[W - 70, 70],
-		[70, H - 70],
-		[W - 70, H - 70],
-	] as const) {
-		ctx.strokeStyle = INK;
-		ctx.lineWidth = 3.5;
-		ctx.beginPath();
-		ctx.arc(nx, ny, 32, 0, Math.PI * 2);
-		ctx.stroke();
-		ctx.lineWidth = 1.5;
-		ctx.beginPath();
-		ctx.arc(nx, ny, 26, 0, Math.PI * 2);
-		ctx.stroke();
-		ctx.fillStyle = INK;
-		ctx.font = 'bold 34px Georgia, serif';
-		ctx.fillText('1', nx, ny + 1);
-	}
-
-	// Central double-ellipse oval frame around the abstract bust — a plain
-	// shape + simple silhouette, not a likeness of any real person or
-	// engraving.
-	ctx.strokeStyle = INK;
-	ctx.lineWidth = 4;
-	ctx.beginPath();
-	ctx.ellipse(cx, cy, 108, 128, 0, 0, Math.PI * 2);
-	ctx.stroke();
-	ctx.lineWidth = 2;
-	ctx.beginPath();
-	ctx.ellipse(cx, cy, 96, 116, 0, 0, Math.PI * 2);
-	ctx.stroke();
-
-	// A few concentric thin ellipses suggesting guilloche engraving.
-	ctx.lineWidth = 1.5;
-	ctx.strokeStyle = 'rgba(47, 93, 58, 0.45)';
-	for (let i = 1; i <= 3; i++) {
-		ctx.beginPath();
-		ctx.ellipse(cx, cy, 96 - i * 14, 116 - i * 14, 0, 0, Math.PI * 2);
-		ctx.stroke();
-	}
-
-	ctx.beginPath();
-	ctx.ellipse(cx, cy, 90, 110, 0, 0, Math.PI * 2);
-	ctx.fillStyle = MEDALLION_FILL;
-	ctx.fill();
-	ctx.beginPath();
-	ctx.arc(cx, cy - 20, 34, 0, Math.PI * 2); // head
-	ctx.fillStyle = SILHOUETTE;
-	ctx.fill();
-	ctx.beginPath();
-	ctx.ellipse(cx, cy + 55, 46, 34, 0, Math.PI, 0); // shoulders
-	ctx.fill();
-
-	// Two small circular seals (plain abstract rosettes) flanking the
-	// portrait.
-	for (const [sx, sy] of [
-		[cx - 210, cy],
-		[cx + 210, cy],
-	] as const) {
-		ctx.strokeStyle = INK;
-		ctx.lineWidth = 3;
-		ctx.beginPath();
-		ctx.arc(sx, sy, 44, 0, Math.PI * 2);
-		ctx.stroke();
-		ctx.lineWidth = 1.5;
-		for (let i = 0; i < 12; i++) {
-			const a = (i / 12) * Math.PI * 2;
-			ctx.beginPath();
-			ctx.moveTo(sx + Math.cos(a) * 30, sy + Math.sin(a) * 30);
-			ctx.lineTo(sx + Math.cos(a) * 44, sy + Math.sin(a) * 44);
-			ctx.stroke();
-		}
-		ctx.beginPath();
-		ctx.arc(sx, sy, 18, 0, Math.PI * 2);
-		ctx.fillStyle = INK;
-		ctx.fill();
-	}
-
-	ctx.fillStyle = INK;
-	ctx.font = 'bold 30px Georgia, serif';
-	ctx.fillText('THE UNITED STATES', cx, 40);
-	ctx.font = '16px Georgia, serif';
-	ctx.fillText('ONE DOLLAR', cx, H - 28);
-
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.colorSpace = THREE.SRGBColorSpace;
-	return texture;
+function canvas(w: number, h: number, readBack = false): [HTMLCanvasElement, CanvasRenderingContext2D] {
+	const c = document.createElement('canvas');
+	c.width = w;
+	c.height = h;
+	// Only the bump maps read pixels back; the rest stay GPU-accelerated.
+	return [c, c.getContext('2d', { willReadFrequently: readBack })!];
 }
 
-/**
- * The side-face pattern for a coalesced bill-stack block. This is a single
- * repeat unit; the caller sets `texture.repeat.y` to the true note count
- * the block represents, so the stripe density on screen is physically
- * honest (one repeat = one note's edge) rather than a decorative pattern —
- * the "precise thickness" requirement made visible.
- */
-export function makeBillEdgeTexture(): THREE.CanvasTexture {
-	const canvas = document.createElement('canvas');
-	canvas.width = 32;
-	canvas.height = 64;
-	const ctx = canvas.getContext('2d')!;
-
-	// Paper base.
-	ctx.fillStyle = PAPER_EDGE;
-	ctx.fillRect(0, 0, 32, 64);
-
-	// Faint horizontal tonal variation across the rest of the repeat unit so
-	// a tall coalesced block (hundreds of stacked repeats) doesn't read as a
-	// flat, uniformly-lit slab — bands break up the monolith without
-	// implying any per-note detail beyond the lamination seam itself.
-	ctx.fillStyle = 'rgba(0,0,0,0.035)';
-	ctx.fillRect(0, 26, 32, 16);
-	ctx.fillStyle = 'rgba(255,255,255,0.03)';
-	ctx.fillRect(0, 46, 32, 10);
-
-	// One note's edge seam, top of the repeat unit: a darker seam line
-	// immediately followed by a brighter catch-light line, so the stripe
-	// reads as a physical paper crease (shadow + highlight pair) rather than
-	// a single flat band that mushes to grey under ACES tone mapping at
-	// grazing angles / roughness 0.9. Contrast against the paper base is
-	// deliberately much stronger than a single mid-tone line would give.
-	ctx.fillStyle = SEAM;
-	ctx.fillRect(0, 0, 32, 2);
-	ctx.fillStyle = CATCH_LIGHT;
-	ctx.fillRect(0, 2, 32, 1);
-
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-	texture.colorSpace = THREE.SRGBColorSpace;
-	return texture;
+function tex(c: HTMLCanvasElement, srgb = true): THREE.CanvasTexture {
+	const t = new THREE.CanvasTexture(c);
+	if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+	t.wrapS = t.wrapT = THREE.RepeatWrapping;
+	t.anisotropy = 8;
+	return t;
 }
 
-/**
- * One repeat unit = ONE BUNDLE seen edge-on — impressionistic bundle-scale
- * granularity for pallet side faces (tiled 10x10: a pallet face is 10x10
- * bundle edges). Deliberately NOT per-note-honest, unlike
- * `makeBillEdgeTexture`: a pallet face spans 10,000 note edges, which is
- * sub-pixel at any framing, so per-note stripes would mush to flat grey.
- * The 10x10 bundle subdivision is the granularity the eye can actually
- * verify at pallet scale, so that is what gets drawn: a strong seam where
- * one bundle rests on the next, a few faint note-suggestion lines inside
- * the bundle, and the vertical currency strap band.
- */
-export function makeBundleUnitTexture(): THREE.CanvasTexture {
-	const canvas = document.createElement('canvas');
-	canvas.width = 64;
-	canvas.height = 64;
-	const ctx = canvas.getContext('2d')!;
+/** Raised ink: intaglio stands proud of the paper, so darker = higher. */
+function bumpFrom(src: HTMLCanvasElement, scale = 0.5): HTMLCanvasElement {
+	const [c, g] = canvas(Math.round(src.width * scale), Math.round(src.height * scale), true);
+	g.drawImage(src, 0, 0, c.width, c.height);
+	const img = g.getImageData(0, 0, c.width, c.height);
+	const d = img.data;
+	for (let i = 0; i < d.length; i += 4) {
+		const l = 255 - (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11);
+		d[i] = d[i + 1] = d[i + 2] = l;
+	}
+	g.putImageData(img, 0, 0);
+	return c;
+}
 
-	// Paper base — same family as the edge texture, a step deeper so the
-	// pallet field holds its green at long framing distances.
-	ctx.fillStyle = PAPER_BUNDLE;
-	ctx.fillRect(0, 0, 64, 64);
+/** Quarter-turn a note texture onto a box's top or bottom (see header). */
+function onBoxTop(t: THREE.Texture, repeatAcross = 1, repeatAlong = 1): THREE.Texture {
+	t.center.set(0.5, 0.5);
+	t.rotation = Math.PI / 2;
+	t.repeat.set(repeatAlong, repeatAcross);
+	return t;
+}
 
-	// Strong inter-bundle seam at the top of the unit (shadow + catch-light
-	// pair, matching makeBillEdgeTexture's lamination treatment).
-	ctx.fillStyle = SEAM_DARK;
-	ctx.fillRect(0, 0, 64, 3);
-	ctx.fillStyle = CATCH_LIGHT;
-	ctx.fillRect(0, 3, 64, 1);
+export interface CashMaterials {
+	/** A single note as a box: [ends… , face, back, …] per BoxGeometry order. */
+	note: THREE.Material[];
+	/** A strap of 100, banded. */
+	strap: THREE.Material[];
+	/** A bundle of 1,000 (ten banded straps). */
+	bundle: THREE.Material[];
+	/** Curled loose notes: the face (front side) and back (back side) of one plane. */
+	looseFace: THREE.MeshStandardMaterial;
+	looseBack: THREE.MeshStandardMaterial;
+	/** Materials for a block of `colsX × layers × colsZ` bundles (a pallet load). */
+	block(colsX: number, layers: number, colsZ: number): THREE.Material[];
+	/** Materials for the warehouse block: `colsX × layers × colsZ` pallets at pallet pitch. */
+	warehouse(colsX: number, layers: number, colsZ: number): THREE.Material[];
+	/** A block of `notes` notes with the bundle look, e.g. a part-bundle. */
+	partial(notes: number): THREE.Material[];
+	/** The materials this module owns — never dispose these per render. */
+	shared(): Set<THREE.Material>;
+	dispose(): void;
+}
 
-	// ~8 inner lines suggesting the notes laminated inside the bundle —
-	// strong enough to stay visible against the deeper sage base.
-	ctx.fillStyle = 'rgba(90, 98, 68, 0.32)';
-	for (let i = 1; i <= 8; i++) {
-		ctx.fillRect(0, 4 + i * 7, 64, 1);
+export function makeCashMaterials(maxAnisotropy = 8): CashMaterials {
+	const owned: { t: THREE.Texture[]; m: THREE.Material[] } = { t: [], m: [] };
+	const T = <X extends THREE.Texture>(t: X): X => {
+		t.anisotropy = maxAnisotropy;
+		owned.t.push(t);
+		return t;
+	};
+	const Mm = <X extends THREE.Material>(m: X): X => {
+		owned.m.push(m);
+		return m;
+	};
+
+	// Printed faces.
+	const [fc, fg] = canvas(FACE_W, FACE_H);
+	drawNoteFace(fg, FACE_W, FACE_H, 7);
+	const [bc, bg] = canvas(FACE_W, FACE_H);
+	drawNoteBack(bg, FACE_W, FACE_H, 8);
+	const [sfc, sfg] = canvas(FACE_W, FACE_H);
+	sfg.drawImage(fc, 0, 0);
+	drawStrapAcross(sfg, FACE_W, FACE_H);
+	const [sbc, sbg] = canvas(FACE_W, FACE_H);
+	sbg.drawImage(bc, 0, 0);
+	drawStrapAcross(sbg, FACE_W, FACE_H);
+
+	const faceBump = bumpFrom(fc);
+	const backBump = bumpFrom(bc);
+
+	const paper = (map: THREE.Texture, bump?: HTMLCanvasElement) =>
+		Mm(
+			new THREE.MeshStandardMaterial({
+				map,
+				bumpMap: bump ? T(tex(bump, false)) : null,
+				bumpScale: 0.6,
+				color: PAPER_TINT,
+				roughness: 0.78,
+				metalness: 0,
+			})
+		);
+
+	// Stack sides: one strap (100 note edges) per texture repeat, so the
+	// strap-to-strap rhythm and the tone drift survive mip-mapping.
+	const EDGE_NOTES = 100;
+	const [lc, lg] = canvas(512, 512);
+	drawStackSide(lg, 512, 512, EDGE_NOTES, true);
+	const [ec, eg] = canvas(256, 512);
+	drawStackSide(eg, 256, 512, EDGE_NOTES, false, 11);
+	const [pc, pg] = canvas(256, 512);
+	drawStackSide(pg, 256, 512, EDGE_NOTES, false, 13);
+
+	const side = (c: HTMLCanvasElement, notes: number, across = 1) => {
+		const t = T(tex(c));
+		t.repeat.set(across, notes / EDGE_NOTES);
+		return Mm(new THREE.MeshStandardMaterial({ map: t, color: PAPER_TINT, roughness: 0.9 }));
+	};
+	// A bundle's sides: ten straps, and the shadowed seam where one bundle
+	// sits on the next — one bundle per repeat, so blocks of bundles keep
+	// their courses legible from across a room.
+	const bundleSide = (strapSide: HTMLCanvasElement): HTMLCanvasElement => {
+		const [c, g] = canvas(strapSide.width, 1024);
+		for (let k = 0; k < 10; k++) g.drawImage(strapSide, 0, (k * 1024) / 10, strapSide.width, 1024 / 10);
+		g.fillStyle = 'rgba(10,12,10,0.6)';
+		g.fillRect(0, 0, c.width, 6);
+		return c;
+	};
+	const [blc, bec] = [bundleSide(lc), bundleSide(ec)];
+	const bundleSideMat = (c: HTMLCanvasElement) => {
+		const t = T(tex(c));
+		return Mm(new THREE.MeshStandardMaterial({ map: t, color: PAPER_TINT, roughness: 0.9 }));
+	};
+
+	// The warehouse block's pallets: one pallet pitch per tile.
+	const gap = 1 - 1 / PALLET_PITCH;
+	const unitH = PALLET_DECK_M + (1000 * 10 * BILL_THICKNESS_MM) / 1000;
+	const [pfl, pflg] = canvas(512, 512);
+	drawPalletFace(pflg, 512, 512, true, gap, PALLET_DECK_M / unitH);
+	const [pfe, pfeg] = canvas(512, 512);
+	drawPalletFace(pfeg, 512, 512, false, gap, PALLET_DECK_M / unitH, 9);
+	const [ptc, ptg] = canvas(512, 1024);
+	drawPalletTop(ptg, 512, 1024, gap);
+	// Base textures for per-render clones: a clone shares its source image,
+	// so the GPU uploads each canvas once however many blocks use it.
+	const base = {
+		sfc: T(tex(sfc)),
+		sbc: T(tex(sbc)),
+		blc: T(tex(blc)),
+		bec: T(tex(bec)),
+		lc: T(tex(lc)),
+		ec: T(tex(ec)),
+		pfl: T(tex(pfl)),
+		pfe: T(tex(pfe)),
+		ptc: T(tex(ptc)),
+	};
+	/** Untracked clone: `block`/`partial` materials belong to the caller's render. */
+	const fresh = (t: THREE.Texture) => {
+		const c = t.clone();
+		c.anisotropy = maxAnisotropy;
+		c.needsUpdate = true;
+		return c;
+	};
+
+	// A single note.
+	const noteFace = paper(T(onBoxTop(tex(fc))), faceBump);
+	const noteBack = paper(T(onBoxTop(tex(bc))), backBump);
+	const noteEdge = side(pc, 1);
+	const note = [noteEdge, noteEdge, noteFace, noteBack, noteEdge, noteEdge];
+
+	// A strap of 100.
+	const strapTop = paper(T(onBoxTop(tex(sfc))), faceBump);
+	const strapBottom = paper(T(onBoxTop(tex(sbc))), backBump);
+	const strapLong = side(lc, 100);
+	const strapEnd = side(ec, 100);
+	const strap = [strapLong, strapLong, strapTop, strapBottom, strapEnd, strapEnd];
+
+	// A bundle of 1,000: ten straps high, one bundle per repeat.
+	const bundleLong = bundleSideMat(blc);
+	const bundleEnd = bundleSideMat(bec);
+	const bundle = [bundleLong, bundleLong, strapTop, strapBottom, bundleEnd, bundleEnd];
+
+	// Loose notes (planes): face on the front side, back on the back side
+	// (mirrored back so it reads the right way round from underneath).
+	const looseFace = Mm(
+		new THREE.MeshStandardMaterial({
+			map: T(tex(fc)),
+			bumpMap: T(tex(faceBump, false)),
+			bumpScale: 0.6,
+			color: PAPER_TINT,
+			roughness: 0.78,
+			side: THREE.FrontSide,
+		})
+	);
+	const lbMap = T(tex(bc));
+	lbMap.repeat.set(-1, 1);
+	lbMap.offset.set(1, 0);
+	const looseBack = Mm(new THREE.MeshStandardMaterial({ map: lbMap, color: PAPER_TINT, roughness: 0.8, side: THREE.BackSide }));
+
+	/** Block of bundles: the top is `colsX × colsZ` bundle tops, the long
+	 *  sides `colsZ × layers` bundle sides, the ends `colsX × layers`.
+	 *  Fresh materials each call — the caller disposes them (and their maps). */
+	function block(colsX: number, layers: number, colsZ: number): THREE.Material[] {
+		const mat = (map: THREE.Texture, roughness: number) =>
+			new THREE.MeshStandardMaterial({ map, color: PAPER_TINT, roughness });
+		const top = mat(onBoxTop(fresh(base.sfc), colsX, colsZ), 0.8);
+		const bot = mat(onBoxTop(fresh(base.sbc), colsX, colsZ), 0.8);
+		const lt = fresh(base.blc);
+		lt.repeat.set(colsZ, layers);
+		const et = fresh(base.bec);
+		et.repeat.set(colsX, layers);
+		const long = mat(lt, 0.88);
+		const end = mat(et, 0.88);
+		return [long, long, top, bot, end, end];
 	}
 
-	// Vertical strap band — the ABA standard BLUE currency strap that bands
-	// $100 of $1 notes (per the owner's reference imagery): the single
-	// strongest "real cash" cue at pallet distance. Solid desaturated
-	// banknote blue with the strap's paler woven center stripe.
-	ctx.fillStyle = STRAP_BLUE;
-	ctx.fillRect(24, 0, 14, 64);
-	ctx.fillStyle = STRAP_BLUE_LIGHT;
-	ctx.fillRect(28, 0, 6, 64);
+	/** The warehouse block, faced with its pallets (see `drawPalletFace`).
+	 *  Fresh materials each call — the caller disposes them (and their maps). */
+	function warehouse(colsX: number, layers: number, colsZ: number): THREE.Material[] {
+		const mat = (map: THREE.Texture) => new THREE.MeshStandardMaterial({ map, roughness: 0.75 });
+		const lt = fresh(base.pfl);
+		lt.repeat.set(colsZ, layers);
+		const et = fresh(base.pfe);
+		et.repeat.set(colsX, layers);
+		const tt = fresh(base.ptc);
+		tt.repeat.set(colsX, colsZ);
+		const long = mat(lt);
+		const end = mat(et);
+		const top = mat(tt);
+		const bot = new THREE.MeshStandardMaterial({ color: 0x2a1d12, roughness: 0.9 });
+		return [long, long, top, bot, end, end];
+	}
 
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-	texture.colorSpace = THREE.SRGBColorSpace;
-	return texture;
-}
+	/** A short block of `notes` (a part-bundle): fresh sides, the shared strap top. */
+	function partial(notes: number): THREE.Material[] {
+		const lt = fresh(base.lc);
+		lt.repeat.set(1, notes / EDGE_NOTES);
+		const et = fresh(base.ec);
+		et.repeat.set(1, notes / EDGE_NOTES);
+		const long = new THREE.MeshStandardMaterial({ map: lt, color: PAPER_TINT, roughness: 0.9 });
+		const end = new THREE.MeshStandardMaterial({ map: et, color: PAPER_TINT, roughness: 0.9 });
+		return [long, long, strapTop, strapBottom, end, end];
+	}
 
-export interface BillMaterials {
-	face: THREE.MeshStandardMaterial;
-	edge: THREE.MeshStandardMaterial;
-}
+	/** Everything this module keeps (callers must not dispose these). */
+	const shared = (): Set<THREE.Material> => new Set(owned.m);
 
-/** Matte paper materials — bills are not metal, no envMap/metalness needed. */
-export function makeBillMaterials(
-	faceTexture: THREE.CanvasTexture,
-	edgeTexture: THREE.CanvasTexture
-): BillMaterials {
 	return {
-		face: new THREE.MeshStandardMaterial({ map: faceTexture, roughness: 0.85, metalness: 0 }),
-		edge: new THREE.MeshStandardMaterial({ map: edgeTexture, roughness: 0.9, metalness: 0 }),
+		note,
+		strap,
+		bundle,
+		looseFace,
+		looseBack,
+		block,
+		warehouse,
+		partial,
+		shared,
+		dispose() {
+			for (const m of owned.m) m.dispose();
+			for (const t of owned.t) t.dispose();
+			owned.m.length = 0;
+			owned.t.length = 0;
+		},
 	};
 }

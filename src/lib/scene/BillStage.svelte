@@ -2,32 +2,34 @@
 <script lang="ts">
 	/**
 	 * BillStage — the Cash tab's live WebGL stage. Sibling to LiveStage.svelte
-	 * (not an extension of it, same separation as CocaineBrickStack being
-	 * wholly separate from CubeRenderer) because the mesh strategy is
-	 * fundamentally different: instanced real bill geometry + coalesced
-	 * textured blocks, not a single scaled cube.
+	 * (not an extension of it) because the mesh strategy is different: every
+	 * note, strap, bundle and pallet load is a true-size textured box, not a
+	 * single scaled cube.
 	 *
-	 * `noteCount` selects one of three visual branches — individually-
-	 * instanced bills (loose/strap), coalesced textured blocks in a
-	 * roughly-cubic grid (bundle/cube), or a capped receding field of
-	 * pallet-scale blocks (pallet) — via `billStack.ts`'s tier/grid maths.
-	 * A handful of loose notes (flat, curved, folded) are scattered on the
-	 * ground around the stack's footprint — once the count reaches 10, so
-	 * the set dressing never rivals the actual holdings — keeping the
-	 * up-close face art in frame even at pallet-field framing distances
-	 * (see `addStrayNotes`). An earlier revision offered a second 'literal' view
-	 * mode (a single true-height column, toggled by tap/click) — it was
-	 * removed after visual review; the single-stack height is now told in
-	 * words instead, as a line in BillReadout. The dog stages beside the
-	 * stack (or relocates to the camera foreground at monolith scale) using
-	 * the SAME tested rig LiveStage drives its cube from
-	 * (`M.cameraTransform` + `M.dogStagePosition` in `./maths.js`), not a
-	 * bespoke reimplementation.
+	 * `noteCount` is drawn exactly, in the units cash is handled in
+	 * (`billStack.ts` `cashParts`): a loose stack; straps of 100 in small
+	 * piles; bundles of 1,000 in a roughly cubic stack with a shorter last
+	 * bundle for the remainder; pallets of 1,000,000 on wooden bases under
+	 * shrink-wrap, then, past PALLET_RENDER_CAP, one block of them. Up to
+	 * seven of the notes (from the remainder, never a broken unit) lie loose
+	 * on the floor — curled, folded, face down — so the note art stays in
+	 * frame at every scale. The art itself is printed at runtime from
+	 * noteArt.ts (billMaterials.ts); it is deliberately not a reproduction
+	 * of genuine Federal Reserve Note artwork. The single-stack height is
+	 * told in words, as a line in BillReadout. The camera is the cocaine
+	 * stage's money-first shot (`cocaine-scene.ts` `stageCamera`): raised,
+	 * framing the load, so the notes' print reads; Sat sits behind a small
+	 * pile or beside a larger one, and at monolith scale the shot blends into
+	 * the SAME tested rig LiveStage drives its cube from (`M.cameraTransform`
+	 * + `M.dogStagePosition` in `./maths.js`).
 	 */
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type * as THREE from 'three';
-	import type { CubicGrid } from '../billStack.js';
+	// The same money-first shot the cocaine stage uses: a raised camera that
+	// frames the load, Sat beside it (or behind a small pile), walking out to
+	// the foreground only once the load is big.
+	import { stageCamera, dogBeside, shotBounds, groundMark, DOG_REACH_M, type Extent } from '../cocaine-scene.js';
 
 	let {
 		noteCount = 0,
@@ -45,7 +47,6 @@
 	} = $props();
 
 	const BG = 0x18181b;
-	const BILL_MODEL_URL = '/models/references/one_dollar_bill/bill.glb';
 
 	let containerEl: HTMLDivElement | undefined = $state();
 	let canvasActive = $state(false);
@@ -68,16 +69,18 @@
 	let M: typeof import('./maths.js') | null = null;
 	let BS: typeof import('../billStack.js') | null = null;
 	let BM: typeof import('./billMaterials.js') | null = null;
+	/** Pallet wood and shrink-wrap, shared with the cocaine stage. */
+	let cocaineProps: typeof import('./cocaineProps.js') | null = null;
 	let maxAnisotropy = 1;
 
-	// $state so the tiered-render $effect (which reads it) re-runs once the
-	// async GLTF load (see hydrate()) assigns it — otherwise the effect's
-	// first run (triggered by canvasActive) fires while this is still null,
-	// bails on the guard below, and nothing re-triggers it for a static
-	// noteCount mount.
-	let bakedBillGeometry: THREE.BufferGeometry | null = $state(null);
-	let billMats: { face: THREE.MeshStandardMaterial; edge: THREE.MeshStandardMaterial } | null =
-		null;
+	// Built once in hydrate: every note, strap, bundle and pallet material
+	// (billMaterials.ts, printed from noteArt.ts), one true-size note as a
+	// box, and the pallet wood and shrink-wrap. `cash` is $state so the
+	// tiered-render $effect re-runs once they exist.
+	let cash: import('./billMaterials.js').CashMaterials | null = $state(null);
+	let noteBox: THREE.BufferGeometry | null = null;
+	let palletMats: { wood: THREE.MeshStandardMaterial; film: THREE.MeshPhysicalMaterial } | null = null;
+	let sharedMats = new Set<THREE.Material>();
 	let groundGeometry: THREE.BufferGeometry | null = null;
 	let groundMaterial: THREE.MeshStandardMaterial | null = null;
 
@@ -96,440 +99,343 @@
 		}
 	}
 
-	/** Flatten a loaded (already scale-normalized) model's first mesh into a
-	 *  standalone geometry in true real-world millimetres — the standard
-	 *  three.js technique for turning a loaded scene graph into something an
-	 *  InstancedMesh can reuse without carrying a wrapper transform. */
-	function extractBakedGeometry(three: typeof THREE, root: THREE.Object3D): THREE.BufferGeometry | null {
-		root.updateMatrixWorld(true);
-		let found: THREE.BufferGeometry | null = null;
-		root.traverse((child) => {
-			const mesh = child as THREE.Mesh;
-			if (!found && mesh.isMesh && mesh.geometry) {
-				const geom = mesh.geometry.clone();
-				geom.applyMatrix4(mesh.matrixWorld);
-				found = geom;
-			}
-		});
-		return found;
-	}
 
-	const BUNDLE_HEIGHT_MM = 1000 * 0.10922; // NOTES_PER_BUNDLE x BILL_THICKNESS_MM, see billStack.ts
-	const PALLET_BUNDLES = 1000; // 1,000 bundles/pallet = 1,000,000 notes/pallet (10x10x10 grid)
-	// Individual-pallet instancing (see placeGridInstances) is only affordable
-	// up to this many instances — past it renderTiered's pallet branch switches
-	// to one true-size, true-density "mega-block" (see the branch below) rather
-	// than continuing to clamp the rendered grid, which used to freeze the
-	// scene/camera dead from here to 21M BTC. So this is the instancing ↔
-	// coalescing switchover point, not the end of visual growth.
+	// Heights of the cash-handling units, metres.
+	const T_NOTE = 0.10922 / 1000;
+	const STRAP_H = 100 * T_NOTE;
+	const BUNDLE_H = 1000 * T_NOTE;
+	/** Individually drawn pallets up to this many; past it, one block of them. */
 	const PALLET_RENDER_CAP = 60;
-	// Horizontal gap factor shared by the individual-pallet field
-	// (placeGridInstances' spacingFactor arg) and the mega-block sizing below —
-	// using the same pitch on both sides of the PALLET_RENDER_CAP boundary
-	// keeps the rendered size continuous (no pop) at the 60-pallet crossover.
-	const PALLET_SPACING = 1.12;
 
 	let tierGroup: THREE.Group | null = null;
+	/** What `renderTiered` last built: the load's bounds (strays included)
+	 *  and whether it's a small loose pile (Sat sits behind it). */
+	let extent: Extent = { w: 0.16, d: 0.07, h: 0.001 };
+	let loosePile = true;
+	/** Less than one whole note: nothing on the floor but Sat. */
+	let empty = true;
 
-	/** Removes the current tier's render group from the scene and frees the
-	 *  GPU resources it alone owns. `bakedBillGeometry` and `billMats.face`/
-	 *  `billMats.edge` are shared across every tier switch — reused directly
-	 *  (not cloned) by the loose/strap branch and by the block face material
-	 *  — and are owned/disposed by `teardown()` instead; disposing them here
-	 *  would free a resource the next render still needs. Only resources
-	 *  built fresh inside `renderTiered` on each call (the bundle/pallet box
-	 *  geometry, the cloned edge material + its cloned texture, and the
-	 *  stray notes' plane geometries + their one shared cloned face
-	 *  material/map — see `addStrayNotes`) are disposed here. */
-	function clearTierGroup(three: typeof THREE): void {
+	/** Deterministic 0–1, so a given amount always lays out the same way. */
+	function hash(i: number, k = 0): number {
+		const v = Math.sin(i * 127.1 + k * 311.7) * 43758.5453;
+		return v - Math.floor(v);
+	}
+
+	/** Removes the current tier's group and frees what it alone owns: its
+	 *  geometries (never the shared note box) and any material not in the
+	 *  shared cash/pallet set, with that material's maps. Shared resources
+	 *  are freed once, in `teardown`. */
+	function clearTierGroup(): void {
 		if (!scene || !tierGroup) return;
 		scene.remove(tierGroup);
+		const geoms = new Set<THREE.BufferGeometry>();
+		const matsToFree = new Set<THREE.Material>();
 		tierGroup.traverse((child) => {
 			const mesh = child as THREE.Mesh;
 			if (!mesh.isMesh) return;
-			if (mesh.geometry && mesh.geometry !== bakedBillGeometry) {
-				mesh.geometry.dispose();
-			}
-			const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-			for (const mat of mats) {
-				const stdMat = mat as THREE.MeshStandardMaterial | undefined;
-				if (!stdMat || stdMat === billMats?.face || stdMat === billMats?.edge) continue;
-				stdMat.map?.dispose();
-				stdMat.dispose();
+			if (mesh.geometry !== noteBox) geoms.add(mesh.geometry);
+			for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+				if (!sharedMats.has(m)) matsToFree.add(m);
 			}
 		});
+		for (const g of geoms) g.dispose();
+		for (const m of matsToFree) {
+			const sm = m as THREE.MeshStandardMaterial;
+			sm.map?.dispose();
+			sm.bumpMap?.dispose();
+			m.dispose();
+		}
 		tierGroup = null;
 	}
 
-	/** Fills an InstancedMesh with cap-respecting positions arranged per
-	 *  `grid` (a `cubicGridDims` result), adds it to `tierGroup`/`scene`, and
-	 *  returns the grid's dominant extent in metres — the shared
-	 *  grid-placement routine used by both the bundle/cube branch and the
-	 *  pallet branch of `renderTiered`, which differ only in geometry,
-	 *  materials, per-axis cell size, the render cap (`renderLimit`, e.g.
-	 *  `PALLET_RENDER_CAP` for pallet), and `spacingFactor` (>1 opens a
-	 *  visible air gap between neighbouring blocks on the horizontal
-	 *  `cell * spacingFactor` pitch below — without it, adjacent blocks
-	 *  touch face to face and the whole grid reads as one fused monolith
-	 *  instead of discrete bundles/pallets). The factor applies to X/Z
-	 *  ONLY: blocks stack under gravity, so a vertical gap would leave the
-	 *  upper layers hovering — anti-gravity slabs — instead of resting on
-	 *  the layer beneath. Per-instance rotation/position jitter (bounded to
-	 *  a quarter of the gap, so blocks never interpenetrate) breaks up the
-	 *  remaining grid-aligned repetition. */
-	function placeGridInstances(
-		three: typeof THREE,
-		geometry: THREE.BoxGeometry,
-		materials: THREE.MeshStandardMaterial[],
-		grid: CubicGrid,
-		cellWidthM: number,
-		cellHeightM: number,
-		cellLengthM: number,
-		renderLimit: number,
-		spacingFactor: number
-	): number {
-		if (!scene || !tierGroup) return 0;
-		const instanced = new three.InstancedMesh(geometry, materials, grid.colsX * grid.colsZ * grid.layersY);
-		instanced.castShadow = true;
+	function instanced(
+		geom: THREE.BufferGeometry,
+		mat: THREE.Material | THREE.Material[],
+		placed: { x: number; y: number; z: number; rotY: number }[],
+		shade = 0.05
+	): THREE.InstancedMesh {
+		const three = T!;
+		const mesh = new three.InstancedMesh(geom, mat, Math.max(1, placed.length));
 		const m = new three.Matrix4();
-		const color = new three.Color();
-		const pitchX = cellWidthM * spacingFactor;
-		// Vertically the blocks rest on each other (see the doc comment). The
-		// 0.2% epsilon is not a visible gap — it keeps a jittered block's
-		// bottom face from being exactly coplanar with slivers of the lower
-		// block's exposed top face, which would z-fight/shimmer.
-		const pitchY = cellHeightM * 1.002;
-		const pitchZ = cellLengthM * spacingFactor;
-		const gapX = pitchX - cellWidthM;
-		const gapZ = pitchZ - cellLengthM;
-		let i = 0;
-		for (let x = 0; x < grid.colsX; x++) {
-			for (let y = 0; y < grid.layersY; y++) {
-				for (let z = 0; z < grid.colsZ; z++) {
-					if (i >= renderLimit) break;
-					const jitterX = (Math.random() - 0.5) * 0.5 * gapX; // ±25% of the gap
-					const jitterZ = (Math.random() - 0.5) * 0.5 * gapZ;
-					const jitterRotY = (Math.random() - 0.5) * 0.04; // ±0.02 rad
-					m.makeRotationY(jitterRotY);
-					m.setPosition(
-						(x - (grid.colsX - 1) / 2) * pitchX + jitterX,
-						y * pitchY + cellHeightM / 2,
-						(z - (grid.colsZ - 1) / 2) * pitchZ + jitterZ
-					);
-					instanced.setMatrixAt(i, m);
-					// Subtle per-instance shade variation (±3% value, grey-white)
-					// so identical blocks don't fuse into one flat-lit monolith.
-					// instanceColor multiplies the material colour independently
-					// of vertexColors — no material flags needed.
-					color.setScalar(0.97 + Math.random() * 0.06);
-					instanced.setColorAt(i, color);
-					i++;
-				}
-			}
-		}
-		instanced.count = i;
-		instanced.instanceMatrix.needsUpdate = true;
-		if (instanced.instanceColor) instanced.instanceColor.needsUpdate = true;
-		tierGroup.add(instanced);
-		scene.add(tierGroup);
-		return Math.max(grid.colsX * pitchX, grid.layersY * pitchY, grid.colsZ * pitchZ);
+		const c = new three.Color();
+		placed.forEach((p, i) => {
+			m.makeRotationY(p.rotY);
+			m.setPosition(p.x, p.y, p.z);
+			mesh.setMatrixAt(i, m);
+			// Faint per-item tone so identical units don't fuse into one slab.
+			c.setScalar(1 - shade + hash(i, 9) * shade);
+			mesh.setColorAt(i, c);
+		});
+		mesh.count = placed.length;
+		mesh.instanceMatrix.needsUpdate = true;
+		if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+		mesh.castShadow = true;
+		mesh.receiveShadow = true;
+		return mesh;
 	}
 
-	/** A handful of loose bills scattered on the ground in a ring around the
-	 *  stack's footprint, so the up-close face art (the thing that most
-	 *  reads as "this is money") stays in frame even when the main render is
-	 *  a distant grid of blocks. Built fresh per `renderTiered` call and
-	 *  added to `tierGroup`, so `clearTierGroup` owns their geometries and
-	 *  the one shared, cloned stray-note material exactly like the
-	 *  bundle/pallet resources above.
-	 *
-	 *  `noteLen`/`noteWid` are the TRUE bill dimensions (used for the ring
-	 *  radius and the curl/fold profiles, which are physical paper
-	 *  behaviour); `scale` uniformly resizes the finished note meshes only
-	 *  — at cube/pallet framing distances a true-size note is sub-pixel, so
-	 *  the caller passes a size boosted the same impressionistic way
-	 *  `makeBundleUnitTexture` trades per-note honesty for legibility at
-	 *  that scale. */
-	function addStrayNotes(
-		three: typeof THREE,
-		noteLen: number,
-		noteWid: number,
-		footprintHalfExtent: number,
-		scale: number
-	): void {
-		if (!tierGroup || !billMats) return;
+	/** A loose note, curled, folded or crumpled — a plane with the face on
+	 *  its front and the back on its back. Length along x. */
+	function looseNote(kind: number, L: number, W: number): THREE.Group {
+		const three = T!;
+		const g = new three.PlaneGeometry(L, W, 28, 8);
+		const pos = g.attributes.position;
+		for (let i = 0; i < pos.count; i++) {
+			const x = pos.getX(i);
+			const y = pos.getY(i);
+			let z = 0;
+			if (kind === 1) z = 0.07 * L * Math.sin(Math.PI * (x / L + 0.5)); // curled along its length
+			else if (kind === 2) z = Math.max(0, 0.2 * L * (1 - Math.abs(x) / (L * 0.5))); // folded once
+			else if (kind === 3) z = 0.1 * W * Math.sin(Math.PI * (y / W + 0.5)) + 0.004 * Math.sin(x * 90); // curled across, crinkled
+			else z = 0.0015 * Math.sin(x * 40 + y * 30); // near-flat
+			pos.setZ(i, z);
+		}
+		pos.needsUpdate = true;
+		g.computeVertexNormals();
+		g.rotateX(-Math.PI / 2);
+		g.computeBoundingBox();
+		const group = new three.Group();
+		const front = new three.Mesh(g, cash!.looseFace);
+		const back = new three.Mesh(g, cash!.looseBack);
+		front.castShadow = true;
+		front.receiveShadow = back.receiveShadow = true;
+		group.add(front, back);
+		return group;
+	}
 
-		// One shared material for every stray note: a clone of the shared
-		// face material (never the shared instance itself — clearTierGroup
-		// must be free to dispose this one) with its map ALSO cloned, so
-		// disposing this clone's map never touches the shared face texture
-		// every other tier/branch still depends on. DoubleSide because a
-		// curled/folded plane's underside is visible from some angles.
-		const strayMat = billMats.face.clone();
-		strayMat.side = three.DoubleSide;
-		strayMat.map = strayMat.map!.clone();
-		strayMat.map.anisotropy = maxAnisotropy;
-		strayMat.map.needsUpdate = true;
-
-		// ≈2 flat, 3 curved, 2 folded — a legible mix without the loop
-		// needing its own random note-count roll.
-		const kinds: Array<'flat' | 'curved' | 'folded'> = [
-			'flat',
-			'flat',
-			'curved',
-			'curved',
-			'curved',
-			'folded',
-			'folded',
-		];
-
-		for (const kind of kinds) {
-			// Plane in local XY (length along X), profile-displaced along Z,
-			// then laid flat with curl pointing up.
-			const geom = new three.PlaneGeometry(noteLen, noteWid, 24, 1);
-			if (kind !== 'flat') {
-				const pos = geom.attributes.position;
-				for (let i = 0; i < pos.count; i++) {
-					const x = pos.getX(i);
-					const z =
-						kind === 'curved'
-							? 0.08 * noteLen * Math.sin(Math.PI * (x / noteLen + 0.5)) // gentle upward arc
-							: Math.max(0, 0.22 * noteLen * (1 - Math.abs(x) / (noteLen * 0.5))); // folded-once tent
-					pos.setZ(i, z);
-				}
-				pos.needsUpdate = true;
-				geom.computeVertexNormals();
-			}
-			geom.rotateX(-Math.PI / 2);
-
-			const mesh = new three.Mesh(geom, strayMat);
-			mesh.castShadow = true;
-			mesh.scale.setScalar(scale);
-			const radius = footprintHalfExtent + noteLen * (0.5 + Math.random() * 2);
-			const angle = Math.random() * Math.PI * 2;
-			mesh.position.set(
-				Math.cos(angle) * radius,
-				kind === 'flat' ? 0.0004 : 0, // curved/folded profiles already lift off the ground
-				Math.sin(angle) * radius
-			);
-			mesh.rotation.y = Math.random() * Math.PI * 2;
-			tierGroup.add(mesh);
+	/** `n` loose notes scattered around the load's footprint, taken from the
+	 *  count (see billStack.ts `cashParts`) — true size, never enlarged. */
+	function addStrays(n: number, L: number, W: number, footprintHalf: number): void {
+		for (let i = 0; i < n; i++) {
+			const note = looseNote(i % 5, L, W);
+			const r = footprintHalf + L * (0.05 + hash(i, 1) * 0.4);
+			const a = hash(i, 2) * Math.PI * 2;
+			note.rotation.y = hash(i, 3) * Math.PI * 2;
+			const faceDown = hash(i, 4) > 0.65;
+			if (faceDown) note.rotation.x = Math.PI;
+			// Rest it on the floor: its lowest point (the curl's ends face up,
+			// its crown face down) just clear of the ground, staggered so
+			// overlapping notes never z-fight.
+			const bb = (note.children[0] as THREE.Mesh).geometry.boundingBox!;
+			const lift = faceDown ? bb.max.y : -bb.min.y;
+			note.position.set(Math.cos(a) * r, lift + 0.0003 + i * 0.00015, Math.sin(a) * r);
+			tierGroup!.add(note);
 		}
 	}
 
-	function renderTiered(three: typeof THREE, billStackMod: typeof import('../billStack.js'), count: number): number {
-		if (!scene || !bakedBillGeometry || !billMats) return 0;
-		clearTierGroup(three);
+	/** A loose stack of `n` notes, a little messy, face up, at (x, z). */
+	function looseStack(n: number, x: number, z: number, W: number, L: number): void {
+		if (n <= 0) return;
+		const placed = Array.from({ length: n }, (_, i) => ({
+			x: x + (hash(i, 11) - 0.5) * W * 0.08,
+			y: T_NOTE * (i + 0.5),
+			z: z + (hash(i, 12) - 0.5) * L * 0.05,
+			rotY: (hash(i, 13) - 0.5) * 0.14,
+		}));
+		tierGroup!.add(instanced(noteBox!, cash!.note, placed, 0.04));
+	}
+
+	/**
+	 * Build the scene for `count` notes in real cash-handling units and
+	 * record its bounds in `extent` for the camera. Exact: see
+	 * `cashParts` — strays come out of the count, a remainder is a shorter
+	 * bundle or pallet, never a rounded-up whole one.
+	 */
+	function renderTiered(three: typeof THREE, billStackMod: typeof import('../billStack.js'), count: number): void {
+		if (!scene || !cash || !noteBox) return;
+		clearTierGroup();
 		tierGroup = new three.Group();
-
-		const tier = billStackMod.selectBillTier(count);
+		const tier = billStackMod.selectBillTier(Math.floor(count + 1e-6));
+		loosePile = tier !== 'bundle' && tier !== 'cube' && tier !== 'pallet';
+		empty = !tier;
 		if (!tier) {
 			scene.add(tierGroup);
-			return 0;
+			extent = { w: 0.16, d: 0.07, h: 0.001 };
+			return;
 		}
+		const parts = billStackMod.cashParts(count);
+		const W = billStackMod.BILL_WIDTH_MM / 1000;
+		const L = billStackMod.BILL_LENGTH_MM / 1000;
 
-		const widthM = billStackMod.BILL_WIDTH_MM / 1000;
-		const lengthM = billStackMod.BILL_LENGTH_MM / 1000;
-		const thicknessM = billStackMod.BILL_THICKNESS_MM / 1000;
+		// The load's footprint (x, z) and height, m.
+		let w = L;
+		let d = L;
+		let h = T_NOTE;
 
-		let dominant: number;
-		let footprintHalfExtent: number;
-
-		if (tier === 'loose' || tier === 'strap') {
-			// Individually-instanced real bill geometry — cheap up to ~1,000
-			// instances of a 24-vertex mesh, and this is exactly the range
-			// where the eye can still resolve individual bills.
-			const instanced = new three.InstancedMesh(bakedBillGeometry, billMats.face, count);
-			instanced.castShadow = true;
-			const m = new three.Matrix4();
-			for (let i = 0; i < count; i++) {
-				const jitterX = (Math.random() - 0.5) * widthM * 0.06; // ±3% of footprint
-				const jitterZ = (Math.random() - 0.5) * lengthM * 0.06;
-				const jitterRotY = (Math.random() - 0.5) * 0.12; // ±0.06 rad
-				m.makeRotationY(jitterRotY);
-				m.setPosition(jitterX, thicknessM * (i + 0.5), jitterZ);
-				instanced.setMatrixAt(i, m);
+		if (tier === 'loose') {
+			looseStack(parts.loose, 0, 0, W, L);
+			// Some floor around a few notes, so the shot doesn't crop them.
+			// (A close camera exaggerates the near corner, hence the margin.)
+			w = W * 2.3;
+			d = L * 1.75;
+			h = Math.max(parts.loose * T_NOTE, T_NOTE);
+		} else if (tier === 'strap') {
+			// Straps in small piles (six high), the loose remainder beside them.
+			const perPile = 6;
+			const piles = Math.ceil(parts.straps / perPile);
+			const cols = piles + (parts.loose ? 1 : 0);
+			const pitch = W * 1.25;
+			const colX = (c: number) => (c - (cols - 1) / 2) * pitch;
+			const placed = [];
+			for (let i = 0; i < parts.straps; i++) {
+				placed.push({
+					x: colX(Math.floor(i / perPile)) + (hash(i, 21) - 0.5) * 0.004,
+					y: (i % perPile) * STRAP_H + STRAP_H / 2,
+					z: (hash(i, 22) - 0.5) * 0.006,
+					rotY: (hash(i, 23) - 0.5) * 0.05,
+				});
 			}
-			instanced.instanceMatrix.needsUpdate = true;
-			tierGroup.add(instanced);
-			scene.add(tierGroup);
-			// Dominant extent, metres — a flat loose/strap stack is only a few
-			// mm tall but a full 156 mm long, so the taller of height/footprint
-			// keeps the camera from dollying in absurdly close on a wide, short
-			// pile.
-			dominant = Math.max(count * thicknessM, lengthM);
-			footprintHalfExtent = Math.max(widthM, lengthM) / 2;
+			tierGroup.add(instanced(new three.BoxGeometry(W, STRAP_H, L), cash.strap, placed, 0.03));
+			if (parts.loose) looseStack(parts.loose, colX(piles), 0, W, L);
+			w = cols * pitch;
+			h = Math.min(parts.straps, perPile) * STRAP_H;
 		} else if (tier === 'bundle' || tier === 'cube') {
-			// Coalesced textured blocks, one per bundle of NOTES_PER_BUNDLE
-			// notes, arranged via cubicGridDims. Side faces carry the per-note
-			// edge stripes (repeat.y = true note count — physically honest).
-			const bundleGeom = new three.BoxGeometry(widthM, BUNDLE_HEIGHT_MM / 1000, lengthM);
-			const edgeMat = billMats.edge.clone();
-			edgeMat.map = edgeMat.map!.clone();
-			edgeMat.map.anisotropy = maxAnisotropy;
-			edgeMat.map.repeat.set(1, billStackMod.NOTES_PER_BUNDLE);
-			edgeMat.map.needsUpdate = true;
-			const blockMats = [edgeMat, edgeMat, billMats.face, billMats.face, edgeMat, edgeMat]; // BoxGeometry face order: +x -x +y -y +z -z
-			const bundleCount = Math.ceil(count / billStackMod.NOTES_PER_BUNDLE);
-			const grid = billStackMod.cubicGridDims(
-				bundleCount,
-				billStackMod.BILL_WIDTH_MM,
-				billStackMod.BILL_LENGTH_MM,
-				BUNDLE_HEIGHT_MM
-			);
-			dominant = placeGridInstances(
-				three,
-				bundleGeom,
-				blockMats,
-				grid,
-				widthM,
-				BUNDLE_HEIGHT_MM / 1000,
-				lengthM,
-				bundleCount,
-				1.06
-			);
-			footprintHalfExtent = Math.max(grid.colsX * widthM * 1.06, grid.colsZ * lengthM * 1.06) / 2;
+			// Bundles of 1,000 in a roughly cubic stack, laid a layer at a time
+			// so a part-bundle (the remainder) sits last on the top layer.
+			const n = parts.bundles + (parts.partialNotes ? 1 : 0);
+			const grid = billStackMod.cubicGridDims(n, billStackMod.BILL_WIDTH_MM, billStackMod.BILL_LENGTH_MM, BUNDLE_H * 1000);
+			const px = W * 1.06;
+			const pz = L * 1.06;
+			const slots: { x: number; y: number; z: number; rotY: number }[] = [];
+			for (let i = 0; i < n; i++) {
+				const perLayer = grid.colsX * grid.colsZ;
+				const layer = Math.floor(i / perLayer);
+				const j = i % perLayer;
+				const ix = j % grid.colsX;
+				const iz = Math.floor(j / grid.colsX);
+				slots.push({
+					x: (ix - (grid.colsX - 1) / 2) * px + (hash(i, 31) - 0.5) * (px - W) * 0.5,
+					y: layer * BUNDLE_H * 1.002,
+					z: (iz - (grid.colsZ - 1) / 2) * pz + (hash(i, 32) - 0.5) * (pz - L) * 0.5,
+					rotY: (hash(i, 33) - 0.5) * 0.03,
+				});
+			}
+			const whole = slots.slice(0, parts.bundles).map((p) => ({ ...p, y: p.y + BUNDLE_H / 2 }));
+			if (whole.length) tierGroup.add(instanced(new three.BoxGeometry(W, BUNDLE_H, L), cash.bundle, whole, 0.04));
+			if (parts.partialNotes) {
+				const h = parts.partialNotes * T_NOTE;
+				const p = slots[slots.length - 1];
+				const mesh = new three.Mesh(new three.BoxGeometry(W, h, L), cash.partial(parts.partialNotes));
+				mesh.position.set(p.x, p.y + h / 2, p.z);
+				mesh.rotation.y = p.rotY;
+				mesh.castShadow = mesh.receiveShadow = true;
+				tierGroup.add(mesh);
+			}
+			w = grid.colsX * px;
+			d = grid.colsZ * pz;
+			h = Math.ceil(n / (grid.colsX * grid.colsZ)) * BUNDLE_H;
 		} else {
-			// pallet: pallet-scale blocks (10x10x10 bundles each — a non-cubic
-			// ~0.66 x 1.09 x 1.56 m box, since a bundle isn't a cube). Cell sizes
-			// are per-axis, exactly like the bundle/cube branch above: a uniform
-			// max-extent cell would bake ~0.47 m of vertical air under every
-			// layer (floating slabs) and over-wide x-aisles.
-			const palletWidthMm = 10 * billStackMod.BILL_WIDTH_MM;
-			const palletLengthMm = 10 * billStackMod.BILL_LENGTH_MM;
-			const palletHeightMm = 10 * BUNDLE_HEIGHT_MM;
-			const palletWidthM = palletWidthMm / 1000;
-			const palletLengthM = palletLengthMm / 1000;
-			const palletHeightM = palletHeightMm / 1000;
-			const totalPallets = Math.ceil(count / (billStackMod.NOTES_PER_BUNDLE * PALLET_BUNDLES));
-			const grid = billStackMod.cubicGridDims(totalPallets, palletWidthMm, palletLengthMm, palletHeightMm);
-
-			if (totalPallets <= PALLET_RENDER_CAP) {
-				// At or below the cap: an individually-instanced receding field,
-				// one InstancedMesh cell per real pallet.
-				const palletGeom = new three.BoxGeometry(palletWidthM, palletHeightM, palletLengthM);
-				// Pallet materials: bundle-scale granularity, not note-scale. Side
-				// faces tile the bundle-unit texture 10x10 (a pallet face is 10x10
-				// bundle edges — see makeBundleUnitTexture's comment for why this is
-				// deliberately impressionistic rather than per-note-honest); the top
-				// face tiles the bill FACE art 10x10 (a pallet top is 10x10 bundle
-				// tops, each one bill face). Both are fresh, tier-group-owned
-				// resources: clearTierGroup disposes any material (and its map) that
-				// isn't the shared billMats.face/edge, which covers these.
-				const bundleUnitMat = new three.MeshStandardMaterial({
-					map: BM!.makeBundleUnitTexture(),
-					roughness: 0.9,
-					metalness: 0,
-				});
-				bundleUnitMat.map!.anisotropy = maxAnisotropy;
-				bundleUnitMat.map!.repeat.set(10, 10);
-				bundleUnitMat.map!.needsUpdate = true;
-				const palletTopMat = billMats.face.clone();
-				palletTopMat.map = palletTopMat.map!.clone();
-				palletTopMat.map.wrapS = palletTopMat.map.wrapT = three.RepeatWrapping;
-				palletTopMat.map.anisotropy = maxAnisotropy;
-				palletTopMat.map.repeat.set(10, 10);
-				palletTopMat.map.needsUpdate = true;
-				const palletMats = [
-					bundleUnitMat,
-					bundleUnitMat,
-					palletTopMat,
-					palletTopMat,
-					bundleUnitMat,
-					bundleUnitMat,
-				]; // BoxGeometry face order: +x -x +y -y +z -z
-
-				dominant = placeGridInstances(
-					three,
-					palletGeom,
-					palletMats,
-					grid,
-					palletWidthM,
-					palletHeightM,
-					palletLengthM,
-					totalPallets,
-					PALLET_SPACING
-				);
-				footprintHalfExtent =
-					Math.max(grid.colsX * palletWidthM * PALLET_SPACING, grid.colsZ * palletLengthM * PALLET_SPACING) /
-					2;
+			// Pallets: 10 × 10 × 10 bundles ($1,000,000) on a pallet, under
+			// shrink-wrap. A part-load is fewer courses on the last pallet.
+			const pw = 10 * W;
+			const pl = 10 * L;
+			const loadH = 10 * BUNDLE_H;
+			const deck = billStackMod.PALLET_DECK_M;
+			const pitch = billStackMod.PALLET_PITCH;
+			const unitH = deck + loadH;
+			const n = parts.pallets + (parts.partialNotes ? 1 : 0);
+			if (n <= PALLET_RENDER_CAP) {
+				const grid = billStackMod.cubicGridDims(n, pw * 1000 * pitch, pl * 1000 * pitch, unitH * 1000);
+				const px = pw * pitch;
+				const pz = pl * pitch;
+				const slots: { x: number; y: number; z: number; rotY: number }[] = [];
+				for (let i = 0; i < n; i++) {
+					const perLayer = grid.colsX * grid.colsZ;
+					const layer = Math.floor(i / perLayer);
+					const j = i % perLayer;
+					slots.push({
+						x: ((j % grid.colsX) - (grid.colsX - 1) / 2) * px,
+						y: layer * unitH,
+						z: (Math.floor(j / grid.colsX) - (grid.colsZ - 1) / 2) * pz,
+						rotY: (hash(i, 41) - 0.5) * 0.03,
+					});
+				}
+				const woodG = cocaineProps!.makePalletGeometry(pw, pl);
+				tierGroup.add(instanced(woodG, palletMats!.wood, slots, 0.1));
+				const whole = slots.slice(0, parts.pallets);
+				if (whole.length) {
+					const loadG = new three.BoxGeometry(pw, loadH, pl);
+					loadG.translate(0, deck + loadH / 2, 0);
+					tierGroup.add(instanced(loadG, cash.block(10, 10, 10), whole, 0.03));
+					const filmG = new three.BoxGeometry(pw + 0.02, loadH + 0.012, pl + 0.02);
+					filmG.translate(0, deck + loadH / 2 + 0.003, 0);
+					const film = instanced(filmG, palletMats!.film, whole, 0);
+					film.castShadow = false;
+					film.renderOrder = 2;
+					tierGroup.add(film);
+				}
+				if (parts.partialNotes) {
+					const courses = parts.partialNotes / billStackMod.NOTES_PER_PALLET;
+					const h = loadH * courses;
+					const p = slots[slots.length - 1];
+					const g = new three.BoxGeometry(pw, h, pl);
+					const mesh = new three.Mesh(g, cash.block(10, 10 * courses, 10));
+					mesh.position.set(p.x, p.y + deck + h / 2, p.z);
+					mesh.rotation.y = p.rotY;
+					mesh.castShadow = mesh.receiveShadow = true;
+					tierGroup.add(mesh);
+				}
+				w = grid.colsX * px;
+				d = grid.colsZ * pz;
+				h = Math.ceil(n / (grid.colsX * grid.colsZ)) * unitH;
 			} else {
-				// Above the cap: per-pallet instancing stops scaling (that's the
-				// whole reason for PALLET_RENDER_CAP), but at the framing distances
-				// this tier reaches, only the field's outer faces are ever
-				// resolvable anyway — so one true-size BoxGeometry "mega-block",
-				// sized from the TRUE pallet count (cubicGridDims is closed-form:
-				// cheap even at n in the millions) and dressed with true-density
-				// face subdivision, loses nothing visible while letting the camera
-				// keep dollying out continuously instead of freezing (the bug this
-				// branch fixes). The readout's exact note count carries the
-				// magnitude regardless of what the scene can show.
-				//
-				// PALLET_SPACING — the same horizontal pitch the field branch above
-				// uses — sizes this block, so it is CONTINUOUS with the field across
-				// the PALLET_RENDER_CAP boundary: at 61 pallets this block is nearly
-				// identical in size to the 60-pallet field, no visual pop. Height
-				// stays flush (no vertical air), matching the field's Y rule.
-				const blockWidthM = grid.colsX * palletWidthM * PALLET_SPACING;
-				const blockLengthM = grid.colsZ * palletLengthM * PALLET_SPACING;
-				const blockHeightM = grid.layersY * palletHeightM;
-
-				// Side faces keep the same true-density subdivision as the field
-				// (each pallet face is 10x10 bundles) but at the block's TRUE
-				// pallet-count-per-face, not the old capped grid's. Two materials
-				// because BoxGeometry's face order is [+x -x +y -y +z -z] and ±x
-				// faces span the LENGTH (colsZ pallets) while ±z faces span the
-				// WIDTH (colsX pallets) — each needs its own u-repeat.
-				const sideMatX = new three.MeshStandardMaterial({
-					map: BM!.makeBundleUnitTexture(),
-					roughness: 0.9,
-					metalness: 0,
-				});
-				sideMatX.map!.anisotropy = maxAnisotropy;
-				sideMatX.map!.repeat.set(grid.colsZ * 10, grid.layersY * 10);
-				sideMatX.map!.needsUpdate = true;
-				const sideMatZ = new three.MeshStandardMaterial({
-					map: BM!.makeBundleUnitTexture(),
-					roughness: 0.9,
-					metalness: 0,
-				});
-				sideMatZ.map!.anisotropy = maxAnisotropy;
-				sideMatZ.map!.repeat.set(grid.colsX * 10, grid.layersY * 10);
-				sideMatZ.map!.needsUpdate = true;
-				const topMat = billMats.face.clone();
-				topMat.map = topMat.map!.clone();
-				topMat.map.wrapS = topMat.map.wrapT = three.RepeatWrapping;
-				topMat.map.anisotropy = maxAnisotropy;
-				topMat.map.repeat.set(grid.colsX * 10, grid.colsZ * 10);
-				topMat.map.needsUpdate = true;
-				const megaMats = [sideMatX, sideMatX, topMat, topMat, sideMatZ, sideMatZ]; // +x -x +y -y +z -z
-
-				const megaGeom = new three.BoxGeometry(blockWidthM, blockHeightM, blockLengthM);
-				const block = new three.Mesh(megaGeom, megaMats);
-				block.castShadow = true;
-				block.position.set(0, blockHeightM / 2, 0); // grounded
-				tierGroup.add(block);
-				scene.add(tierGroup);
-
-				dominant = Math.max(blockWidthM, blockHeightM, blockLengthM);
-				footprintHalfExtent = Math.max(blockWidthM, blockLengthM) / 2;
+				// Past the cap: the pallets as one block, faced with them (the
+				// camera is too far out to need each one drawn) — the same pitch
+				// as the field, so there's no pop at the crossover. Exact: whole
+				// layers, then whole rows, then whole pallets, then the last
+				// part-pallet, never rounded up to a full grid.
+				const grid = billStackMod.cubicGridDims(n, pw * 1000 * pitch, pl * 1000 * pitch, unitH * 1000);
+				const px = pw * pitch;
+				const pz = pl * pitch;
+				const x0 = -(grid.colsX * px) / 2;
+				const z0 = -(grid.colsZ * pz) / 2;
+				const perLayer = grid.colsX * grid.colsZ;
+				const box = (ix: number, iy: number, iz: number, nx: number, ny: number, nz: number) => {
+					if (nx <= 0 || ny <= 0 || nz <= 0) return;
+					const m = new three.Mesh(new three.BoxGeometry(nx * px, ny * unitH, nz * pz), cash!.warehouse(nx, ny, nz));
+					m.position.set(x0 + (ix + nx / 2) * px, (iy + ny / 2) * unitH, z0 + (iz + nz / 2) * pz);
+					m.castShadow = m.receiveShadow = true;
+					tierGroup!.add(m);
+				};
+				const layers = Math.floor(parts.pallets / perLayer);
+				const rows = Math.floor((parts.pallets - layers * perLayer) / grid.colsX);
+				const last = parts.pallets - layers * perLayer - rows * grid.colsX;
+				box(0, 0, 0, grid.colsX, layers, grid.colsZ);
+				box(0, layers, 0, grid.colsX, 1, rows);
+				box(0, layers, rows, last, 1, 1);
+				if (parts.partialNotes) {
+					const courses = parts.partialNotes / billStackMod.NOTES_PER_PALLET;
+					const hh = loadH * courses;
+					const cx = x0 + (last + 0.5) * px;
+					const cz = z0 + (rows + 0.5) * pz;
+					const cy = layers * unitH;
+					const wood = new three.Mesh(cocaineProps!.makePalletGeometry(pw, pl), palletMats!.wood);
+					wood.position.set(cx, cy, cz);
+					const load = new three.Mesh(new three.BoxGeometry(pw, hh, pl), cash.block(10, 10 * courses, 10));
+					load.position.set(cx, cy + deck + hh / 2, cz);
+					wood.castShadow = load.castShadow = load.receiveShadow = true;
+					tierGroup.add(wood, load);
+				}
+				w = grid.colsX * px;
+				d = grid.colsZ * pz;
+				h = Math.ceil(n / perLayer) * unitH;
 			}
 		}
 
-		// Strays are set dressing and must never exceed the real amount's own
-		// order of magnitude — at fewer than 10 notes the 7 scattered
-		// decorations would rival or outnumber the actual holdings, so they
-		// are skipped entirely.
-		if (count >= 10) {
-			// True bill size at loose/strap/bundle tiers; at cube/pallet framing
-			// distances a true-size note is sub-pixel, so scale it up — same
-			// impressionistic license `makeBundleUnitTexture` takes at that scale.
-			const strayScale =
-				tier === 'cube' || tier === 'pallet' ? Math.max(1, (dominant * 0.1) / lengthM) : 1;
-			addStrayNotes(three, lengthM, widthM, footprintHalfExtent, strayScale);
+		if (parts.strays) {
+			const footprintHalf = Math.max(w, d) / 2;
+			addStrays(parts.strays, L, W, footprintHalf);
+			// The ring's outer edge, plus half a note (they're centred on it).
+			const reach = 2 * (footprintHalf + L * 0.95);
+			w = Math.max(w, reach);
+			d = Math.max(d, reach);
 		}
-
-		return dominant;
+		// Built with the notes' length along z; a quarter turn lays them
+		// across the frame, face upright to the camera and the banded long
+		// sides of straps, bundles and pallets facing it.
+		tierGroup.rotation.y = -Math.PI / 2;
+		scene.add(tierGroup);
+		extent = { w: d, d: w, h };
 	}
 
 	let wantPos: THREE.Vector3 | null = null;
@@ -541,67 +447,99 @@
 	// at hydrate and after the dog loads).
 	let framedOnce = false;
 
-	/** Reframes the camera (and the dog's staging position, key light,
-	 *  shadow frustum, and fog) to whatever `renderTiered` reports as the
-	 *  dominant extent — using the exact same tested rig
-	 *  LiveStage drives its cube from: `M.cameraTransform()` for
-	 *  position/aim, and `M.dogStagePosition()` for where the Shiba stands.
-	 *  An earlier revision of this function deliberately avoided
-	 *  `cameraTransform()` because BillStage had no dog anywhere in its
-	 *  scene, so the dog-aware aim/foreground-relocation terms would have
-	 *  pointed the look-at target past the edge of the rendered grid. Now
-	 *  that the Shiba is staged here too, those terms are exactly what's
-	 *  needed, so this rebuilds nothing by hand any more. */
-	function reframe(three: typeof THREE, M: typeof import('./maths.js'), dominant: number): void {
+	function smoothstep(a: number, b: number, x: number): number {
+		const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+		return t * t * (3 - 2 * t);
+	}
+
+	/** Reframes the camera, the dog, the key light and fog to the load in
+	 *  `extent` — the cocaine stage's shot, so the two tabs move alike.
+	 *  Small loads: a raised look-down shot with Sat beside (or behind a
+	 *  loose pile), in the shot. Wide loads: the same raised shot, Sat
+	 *  walking out to the foreground along the line of sight. A block as
+	 *  tall as it is wide blends into LiveStage's metal rig — low camera,
+	 *  Sat in the foreground, the block treated as a cube. */
+	function reframe(three: typeof THREE): void {
 		if (!camera || !camPos || !camAim || !wantPos || !wantAim) return;
-		const safeDominant = Math.max(dominant, 1e-4);
-		const tr = M.cameraTransform(safeDominant);
-		wantPos.set(tr.pos.x, tr.pos.y, tr.pos.z);
-		wantAim.set(tr.aim.x, tr.aim.y, tr.aim.z);
+		const aspect = height > 0 ? width / height : 1;
+		const span = Math.max(extent.w, extent.d, extent.h);
+		// Behind a loose pile, far enough back that his paws stay off it.
+		const beside = loosePile
+			? { x: extent.w * 0.35, z: -(extent.d / 2 + DOG_REACH_M * 0.85) }
+			: dogBeside(extent, 'bricks');
+		const wFg = loosePile ? 0 : smoothstep(2.5, 6, span);
+		const shot = shotBounds(extent, loosePile || wFg > 0 ? null : beside);
+		const near = stageCamera(shot.extent, aspect, shot.center);
+		const cubeLike = extent.h > 0.5 * Math.max(extent.w, extent.d);
+		// Nothing to frame: LiveStage's rig, which shows Sat whole.
+		const k = M && empty ? 1 : M && cubeLike ? wFg : 0;
+		let pos = near.pos;
+		let aim = near.aim;
+		let dogAt = beside;
+		let dogStaged = false;
+		if (wFg > 0) {
+			const mark = groundMark(near.pos, near.aim, aspect, extent);
+			if (mark) dogAt = { x: beside.x + (mark.x - beside.x) * wFg, z: beside.z + (mark.z - beside.z) * wFg };
+			dogStaged = wFg > 0.5;
+		}
+		if (k > 0 && M) {
+			const tr = M.cameraTransform(empty ? 0.156 : span);
+			const lerp3 = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => ({
+				x: a.x + (b.x - a.x) * k,
+				y: a.y + (b.y - a.y) * k,
+				z: a.z + (b.z - a.z) * k,
+			});
+			pos = lerp3(near.pos, tr.pos);
+			aim = lerp3(near.aim, tr.aim);
+			const sp = M.dogStagePosition(empty ? 0.156 : span, tr.pos, tr.aim, aspect);
+			dogAt = { x: dogAt.x + (sp.x - dogAt.x) * k, z: dogAt.z + (sp.z - dogAt.z) * k };
+			dogStaged = sp.staged && k > 0.5;
+		}
+		wantPos.set(pos.x, pos.y, pos.z);
+		wantAim.set(aim.x, aim.y, aim.z);
 
 		if (dog) {
-			const aspect = height > 0 ? width / height : 1;
-			const sp = M.dogStagePosition(safeDominant, tr.pos, tr.aim, aspect);
-			dog.position.x = sp.x;
-			dog.position.z = sp.z;
-			dog.rotation.y = Math.atan2(-sp.x, -sp.z) + 0.14; // face the stack
-			staged = sp.staged;
+			dog.position.set(dogAt.x, 0, dogAt.z);
+			dog.rotation.y = Math.atan2(-dogAt.x, -dogAt.z); // face the load
+			staged = dogStaged;
 		} else {
 			staged = false;
 		}
 
-		// Key light + shadow-camera frustum + fog track the scale, identical
-		// to LiveStage's update() (including the `tr.aim.x -` term, which
-		// keeps the light aimed at the same point the camera is once the
-		// dog's foreground relocation pulls that point sideways).
+		const dist = Math.hypot(pos.x - aim.x, pos.y - aim.y, pos.z - aim.z);
 		if (key) {
-			key.position.set(tr.aim.x - tr.dominant * 1.6, tr.dominant * 2.4, tr.dominant * 1.2);
+			const s = Math.max(span, 0.6);
+			// A lower, raking light for a flat pile, so the curl of the loose
+			// notes and the relief of the print read.
+			key.position.set(-s * 1.4, s * (loosePile ? 1.3 : 2.2), s * 1.2);
 			const sc = key.shadow.camera;
-			sc.left = sc.bottom = -tr.dominant * 2.2;
-			sc.right = sc.top = tr.dominant * 2.2;
-			sc.near = tr.dominant * 0.1;
-			sc.far = tr.dominant * 8;
+			sc.left = sc.bottom = -s * 1.3;
+			sc.right = sc.top = s * 1.3;
+			sc.near = s * 0.05;
+			sc.far = s * 6;
 			sc.updateProjectionMatrix();
+			key.shadow.bias = -0.0002;
+			key.shadow.normalBias = span < 0.5 ? 0.0004 : 0.02;
 		}
-		if (scene) scene.fog = new three.Fog(BG, tr.dist * 2.2, tr.dist * 9);
+		if (scene) scene.fog = new three.Fog(BG, dist * 2.5, dist * 10);
 
 		if (prefersReduced || !framedOnce) {
 			camPos.copy(wantPos);
 			camAim.copy(wantAim);
 		}
 		framedOnce = true;
+		applyCamera();
+	}
 
+	function applyCamera(): void {
+		if (!camera || !camPos || !camAim) return;
 		camera.position.copy(camPos);
 		camera.lookAt(camAim);
-		// Near/far planes track the camera distance every reframe — same as
-		// LiveStage's loop() — so a scale change dollies the camera without
-		// clipping. Unlike LiveStage, near is ALSO clamped to 2 m: at pallet
-		// framing distances (tens of metres) dist/100 would near-plane-clip
-		// the foreground-staged dog (3.5–8.5 m from camera, per
-		// dogGroundMark's clamp) into invisibility. LiveStage never hits this
-		// because gold at 21M BTC is only a ~10 m cube.
-		camera.near = Math.min(Math.max(camPos.length() / 100, 1e-4), 2);
-		camera.far = camPos.length() * 60;
+		// Near/far track the camera distance, so a scale change dollies the
+		// camera without clipping (the stray notes sit 0.3 mm off the floor).
+		const dd = camPos.distanceTo(camAim);
+		camera.near = Math.max(dd / 200, 0.002);
+		camera.far = dd * 80;
 		camera.updateProjectionMatrix();
 	}
 
@@ -627,14 +565,7 @@
 		const k = 1 - Math.exp(-dt * 3.2); // same damping constant as LiveStage
 		camPos.lerp(wantPos, k);
 		camAim.lerp(wantAim, k);
-		camera.position.copy(camPos);
-		camera.lookAt(camAim);
-		// See the matching comment in reframe() — near/far must track distance
-		// every frame, not just on reframe, since the dolly moves camPos here
-		// (including reframe()'s 2 m near clamp for the foreground dog).
-		camera.near = Math.min(Math.max(camPos.length() / 100, 1e-4), 2);
-		camera.far = camPos.length() * 60;
-		camera.updateProjectionMatrix();
+		applyCamera();
 		mixer?.update(dt); // dog idle animation
 		render();
 	}
@@ -659,7 +590,7 @@
 	async function hydrate(): Promise<void> {
 		if (destroyed || canvasActive || !containerEl) return;
 
-		const [three, gltfMod, moMod, billMaterialsMod, billStackMod, materials, maths] = await Promise.all([
+		const [three, gltfMod, moMod, billMaterialsMod, billStackMod, materials, maths, props] = await Promise.all([
 			import('three'),
 			import('three/addons/loaders/GLTFLoader.js'),
 			import('three/addons/libs/meshopt_decoder.module.js'),
@@ -667,6 +598,7 @@
 			import('../billStack.js'),
 			import('./materials.js'),
 			import('./maths.js'),
+			import('./cocaineProps.js'),
 		]);
 		const { loadNormalizedModel } = await import('./loadNormalizedModel.js');
 		if (destroyed || !containerEl) return;
@@ -674,6 +606,7 @@
 		M = maths;
 		BS = billStackMod;
 		BM = billMaterialsMod;
+		cocaineProps = props;
 
 		width = containerEl.clientWidth || 1;
 		height = containerEl.clientHeight || 1;
@@ -682,7 +615,7 @@
 		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.setSize(width, height);
 		renderer.toneMapping = three.ACESFilmicToneMapping;
-		renderer.toneMappingExposure = 1.3;
+		renderer.toneMappingExposure = 1.15;
 		renderer.shadowMap.enabled = true;
 		renderer.shadowMap.type = three.PCFSoftShadowMap;
 		renderer.domElement.className = 'stage-canvas';
@@ -695,12 +628,11 @@
 		envTexture = materials.makeEnvironmentTexture(renderer);
 		scene.environment = envTexture;
 		// LiveStage runs this env at 1.3, tuned for metals whose envmap
-		// REFLECTIONS need the punch. Matte paper (roughness 0.85–0.9,
-		// metalness 0) instead integrates the whole softbox as diffuse
-		// irradiance, and at 1.3 (with the shared 1.3 tone-mapping exposure,
-		// kept so the Shiba matches its look on the metal tabs) the warm
-		// paper tones clip to near-white. 1.0 keeps the face art legible.
-		scene.environmentIntensity = 1.0;
+		// REFLECTIONS need the punch. Matte paper (roughness ~0.8, metalness
+		// 0) instead integrates the whole softbox as diffuse irradiance, and
+		// at that level the pale note paper clips to white and the fine
+		// engraving washes out. Exposure 1.15 / env 0.85 keeps the ink legible.
+		scene.environmentIntensity = 0.85;
 
 		camera = new three.PerspectiveCamera(maths.FOV_DEG, width / height, 1e-4, 5000);
 
@@ -720,12 +652,6 @@
 		ground.receiveShadow = true;
 		scene.add(ground);
 
-		const face = billMaterialsMod.makeBillFaceTexture();
-		const edge = billMaterialsMod.makeBillEdgeTexture();
-		face.anisotropy = maxAnisotropy;
-		edge.anisotropy = maxAnisotropy;
-		billMats = billMaterialsMod.makeBillMaterials(face, edge);
-
 		camPos = new three.Vector3(0.3, 0.15, 0.4);
 		camAim = new three.Vector3(0, 0.02, 0);
 		wantPos = new three.Vector3();
@@ -733,34 +659,33 @@
 		camera.position.copy(camPos);
 		camera.lookAt(camAim);
 
-		loadNormalizedModel(
-			three,
-			gltfMod.GLTFLoader,
-			moMod.MeshoptDecoder,
-			BILL_MODEL_URL,
-			billStackMod.BILL_LENGTH_MM / 1000, // metres
-			'x',
-			(object) => {
-				if (destroyed || !scene || !billMats) return;
-				const geom = extractBakedGeometry(three, object);
-				// Footprint-orientation contract: loadNormalizedModel (above)
-				// normalizes the raw model's long axis onto X, but every
-				// bundle/pallet BoxGeometry block puts its long dimension on Z —
-				// rotate the baked per-bill geometry to match, or loose/strap
-				// piles render 90° twisted relative to the blocks at the
-				// strap->bundle tier boundary.
-				geom?.rotateY(Math.PI / 2);
-				// Assigning bakedBillGeometry (now $state) triggers the tiered
-				// $effect below to run renderTiered() with the current noteCount —
-				// no preview mesh here, so a static-noteCount mount goes straight
-				// to the correct tiered view instead of a lingering single bill.
-				bakedBillGeometry = geom;
-			},
-			() => {
-				/* Model failed to load — the poster (BillRenderer, Task 15) covers
-				   this state; the WebGL canvas just stays empty. */
-			}
+		// One true-size note (a box: face up, back down) and every material.
+		noteBox = new three.BoxGeometry(
+			billStackMod.BILL_WIDTH_MM / 1000,
+			billStackMod.BILL_THICKNESS_MM / 1000,
+			billStackMod.BILL_LENGTH_MM / 1000
 		);
+		const woodMap = props.makeWoodTexture();
+		const filmMap = props.makeFilmTexture();
+		palletMats = {
+			wood: new three.MeshStandardMaterial({ map: woodMap, roughness: 0.9 }),
+			film: new three.MeshPhysicalMaterial({
+				color: 0xffffff,
+				map: filmMap,
+				transparent: true,
+				opacity: 0.24,
+				roughness: 0.2,
+				clearcoat: 1,
+				clearcoatRoughness: 0.15,
+				depthWrite: false,
+			}),
+		};
+		const made = billMaterialsMod.makeCashMaterials(maxAnisotropy);
+		sharedMats = made.shared();
+		sharedMats.add(palletMats.wood);
+		sharedMats.add(palletMats.film);
+		// Assigning `cash` ($state) lets the tiered $effect render.
+		cash = made;
 
 		canvasActive = true;
 		render();
@@ -858,22 +783,18 @@
 		// tier switch would, before the shared resources below and before
 		// renderer.dispose() resets WebGLProperties' tracking (see the note
 		// below).
-		if (T) clearTierGroup(T);
+		clearTierGroup();
 
-		// bakedBillGeometry + billMats.face/.edge are shared across every
-		// tier's InstancedMesh — dispose them once below, not per-mesh, to
-		// avoid double-disposing shared resources. This MUST run before
-		// renderer.dispose(): WebGLRenderer.dispose()
-		// resets WebGLProperties' internal WeakMap, so Texture/Material
-		// .dispose() calls made afterward can no longer look up their GPU
-		// resources and silently no-op (BufferGeometry.dispose() is unaffected
-		// since it uses its own independent WeakMap, but order it consistently
-		// anyway).
-		bakedBillGeometry?.dispose();
-		billMats?.face.map?.dispose();
-		billMats?.face.dispose();
-		billMats?.edge.map?.dispose();
-		billMats?.edge.dispose();
+		// Shared resources, freed once. This MUST run before
+		// renderer.dispose(): WebGLRenderer.dispose() resets WebGLProperties'
+		// internal WeakMap, so Texture/Material .dispose() calls made afterward
+		// can no longer look up their GPU resources and silently no-op.
+		cash?.dispose();
+		noteBox?.dispose();
+		palletMats?.wood.map?.dispose();
+		palletMats?.wood.dispose();
+		palletMats?.film.map?.dispose();
+		palletMats?.film.dispose();
 		groundGeometry?.dispose();
 		groundMaterial?.dispose();
 		// Same ordering requirement as the shared bill resources above: must
@@ -887,8 +808,10 @@
 		}
 
 		renderer = scene = camera = key = null;
-		bakedBillGeometry = null;
-		billMats = null;
+		cash = null;
+		noteBox = null;
+		palletMats = null;
+		sharedMats = new Set();
 		groundGeometry = null;
 		groundMaterial = null;
 		tierGroup = null;
@@ -913,11 +836,10 @@
 	});
 
 	/** Recomputes the tiered render for `count` and reframes the camera + dog
-	 *  around whatever dominant extent that produced. Called from the
-	 *  reactive effect below on every noteCount change, and again once the
-	 *  dog finishes loading (see `loadDog`) and on resize (aspect feeds
-	 *  `M.dogStagePosition`). No-ops until both the bill GLB and the
-	 *  maths/billStack modules are ready. */
+	 *  around the load it built. Called from the reactive effect below on
+	 *  every noteCount change, and again once the dog finishes loading (see
+	 *  `loadDog`) and on resize (aspect feeds the framing). No-ops until the
+	 *  cash materials and the maths/billStack modules are ready. */
 	// `ready` = first real frame rendered AND the dog resolved — both flags
 	// feed the bindable so the X-bot's screenshot gate (see the prop's doc
 	// comment) never opens on a half-hydrated scene.
@@ -928,9 +850,9 @@
 	}
 
 	function refreshStage(count: number): void {
-		if (!canvasActive || !T || !M || !BS || !BM || !bakedBillGeometry) return;
-		const dominant = renderTiered(T, BS, count);
-		reframe(T, M, dominant);
+		if (!canvasActive || !T || !M || !BS || !BM || !cash) return;
+		renderTiered(T, BS, count);
+		reframe(T);
 		render();
 		renderedOnce = true;
 		updateReady();
