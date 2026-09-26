@@ -23,8 +23,8 @@
     {
       "slug": "el-salvador",
       "label": "El Salvador",
-      "btc": 7785,
-      "asOf": "2026-09-25",
+      "btc": 7786,
+      "asOf": "2026-09-26",
       "type": "nation-state",
       "source": "https://bitcointreasuries.net/governments/el-salvador",
       "sourceName": "Bitcoin Treasuries (mirrors El Salvador National Bitcoin Office)",
@@ -63,8 +63,8 @@
     {
       "slug": "blackrock-ibit",
       "label": "BlackRock IBIT",
-      "btc": 786654,
-      "asOf": "2026-09-16",
+      "btc": 796799,
+      "asOf": "2026-09-26",
       "type": "etf",
       "source": "https://bitcointreasuries.net/etfs-and-exchanges/ishares-bitcoin-trust",
       "sourceName": "Bitcoin Treasuries (mirrors iShares daily holdings)",
