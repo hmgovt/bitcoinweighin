@@ -23,6 +23,8 @@
 	let holderSlug = $state('strategy');
 	let price = $state(0);
 	let date = $state('');
+	/** ?counter=0: no running counter (stills, where the headline says it all). */
+	let showCounter = $state(true);
 
 	const holder = $derived(holdings.entities.find((e) => e.slug === holderSlug) ?? holdings.entities.find((e) => e.slug === 'strategy')!);
 	const f = $derived(clipFrame(t, holder.btc, price));
@@ -45,6 +47,7 @@
 	onMount(() => {
 		const q = new URLSearchParams(location.search);
 		holderSlug = q.get('holder') ?? 'strategy';
+		showCounter = q.get('counter') !== '0';
 		const p = Number(q.get('price'));
 		if (p > 0) {
 			price = p;
@@ -116,7 +119,7 @@
 	</div>
 
 	<!-- Beat 4: the climb -->
-	<div class="counter" style:opacity={f.counter}>
+	<div class="counter" style:opacity={showCounter ? f.counter : 0}>
 		<div class="c-btc">{formatBtc(f.btc < 10 ? Math.round(f.btc * 100) / 100 : Math.round(f.btc))}</div>
 		<div class="c-area">{both(f.areaM2)}</div>
 		<div class="c-reach">{f.street ? `The Battery → ${f.street}` : 'At the Battery'}</div>

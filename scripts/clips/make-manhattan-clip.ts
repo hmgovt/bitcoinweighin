@@ -71,7 +71,7 @@ async function main() {
 			};
 			w.__present = () => new Promise((r) => realRaf(() => r()));
 		});
-		const url = `${base}/clip/manhattan?holder=${holder}&price=${price}&date=${date}`;
+		const url = `${base}/clip/manhattan?holder=${holder}&price=${price}&date=${date}${still !== null ? '&counter=0' : ''}`;
 		console.log(`→ ${url}`);
 		await page.goto(url, { waitUntil: 'networkidle' });
 		await page.waitForFunction(() => (window as unknown as { __clipReady?: () => boolean }).__clipReady?.(), null, { timeout: 900_000, polling: 1000 });
