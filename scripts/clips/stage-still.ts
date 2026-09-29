@@ -30,6 +30,13 @@ const height = Number(arg('height') ?? 630);
 const dpr = Number(arg('dpr') ?? 2);
 /** Real time to let the camera and animations settle once the stage is up. */
 const settle = Number(arg('settle') ?? 9000);
+/**
+ * Crop into the middle of the stage's own framing by this factor, rendered
+ * at that much higher pixel density so the crop stays sharp (the output is
+ * still width × height × dpr). For subjects the stage frames with a lot of
+ * room around them, such as a doormat of Manhattan.
+ */
+const zoom = Math.max(1, Number(arg('zoom') ?? 1));
 const out = resolve(arg('out') ?? `output/stills/${commodity}-${preset ?? btc ?? 'default'}${date ? `-${date}` : ''}.png`);
 
 // Every stage's root, and the chrome drawn over it that a still doesn't want.
@@ -37,7 +44,7 @@ const STAGES = '.live-stage, .bill-stage, .coke-stage, .land-stage';
 const CHROME = [
 	'.stage-buttons', '.land-credit', '.land-note', 'button', '[role="button"]',
 	'.hud', '.ride-hud', '.ride-card', '.ride-alt', '.ride-label', '.scale-label', '.labels', '.corner', '.dragnote',
-	'.hint', '.caption', '.chips', '.loupe-label', '.loupe-svg', '.cube-caption', '.cube-edge', '.edge-label',
+	'.hint', '.caption', '.caption-strip', '.chips', '.chip', '.loupe-label', '.loupe-svg', '.cube-caption', '.cube-edge', '.edge-label',
 ].map((s) => `:is(${STAGES}) ${s}`).join(', ');
 
 async function main() {
@@ -54,7 +61,7 @@ async function main() {
 		args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 	});
 	try {
-		const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: dpr });
+		const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: dpr * zoom });
 		console.log(`→ ${url}`);
 		await page.goto(url, { waitUntil: 'domcontentloaded' });
 		await page.waitForSelector(`section.hero-stage[data-commodity="${commodity}"]`, { timeout: 180_000 });
@@ -68,7 +75,9 @@ async function main() {
 		});
 		await page.evaluate(() => document.fonts.ready);
 		await page.waitForTimeout(settle);
-		await page.screenshot({ path: out });
+		// Heavy scenes (millions of notes) can take a while per frame in software WebGL.
+		const clip = { x: (width * (1 - 1 / zoom)) / 2, y: (height * (1 - 1 / zoom)) / 2, width: width / zoom, height: height / zoom };
+		await page.screenshot({ path: out, timeout: 240_000, ...(zoom > 1 ? { clip } : {}) });
 		console.log(`✓ ${out}`);
 	} finally {
 		await browser.close();
