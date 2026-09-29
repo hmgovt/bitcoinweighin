@@ -73,8 +73,8 @@
     {
       "slug": "strategy",
       "label": "Strategy",
-      "btc": 846000,
-      "asOf": "2026-09-22",
+      "btc": 847666,
+      "asOf": "2026-09-29",
       "type": "corporate",
       "source": "https://bitcointreasuries.net/public-companies/strategy",
       "sourceName": "Bitcoin Treasuries (mirrors Strategy 8-K filings)",
