@@ -117,6 +117,8 @@ async function main() {
 			if (rideEndedAt === null && (await page.evaluate(() => !!document.querySelector('.ride-card')))) rideEndedAt = t;
 			const endIn = rideEndedAt === null ? 0 : smooth((t - rideEndedAt - holdS) / 0.5);
 			await opacity('#clip-end', endIn);
+			// The ride's own closing caption sits where the footer does: make way.
+			await opacity('#clip-foot', rideEndedAt === null ? 1 : 1 - smooth((t - rideEndedAt) / 0.4));
 			await advance(page, frames === 0 ? 0 : frameMs);
 			await writeFile(join(dir, `f${String(frames).padStart(4, '0')}.png`), await page.screenshot());
 			frames++;
