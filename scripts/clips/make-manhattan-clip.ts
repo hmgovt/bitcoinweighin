@@ -29,9 +29,11 @@ const fps = Number(arg('fps') ?? 30);
 const width = Number(arg('width') ?? 540);
 const height = Number(arg('height') ?? 960);
 const dpr = Number(arg('dpr') ?? 2);
-const out = resolve(arg('out') ?? `output/clips/manhattan-${holder}.mp4`);
+const out = resolve(arg('out') ?? `output/clips/manhattan-${holder}${arg('still') ? '.png' : '.mp4'}`);
 /** Render only the first N seconds (quick looks). */
 const only = arg('seconds') ? Number(arg('seconds')) : null;
+/** Save one PNG at this clip time instead of a video (e.g. --still=24.5). */
+const still = arg('still') ? Number(arg('still')) : null;
 
 async function lastPrice(): Promise<{ price: number; date: string }> {
 	if (arg('price')) return { price: Number(arg('price')), date: arg('date') ?? '' };
@@ -92,6 +94,15 @@ async function main() {
 		// Let the camera settle on the whole island, then roll.
 		for (let i = 0; i < 8; i++) await advance(250);
 		await page.evaluate(() => (window as unknown as { __clipStart: () => void }).__clipStart());
+
+		if (still !== null) {
+			// Step at 20 fps: the stage's camera eases on a capped 50 ms step,
+			// so this is the same camera path as the video, just not shot.
+			for (let t = 0; t < still - 1e-6; t += 0.05) await advance(50);
+			await writeFile(out, await page.screenshot());
+			console.log(`✓ ${out}  still at ${still}s`);
+			return;
+		}
 
 		const duration = only ?? (await page.evaluate(() => (window as unknown as { __clipDuration: number }).__clipDuration));
 		const total = Math.round(duration * fps);

@@ -34,6 +34,10 @@
 	const both = (m2: number) => `${formatArea(m2, 'metric')} (${formatArea(m2, 'imperial')})`;
 	const pct = (s: number) => `${s < 0.1 ? (s * 100).toFixed(1) : Math.round(s * 100)}%`;
 	const possessive = (name: string) => (name.endsWith('s') ? `${name}’` : `${name}’s`);
+	// The whole supply reads as a subject, not an owner.
+	const whole = $derived(holder.slug === 'market-cap');
+	const whose = $derived(whole ? 'all 21 million' : possessive(holder.label));
+	const subject = $derived(whole ? 'All 21 million bitcoin buy' : `${possessive(holder.label)} ${formatBtc(holder.btc)} buys`);
 	const dateLabel = $derived(
 		date ? new Date(date + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : ''
 	);
@@ -102,7 +106,7 @@
 
 	<!-- Beat 2: the question, over the whole island -->
 	<div class="top" style:opacity={f.question}>
-		<p class="h">So how much of the <em>real</em> Manhattan does {possessive(holder.label)} bitcoin buy?</p>
+		<p class="h">So how much of the <em>real</em> Manhattan {whole ? 'would' : 'does'} {whose} bitcoin buy?</p>
 	</div>
 
 	<!-- Beat 3: one coin at the Battery -->
@@ -120,8 +124,13 @@
 
 	<!-- Beat 5: the answer -->
 	<div class="top" style:opacity={f.result}>
-		<p class="h">{possessive(holder.label)} {formatBtc(holder.btc)} buys <span class="or">{pct(share)}</span> of Manhattan’s land</p>
-		<p class="sub">From the Battery to {finalFrame.street ?? 'the Battery'}. That’s it.</p>
+		{#if share >= 1}
+			<p class="h">{subject} <span class="or">all</span> of Manhattan’s land</p>
+			<p class="sub">Every lot from the Battery to Inwood, with {both(finalM2 - DEVELOPABLE_M2)} to spare.</p>
+		{:else}
+			<p class="h">{subject} <span class="or">{pct(share)}</span> of Manhattan’s land</p>
+			<p class="sub">From the Battery to {finalFrame.street ?? 'the Battery'}. That’s it.</p>
+		{/if}
 	</div>
 
 	<div class="footer" style:opacity={f.footer * (1 - f.endCard)}>
