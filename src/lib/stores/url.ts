@@ -42,6 +42,23 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 // whenever the archive fetch (which gates hydration) takes >debounce ms.
 let hydrated = false;
 
+// The link as it arrived, read before pushToUrl's first rewrite (which
+// keeps only the params below it knows).
+const arrival = browser ? new URLSearchParams(window.location.search) : new URLSearchParams();
+/** Campaign tags (utm_*) ride along on every rewrite, so analytics still sees them. */
+const campaign = [...arrival].filter(([k]) => k.startsWith('utm_'));
+let autoRidePending = arrival.get('ride') === 'play';
+
+/**
+ * True once, if the link asked for the Moon ride to start by itself
+ * (`?ride=play`, for links shared on X). The cash stage asks when it's ready.
+ */
+export function takeAutoRide(): boolean {
+	const r = autoRidePending;
+	autoRidePending = false;
+	return r;
+}
+
 function pushToUrl() {
 	if (!browser || !hydrated) return;
 	if (debounceTimer) clearTimeout(debounceTimer);
@@ -61,6 +78,8 @@ function pushToUrl() {
 
 		const audio = get(audioEnabled);
 		if (audio) params.set('audio', 'on');
+
+		for (const [k, v] of campaign) params.set(k, v);
 
 		const qs = params.toString();
 		const url = qs ? `?${qs}` : window.location.pathname;

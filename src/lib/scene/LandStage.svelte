@@ -25,11 +25,14 @@
 
 	let {
 		areaM2 = 0,
+		frameM2,
 		staged = $bindable(false),
 		ready = $bindable(false),
 	}: {
 		/** Land bought, m² (btc × price ÷ $/m², see manhattan.ts). */
 		areaM2?: number;
+		/** Frame the camera as if this much were bought (the video clips); defaults to areaM2. */
+		frameM2?: number;
 		staged?: boolean;
 		ready?: boolean;
 	} = $props();
@@ -216,7 +219,7 @@
 	}
 
 	/** Apply `area`: move the owned/unowned splits, place slice or patch, reframe. */
-	function refresh(area: number): void {
+	function refresh(area: number, view: number = frameM2 ?? area): void {
 		const three = T;
 		if (!three || !buffers || !cum || !lotsOwned || !lotsRest || !bldOwned || !bldRest || !patch || !slice) return;
 		const n = buffers.lotArea.length;
@@ -242,7 +245,12 @@
 			dog.position.set(PX + side / 2 + 0.45, 0.15, -PY);
 			dog.rotation.y = -Math.PI / 2;
 		}
-		reframe(area, small, k, fill.fraction);
+		if (view === area) reframe(area, small, k, fill.fraction);
+		else {
+			const vSmall = view < PATCH_MAX_M2;
+			const v = vSmall ? { whole: 0, fraction: 0 } : lotsFor(view, cum);
+			reframe(view, vSmall, v.whole, v.fraction);
+		}
 		render();
 		renderedOnce = true;
 		updateReady();
@@ -483,8 +491,9 @@
 
 	$effect(() => {
 		const a = areaM2;
+		const v = frameM2;
 		if (!buffers) return;
-		refresh(a);
+		refresh(a, v ?? a);
 	});
 </script>
 

@@ -31,6 +31,7 @@
 	// the foreground only once the load is big.
 	import { stageCamera, dogBeside, shotBounds, groundMark, DOG_REACH_M, type Extent } from '../cocaine-scene.js';
 	import { system } from '$lib/stores/system.js';
+	import { takeAutoRide } from '$lib/stores/url.js';
 	import { formatLength } from '$lib/format.js';
 	import { nearestHeightComparison } from '../billStack.js';
 	import { NOTE_M, stackHeightM, rideAvailable, rideSummary } from '../moonRide.js';
@@ -872,6 +873,12 @@
 	let dogResolved = false;
 	function updateReady(): void {
 		ready = renderedOnce && dogResolved;
+		// `?ride=play` (links shared on X): start the ride as soon as the pile
+		// is on screen, and bring the stage into view for it.
+		if (ready && !riding && rideOffered && takeAutoRide()) {
+			containerEl?.scrollIntoView({ block: 'center', behavior: prefersReduced ? 'auto' : 'smooth' });
+			void startRide();
+		}
 		// Dev only: `?ride=<seconds>` freezes the Moon ride at that moment,
 		// for screenshots (the ride's rAF pacing is unreliable headless).
 		if (ready && devRideAt !== null && !riding) {
@@ -924,7 +931,7 @@
 	const supplyCmp = $derived(nearestHeightComparison(summary.supplyHeightM));
 
 	function parseRideParam(v: string | null): number | null {
-		if (v === null) return null;
+		if (v === null || v === 'play') return null;
 		const n = Number(v);
 		return Number.isFinite(n) ? n : 0;
 	}
