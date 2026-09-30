@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { artLeft, cardDescription, cardModel, cardTitle, nearestArt, presetBtc, sig3, bigSize } from '../functions/_card.js';
+import { artLeft, cardDescription, cardKey, cardModel, cardTitle, nearestArt, presetBtc, sig3, bigSize } from '../functions/_card.js';
 
 // The 28 Sep 2026 close, as static/prices.json carries it.
 const day = { btc: 83_514.23, xau: 4_131.94, xag: 60.921 };
@@ -86,5 +86,15 @@ describe('link card — numbers and words', () => {
 		expect(d.startsWith('All 21 million bitcoin, weighed in $1 bills')).toBe(true);
 		// No amounts or prices, so a cached page never shows a stale one.
 		expect(cardDescription({ commodity: 'gold', btc: 1 })).not.toMatch(/\$\d|\boz\b|\d,\d/);
+	});
+
+	it('names pre-rendered card files by commodity, holder or amount, and date', () => {
+		expect(cardKey({ commodity: 'cash', btc: 1 })).toBe('cash_b-1');
+		expect(cardKey({ commodity: 'manhattan', preset: 'strategy', btc: 640_031 })).toBe('manhattan_p-strategy');
+		expect(cardKey({ commodity: 'gold', btc: 0.0001, date: '2013-09-30' })).toBe('gold_b-0p0001_2013-09-30');
+		// Unknown commodity or holder, bad amount or date: the safe defaults.
+		expect(cardKey({ commodity: 'lava', preset: 'nobody', btc: -3, date: 'soon' })).toBe('gold_b-1');
+		// The same number written two ways is the same card.
+		expect(cardKey({ commodity: 'gold', btc: parseFloat('0.50') })).toBe(cardKey({ commodity: 'gold', btc: 0.5 }));
 	});
 });

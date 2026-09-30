@@ -6,7 +6,7 @@
   "description": "What does a bitcoin weigh? BTC purchasing power visualised across commodities.",
   "scripts": {
     "dev": "vite dev",
-    "build": "tsx scripts/build-sitemap.ts && tsx scripts/build-milestones.ts && vite build && tsx scripts/inline-critical-css.ts",
+    "build": "tsx scripts/build-sitemap.ts && tsx scripts/build-milestones.ts && vite build && tsx scripts/inline-critical-css.ts && tsx scripts/og/build-cards.ts",
     "build-sitemap": "tsx scripts/build-sitemap.ts",
     "build-milestones": "tsx scripts/build-milestones.ts",
     "build-manhattan": "tsx scripts/build-manhattan.ts",
@@ -30,6 +30,7 @@
     "@cloudflare/workers-types": "^4.20260519.1",
     "@gltf-transform/cli": "^4.4.0",
     "@gltf-transform/core": "^4.4.0",
+    "@resvg/resvg-wasm": "^2.6.2",
     "@sveltejs/adapter-static": "^3.0.8",
     "@sveltejs/kit": "^2.15.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
@@ -47,6 +48,7 @@
     "polygon-clipping": "^0.15.7",
     "postcss": "^8.4.0",
     "qrcode": "^1.5.4",
+    "satori": "^0.15.2",
     "svelte": "^5.15.0",
     "tailwindcss": "^3.4.0",
     "tsx": "^4.19.0",
@@ -61,7 +63,6 @@
     "earcut": "^3.0.1",
     "three": "^0.182.0",
     "topojson-client": "^3.1.0",
-    "twitter-api-v2": "^1.29.0",
-    "workers-og": "^0.0.27"
+    "twitter-api-v2": "^1.29.0"
   }
 }

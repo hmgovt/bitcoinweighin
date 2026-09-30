@@ -1,11 +1,9 @@
 /**
- * preview-cards.ts — render link cards locally, through the same Satori
- * engine and element tree as functions/og-image.ts, to check them before a
- * deploy.
+ * preview-cards.ts — render sample link cards locally, through the same
+ * engine, fonts and element tree as the build (scripts/og/build-cards.ts),
+ * to look them over before a deploy.
  *
- *   NODE_USE_ENV_PROXY=1 npx tsx scripts/og/preview-cards.ts --out=output/cards-preview
- *
- * Fonts come from Google Fonts (as in the Worker); art from static/og/art.
+ *   npx tsx scripts/og/preview-cards.ts --out=output/cards-preview
  */
 import satori from 'satori';
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
@@ -32,20 +30,11 @@ const SAMPLES: { name: string; commodity: string; btc?: number; preset?: string 
 	{ name: 'manhattan-21m', commodity: 'manhattan', preset: 'market-cap' },
 ];
 
-async function googleFont(family: string, weight: number): Promise<ArrayBuffer> {
-	const css = await (await fetch(`https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}`, {
-		headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1' },
-	})).text();
-	const src = css.match(/src: url\((.+?)\) format\('(opentype|truetype)'\)/)?.[1];
-	if (!src) throw new Error(`no TTF for ${family} ${weight}`);
-	return (await fetch(src)).arrayBuffer();
-}
-
 async function main() {
 	await initWasm(await readFile('node_modules/@resvg/resvg-wasm/index_bg.wasm'));
 	const fonts = await Promise.all(
 		([['Inter Tight', 600], ['Inter Tight', 700], ['Inter Tight', 900], ['JetBrains Mono', 500], ['JetBrains Mono', 700]] as const).map(async ([name, weight]) => ({
-			name, weight, style: 'normal' as const, data: await googleFont(name, weight),
+			name, weight, style: 'normal' as const, data: await readFile(`scripts/og/fonts/${name.replace(' ', '')}-${weight}.ttf`),
 		}))
 	);
 	const prices = JSON.parse(await readFile('static/prices.json', 'utf8')) as PricesFile;
