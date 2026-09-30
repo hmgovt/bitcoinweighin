@@ -49,6 +49,25 @@ const WHO: Record<string, string> = {
 	'market-cap': 'All 21 million bitcoin',
 };
 
+/** The holders a link can name (?preset=), in the order the site lists them. */
+export const CARD_PRESETS = Object.keys(WHO);
+
+// ── Pre-rendered cards ─────────────────────────────────────────
+//
+// Rendering a card costs about a second of CPU, far past what a Worker is
+// allowed, so cards are rendered at build time (scripts/og/build-cards.ts)
+// into /og/cards/<key>.png and the Functions serve those files. The key
+// names what the card shows: commodity, then the holder or amount, then the
+// date when it isn't the latest close.
+
+/** File name (no extension) of the card for a link's settings. */
+export function cardKey(q: { commodity?: string | null; btc?: number | null; preset?: string | null; date?: string | null }): string {
+	const commodity = q.commodity && OG_COMMODITIES[q.commodity] ? q.commodity : 'gold';
+	const who = q.preset && WHO[q.preset] ? `p-${q.preset}` : `b-${String(q.btc && q.btc > 0 ? q.btc : 1).replace('.', 'p')}`;
+	const date = q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date) ? `_${q.date}` : '';
+	return `${commodity}_${who}${date}`;
+}
+
 export function presetBtc(slug: string | undefined): number | null {
 	const e = holdings.entities.find((x) => x.slug === slug);
 	return e ? e.btc : null;
@@ -182,7 +201,7 @@ export function cardModel(q: CardQuery): CardModel {
 		const kg = notes / 1000;
 		return {
 			...base, theme: 'floor', ...artFor('cash', notes), big, unit, mid: 'one-dollar bills',
-			subs: [`A stack ${lengthWords(stackM)} tall.`, `${kg >= 1000 ? `${sig3(kg / 1000)} tonnes` : `${sig3(kg)} kg`} of paper.`],
+			subs: [`A stack ${lengthWords(stackM)} tall.`, `${kg >= 1000 ? `${sig3(kg / 1000)} tonnes` : kg >= 1 ? `${sig3(kg)} kg` : `${sig3(kg * 1000)} g`} of paper.`],
 		};
 	}
 
