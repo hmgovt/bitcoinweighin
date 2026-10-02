@@ -30,7 +30,7 @@ const hundreds = Math.round(px / 100);
 const goodBars = (21e6 * g) / 400;
 
 const SLATE: Item[] = [
-	{ id: 'wi-gold', at: '2026-10-02T07:00:00Z', media: () => jpg(get('gold_b-1'), 'wi-gold'),
+	{ id: 'wi-gold', at: '2026-10-02T08:45:00Z', media: () => jpg(get('gold_b-1'), 'wi-gold'),
 		text: `Today’s Weigh-In: 1 BTC = ${g.toFixed(1)} oz of gold.\n\n${card('gold', 1).subs[0]}\n\n${Math.abs(gDelta) < 0.05 ? 'Level with the day before.' : `${Math.abs(gDelta).toFixed(2)} oz ${gDelta > 0 ? 'more' : 'less'} than the day before.`}`,
 		reply: 'Weigh any amount, any day since 2013:\n' + L('btc=1&commodity=gold') },
 	{ id: 'ev-pizza', at: '2026-10-02T08:00:00Z',
