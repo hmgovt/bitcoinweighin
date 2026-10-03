@@ -1,0 +1,22 @@
+{
+	"_doc": "Reply radar: big X accounts worth a timely reply. The radar checks them only while the account owner is awake, at most one alert per account per day, 10–20 a day in all. Handles verified against TwitterAPI.io on 2026-10-03.",
+	"hours": { "tz": "Europe/London", "from": "09:00", "to": "23:30" },
+	"limits": { "perAccountPerDay": 1, "perDay": 20, "maxPostAgeMinutes": 20 },
+	"sweep": {
+		"_doc": "Live radar (sweep.ts, every 15 min). A new post is weighed once it is recheckAfterMinutes old and dropped after giveUpAfterMinutes. It alerts if heat (weighted engagement per 1k followers, per hour, age floored at 1h) reaches minHeat and it has minLikes. Starting values; tune after the first days.",
+		"recheckAfterMinutes": 10,
+		"giveUpAfterMinutes": 45,
+		"minHeat": 0.3,
+		"minLikes": 20,
+		"maxDraftsPerRun": 5
+	},
+	"groups": {
+		"holders": { "angle": "How much of Manhattan, or how much gold, their stack buys", "accounts": ["saylor", "Strategy", "nayibbukele", "BTCtreasuries"] },
+		"etf": { "angle": "BlackRock's ETF coins in gold or Manhattan; flows in physical terms", "accounts": ["JSeyff"] },
+		"voices": { "angle": "Gold cube, Moon stack or sats grid, matched to the post", "accounts": ["APompliano", "saifedean", "LynAldenContact", "PrestonPysh", "natbrunell", "willywoo", "100trillionUSD", "adam3us", "jack", "MartyBent"] },
+		"media": { "angle": "Any comparison that fits the post", "accounts": ["DocumentingBTC", "BitcoinMagazine", "BitcoinArchive", "AdamBLiv", "Thebitcoinway_"] },
+		"gold-macro": { "angle": "We weigh both ways: the Dec 2024 peak vs today, Fort Knox share, 2013 vs now", "accounts": ["PeterSchiff", "GoldTelegraph", "KobeissiLetter", "RaoulGMI", "LukeGromen", "JamesLavish", "zerohedge"] },
+		"news": { "angle": "Price milestones (Moon stack %), Strategy buys, ETF news; only posts taking off", "accounts": ["WatcherGuru", "BitcoinNews", "CoinDesk", "Cointelegraph", "unusual_whales"] }
+	},
+	"priority": ["PeterSchiff"]
+}

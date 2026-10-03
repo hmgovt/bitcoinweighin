@@ -1,0 +1,139 @@
+name: Reply radar
+
+# Every 15 minutes through the day: find watchlist posts that are taking off
+# (scripts/radar/sweep.ts), have Claude draft replies on the owner's Claude
+# subscription (only when there is something to draft), check every figure
+# (scripts/radar/validate.ts) and send the alerts to Discord
+# (scripts/radar/alert.ts). Nothing is ever posted to X; a person replies.
+#
+# Secrets: TWITTERAPI_IO_KEY, CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`),
+# DISCORD_WEBHOOK_URL.
+#
+# Cron is UTC; 07:00–23:45 UTC covers the 09:00–23:30 London window in both
+# summer and winter time. sweep.ts does nothing outside the window.
+#
+# Post text is untrusted, so drafting runs in its own job with no other
+# secrets, and only its drafts.json reaches the job that sends alerts.
+on:
+  schedule:
+    - cron: '*/15 7-23 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Print the alerts in the log instead of sending them to Discord'
+        type: boolean
+        default: false
+
+# One run at a time, so state is never read and written by two runs at once.
+concurrency:
+  group: reply-radar
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      candidates: ${{ steps.sweep.outputs.candidates }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+
+      # Pending posts, alerts already sent and today's counts, carried between runs.
+      - name: Restore radar state
+        uses: actions/cache/restore@v4
+        with:
+          path: .radar-state
+          key: radar-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: radar-state-
+
+      - name: Sweep
+        id: sweep
+        env:
+          TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
+        run: npx tsx scripts/radar/sweep.ts
+
+      - name: Hand over candidates and state
+        if: steps.sweep.outputs.candidates != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-sweep
+          path: |
+            output/radar/candidates.json
+            .radar-state/state.json
+          include-hidden-files: true
+          retention-days: 2
+
+      # Nothing to alert: this job keeps the state.
+      - name: Save radar state
+        if: steps.sweep.outputs.candidates == '0' && hashFiles('.radar-state/state.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .radar-state
+          key: radar-state-${{ github.run_id }}-${{ github.run_attempt }}
+
+  draft:
+    needs: sweep
+    if: needs.sweep.outputs.candidates != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true # alert falls back to template replies
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: radar-sweep
+      # Claude reads the candidates and the style guide and writes drafts.json.
+      # Read and Write only: no shell, no network.
+      - name: Draft replies with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            Follow the instructions in scripts/radar/PROMPT.md exactly.
+          claude_args: '--allowedTools Read,Write --max-turns 15'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: radar-drafts
+          path: output/radar/drafts.json
+          if-no-files-found: ignore
+          retention-days: 2
+
+  alert:
+    needs: [sweep, draft]
+    if: always() && needs.sweep.result == 'success' && needs.sweep.outputs.candidates != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: radar-sweep
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: radar-drafts
+          path: output/radar
+      - name: Send alerts
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: npx tsx scripts/radar/alert.ts ${{ inputs.dry_run && '--dry' || '' }}
+      - name: Save radar state
+        if: always() && hashFiles('.radar-state/state.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .radar-state
+          key: radar-state-${{ github.run_id }}-${{ github.run_attempt }}

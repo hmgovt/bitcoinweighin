@@ -1,0 +1,19 @@
+{
+	"_doc": "Checked reference facts the radar's reply drafts may use alongside the site's live figures. Every number a draft uses must come from here, the day's fact sheet, or the post itself (validate.ts enforces it). Approximate where marked; keep sources current, and add a fact only once checked.",
+	"facts": [
+		{ "id": "moon", "text": "The Moon is 384,400 km away on average." },
+		{ "id": "iss", "text": "The International Space Station orbits about 400 km up." },
+		{ "id": "everest", "text": "Mount Everest is 8,849 m tall." },
+		{ "id": "burj", "text": "The Burj Khalifa is 828 m tall." },
+		{ "id": "bill", "text": "A US $1 bill is 0.10922 mm thick and weighs about 1 g." },
+		{ "id": "gold-density", "text": "Gold weighs 19.3 g per cubic centimetre; a troy ounce is 31.1035 g." },
+		{ "id": "all-gold", "text": "All the gold ever mined is about 216,000 tonnes (World Gold Council, end of 2024): a cube about 22 m on each side." },
+		{ "id": "fort-knox", "text": "Fort Knox holds about 147.3 million troy oz of gold, about 4,580 tonnes (US Mint)." },
+		{ "id": "reserves", "text": "Official gold reserves, approximate (World Gold Council, 2025): United States 8,133 t; Germany 3,350 t; Italy 2,452 t; France 2,437 t; Switzerland 1,040 t; Japan 846 t; Netherlands 612 t; United Kingdom 310 t." },
+		{ "id": "supply", "text": "There will only ever be 21,000,000 bitcoin; each splits into 100,000,000 sats." },
+		{ "id": "genesis", "text": "Bitcoin's first block was mined on 3 January 2009." },
+		{ "id": "pizza", "text": "On 22 May 2010 Laszlo Hanyecz paid 10,000 BTC for two pizzas." },
+		{ "id": "subsidy", "text": "Since the April 2024 halving, each new block pays 3.125 BTC; the next halving is expected in 2028." },
+		{ "id": "manhattan-area", "text": "Manhattan's land area is about 59 square km (22.8 square miles)." }
+	]
+}
