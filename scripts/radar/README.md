@@ -28,6 +28,13 @@ locally) and `DISCORD_WEBHOOK_URL`.
 
 ## Running it by hand
 
+In GitHub: Actions → Reply radar → Run workflow. Tick **test** to run the whole
+pipeline, Claude included, on the saved posts in `tests/fixtures/radar-posts.json`;
+the alerts print in the log, and live state and Discord are left alone. Tick
+**dry run** for a real sweep whose alerts print in the log instead of Discord.
+
+Locally:
+
     # offline, against yesterday's posts (no API calls, no Discord)
     npx tsx scripts/radar/sweep.ts --fixture=tests/fixtures/radar-posts.json --now=2026-10-02T21:00:00Z --state=.radar-state-test/state.json
     # …write output/radar/drafts.json (or let the fallback run), then:

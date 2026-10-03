@@ -23,6 +23,10 @@ on:
         description: 'Print the alerts in the log instead of sending them to Discord'
         type: boolean
         default: false
+      test:
+        description: 'Test the whole pipeline, Claude included, on saved posts (tests/fixtures/radar-posts.json). Alerts print in the log; live state and Discord are left alone.'
+        type: boolean
+        default: false
 
 # One run at a time, so state is never read and written by two runs at once.
 concurrency:
@@ -58,7 +62,12 @@ jobs:
         id: sweep
         env:
           TWITTERAPI_IO_KEY: ${{ secrets.TWITTERAPI_IO_KEY }}
-        run: npx tsx scripts/radar/sweep.ts
+        run: |
+          if [ "${{ inputs.test }}" = "true" ]; then
+            npx tsx scripts/radar/sweep.ts --fixture=tests/fixtures/radar-posts.json --now=2026-10-02T21:00:00Z --state=.radar-state-test/state.json
+          else
+            npx tsx scripts/radar/sweep.ts
+          fi
 
       - name: Hand over candidates and state
         if: steps.sweep.outputs.candidates != '0'
@@ -73,7 +82,7 @@ jobs:
 
       # Nothing to alert: this job keeps the state.
       - name: Save radar state
-        if: steps.sweep.outputs.candidates == '0' && hashFiles('.radar-state/state.json') != ''
+        if: steps.sweep.outputs.candidates == '0' && !inputs.test && hashFiles('.radar-state/state.json') != ''
         uses: actions/cache/save@v4
         with:
           path: .radar-state
@@ -130,9 +139,9 @@ jobs:
       - name: Send alerts
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: npx tsx scripts/radar/alert.ts ${{ inputs.dry_run && '--dry' || '' }}
+        run: npx tsx scripts/radar/alert.ts ${{ (inputs.dry_run || inputs.test) && '--dry' || '' }} ${{ inputs.test && '--state=.radar-state-test/state.json' || '' }}
       - name: Save radar state
-        if: always() && hashFiles('.radar-state/state.json') != ''
+        if: always() && !inputs.test && hashFiles('.radar-state/state.json') != ''
         uses: actions/cache/save@v4
         with:
           path: .radar-state
