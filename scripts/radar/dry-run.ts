@@ -29,6 +29,7 @@ export interface Post {
 const GAP_MS = Number(process.env.TWITTERAPI_IO_GAP_MS ?? 5200);
 let lastCall = 0;
 export let requests = 0;
+let returned = 0;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function api<T>(path: string, retried = false): Promise<T> {
@@ -50,6 +51,7 @@ async function recentPosts(userName: string): Promise<Post[]> {
 	type R = { data?: { tweets?: Post[] }; tweets?: Post[] };
 	const r = await api<R>(`/user/last_tweets?userName=${encodeURIComponent(userName)}&includeReplies=false`);
 	const tweets = r.data?.tweets ?? r.tweets ?? [];
+	returned += tweets.length;
 	return tweets.filter((t) => !t.isReply && !/^RT @/.test(t.text));
 }
 
@@ -110,8 +112,14 @@ async function main() {
 		const boost = (x: typeof c) => x.heat * (wl.priority.map((s) => s.toLowerCase()).includes(k) ? 2 : 1);
 		if (!cur || boost(c) > boost(cur)) best.set(k, c);
 	}
-	const picks = [...best.values()].sort((a, b) => b.heat - a.heat).slice(0, wl.limits.perDay);
+	// The same reply twice in a day reads as spam: keep only the hottest post per draft.
+	const used = new Set<string>();
+	const picks = [...best.values()]
+		.sort((a, b) => b.heat - a.heat)
+		.filter((c) => !used.has(c.draft!.text) && !!used.add(c.draft!.text))
+		.slice(0, wl.limits.perDay);
 
+	console.log(`TwitterAPI.io: ${requests} requests, ${returned} posts returned (~$${((returned / 1000) * 0.15).toFixed(4)} at $0.15 per 1,000).`);
 	console.log(`${candidates.length} posts in the window from ${handles.length} accounts; ${candidates.filter((c) => c.draft).length} matched an angle; ${picks.length} would have been alerts.\n`);
 	const lines: string[] = [];
 	for (const c of picks) {
