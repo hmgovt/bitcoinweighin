@@ -64,13 +64,16 @@ const hm = (s: string) => { const [h, m] = s.split(':').map(Number); return h * 
 
 /**
  * How hard a post took off, relative to its author's size: engagement per
- * thousand followers, with replies and reposts weighted over likes.
- * (A dry run sees final counts; live, the radar measures this in the first
- * 10–20 minutes.)
+ * thousand followers, with replies and reposts weighted over likes, per hour
+ * of age so a post from last night doesn't outrank one taking off now.
+ * (A dry run sees counts at run time; live, the radar measures this in the
+ * first 10–20 minutes.) Age is floored at an hour so a minutes-old post with
+ * a handful of likes doesn't top the list.
  */
-function heat(p: Post): number {
+function heat(p: Post, now = Date.now()): number {
 	const e = p.likeCount + 3 * p.retweetCount + 2 * p.replyCount + 3 * p.quoteCount;
-	return e / Math.max(1, p.author.followers / 1000);
+	const ageH = Math.max(1, (now - new Date(p.createdAt).getTime()) / 3600_000);
+	return e / Math.max(1, p.author.followers / 1000) / ageH;
 }
 
 async function main() {
@@ -125,7 +128,7 @@ async function main() {
 	for (const c of picks) {
 		const when = new Intl.DateTimeFormat('en-GB', { timeZone: wl.hours.tz, weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(c.p.createdAt));
 		const block = [
-			`**@${c.p.author.userName}** · ${when} · ${c.p.likeCount.toLocaleString('en-US')} likes · heat ${c.heat.toFixed(1)} · angle: ${c.draft!.angle}`,
+			`**@${c.p.author.userName}** · ${when} · ${c.p.likeCount.toLocaleString('en-US')} likes · heat ${c.heat.toFixed(2)}/h · angle: ${c.draft!.angle}`,
 			`> ${c.p.text.replace(/\s+/g, ' ').slice(0, 220)}`,
 			`Reply: ${c.draft!.text}`,
 			`<${c.p.url}>`,
