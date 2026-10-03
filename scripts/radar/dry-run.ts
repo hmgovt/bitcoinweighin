@@ -25,10 +25,21 @@ export interface Post {
 	isReply?: boolean; author: { userName: string; name?: string; followers: number };
 }
 
-async function api<T>(path: string): Promise<T> {
+// TwitterAPI.io's free tier allows one request every 5 seconds.
+const GAP_MS = Number(process.env.TWITTERAPI_IO_GAP_MS ?? 5200);
+let lastCall = 0;
+export let requests = 0;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function api<T>(path: string, retried = false): Promise<T> {
 	const key = process.env.TWITTERAPI_IO_KEY;
 	if (!key) throw new Error('TWITTERAPI_IO_KEY is not set');
+	const wait = lastCall + GAP_MS - Date.now();
+	if (wait > 0) await sleep(wait);
+	lastCall = Date.now();
+	requests++;
 	const res = await fetch(`${API}${path}`, { headers: { 'x-api-key': key } });
+	if (res.status === 429 && !retried) { await sleep(GAP_MS); return api<T>(path, true); }
 	const body = (await res.json().catch(() => ({}))) as T & { status?: string; msg?: string; message?: string };
 	if (!res.ok || body.status === 'error') throw new Error(`${path}: ${res.status} ${body.msg ?? body.message ?? ''}`);
 	return body;
