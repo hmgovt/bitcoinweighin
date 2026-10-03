@@ -89,7 +89,9 @@ async function build(): Promise<FactSheet> {
 export function postFacts(text: string): string[] {
 	const out: string[] = [];
 	const seen = new Set<number>();
-	for (const m of text.matchAll(/\$\s?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s?(k|K|thousand|million|M|billion|bn|B|trillion|T)?\b/g)) {
+	// Prices said in words: "a million-dollar bitcoin", "seven figures", "$1M".
+	const worded = /million[- ]dollar|seven[- ]figure|\$1\s?(?:M|mn|million)\b/i.test(text) ? ' $1,000,000' : '';
+	for (const m of (text + worded).matchAll(/\$\s?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s?(k|K|thousand|million|M|billion|bn|B|trillion|T)?\b/g)) {
 		const mult = { k: 1e3, K: 1e3, thousand: 1e3, million: 1e6, M: 1e6, billion: 1e9, bn: 1e9, B: 1e9, trillion: 1e12, T: 1e12 }[m[2] ?? ''] ?? 1;
 		const n = Number(m[1].replace(/,/g, '')) * mult;
 		if (!n || seen.has(n)) continue;
@@ -98,9 +100,9 @@ export function postFacts(text: string): string[] {
 		if (n >= 10_000 && n <= 2_000_000) {
 			// Could be a coin price.
 			const pct = ((n * 21e6 * NOTE_M) / 1000 / MOON_KM) * 100;
-			out.push(`[post-price-${n}] At $${f0(n)} a coin, all 21,000,000 bitcoin stacked as $1 bills reach ${sig3((n * 21e6 * NOTE_M) / 1000)} km, ${pct.toFixed(1)}% of the way to the Moon.`);
+			out.push(`[post-price-${n}] At $${f0(n)} a coin, all 21,000,000 bitcoin stacked as $1 bills reach ${sig3((n * 21e6 * NOTE_M) / 1000)} km, ${pct < 100 ? `${pct.toFixed(1)}% of the way to the Moon` : `${(pct / 100).toFixed(2)}× the distance to the Moon (there and back ${(pct / 200).toFixed(1)} times)`}.`);
 		}
-		if (n >= 1e6) out.push(`[post-usd-${n}] ${usd(n)} in $1 bills stacks ${km >= 1 ? `${sig3(km)} km` : `${sig3(km * 1000)} m`} high${km > MOON_KM / 10 ? `, ${(km / MOON_KM).toFixed(1)}× the distance to the Moon` : ''}, and weighs ${sig3(n / 1e6)} tonnes.`);
+		if (n >= 1e6) out.push(`[post-usd-${n}] ${usd(n)} in $1 bills stacks ${km >= 1 ? `${sig3(km)} km` : `${sig3(km * 1000)} m`} high${km > MOON_KM / 10 ? `, ${(km / MOON_KM).toFixed(1)}× the distance to the Moon` : ''}, and weighs ${sig3(n / 1e6)} tonne${n / 1e6 === 1 ? '' : 's'}.`);
 	}
 	return out;
 }
