@@ -74,3 +74,7 @@ static/sprites/gold/good_delivery_single@2x.png
 
 # Downloaded map data (scripts/build-manhattan.ts caches raw Overpass responses here)
 .cache/
+
+# Reply radar state (kept in the Actions cache, not git)
+.radar-state/
+.radar-state-test/

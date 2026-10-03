@@ -7,7 +7,7 @@
  * link. A post that matches nothing gets no draft (the radar stays quiet).
  */
 import { L, OZ, f0, loadPrices, presetBtc, sig3 } from '../social/slates/lib.ts';
-import type { Post } from './dry-run.ts';
+import type { Post } from './api.ts';
 
 export interface Draft { angle: string; text: string }
 
@@ -101,10 +101,12 @@ const RULES: Rule[] = [
 	},
 ];
 
+/** Worth a reply at all: about bitcoin, or gold from the gold crowd, or anything from the holders (often just a chart or a ₿). */
+export const onTopic = (t: string, group: string) => BTC.test(t) || group === 'holders' || (group === 'gold-macro' && /\bgold\b/i.test(t));
+
 export async function draftReply(p: Post, group: string): Promise<Draft | null> {
 	const t = p.text;
-	// Only posts about bitcoin, except the holders (whose posts are often just a chart or a ₿).
-	if (!BTC.test(t) && group !== 'holders' && !(group === 'gold-macro' && /\bgold\b/i.test(t))) return null;
+	if (!onTopic(t, group)) return null;
 	const author = p.author.userName.toLowerCase();
 	for (const r of RULES) if (r.when(t, group, author)) return { angle: r.angle, text: await r.draft(t) };
 	return null;

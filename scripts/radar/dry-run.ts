@@ -11,74 +11,15 @@
  * --verify only checks the handles exist and prints their follower counts.
  * Needs TWITTERAPI_IO_KEY (and DISCORD_WEBHOOK_URL for --discord).
  */
-import { readFile } from 'node:fs/promises';
 import { draftReply, type Draft } from './angles.ts';
+import { api, costLine, handlesOf, heat, hm, loadWatchlist, localMinutes, recentPosts, type Post } from './api.ts';
 
-const API = 'https://api.twitterapi.io/twitter';
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split('=').slice(1).join('=');
 const hours = Number(arg('hours') ?? 24);
 
-interface Watchlist { hours: { tz: string; from: string; to: string }; limits: { perAccountPerDay: number; perDay: number; maxPostAgeMinutes: number }; groups: Record<string, { angle: string; accounts: string[] }>; priority: string[] }
-export interface Post {
-	id: string; url: string; text: string; createdAt: string;
-	likeCount: number; retweetCount: number; replyCount: number; quoteCount: number; viewCount: number;
-	isReply?: boolean; author: { userName: string; name?: string; followers: number };
-}
-
-// TwitterAPI.io's free tier allows one request every 5 seconds.
-const GAP_MS = Number(process.env.TWITTERAPI_IO_GAP_MS ?? 5200);
-let lastCall = 0;
-export let requests = 0;
-let returned = 0;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function api<T>(path: string, retried = false): Promise<T> {
-	const key = process.env.TWITTERAPI_IO_KEY;
-	if (!key) throw new Error('TWITTERAPI_IO_KEY is not set');
-	const wait = lastCall + GAP_MS - Date.now();
-	if (wait > 0) await sleep(wait);
-	lastCall = Date.now();
-	requests++;
-	const res = await fetch(`${API}${path}`, { headers: { 'x-api-key': key } });
-	if (res.status === 429 && !retried) { await sleep(GAP_MS); return api<T>(path, true); }
-	const body = (await res.json().catch(() => ({}))) as T & { status?: string; msg?: string; message?: string };
-	if (!res.ok || body.status === 'error') throw new Error(`${path}: ${res.status} ${body.msg ?? body.message ?? ''}`);
-	return body;
-}
-
-/** Recent original posts (no replies, no reposts) for an account. */
-async function recentPosts(userName: string): Promise<Post[]> {
-	type R = { data?: { tweets?: Post[] }; tweets?: Post[] };
-	const r = await api<R>(`/user/last_tweets?userName=${encodeURIComponent(userName)}&includeReplies=false`);
-	const tweets = r.data?.tweets ?? r.tweets ?? [];
-	returned += tweets.length;
-	return tweets.filter((t) => !t.isReply && !/^RT @/.test(t.text));
-}
-
-/** Minutes since midnight in the watchlist's time zone. */
-function localMinutes(d: Date, tz: string): number {
-	const [h, m] = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(d).split(':').map(Number);
-	return h * 60 + m;
-}
-const hm = (s: string) => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
-
-/**
- * How hard a post took off, relative to its author's size: engagement per
- * thousand followers, with replies and reposts weighted over likes, per hour
- * of age so a post from last night doesn't outrank one taking off now.
- * (A dry run sees counts at run time; live, the radar measures this in the
- * first 10–20 minutes.) Age is floored at an hour so a minutes-old post with
- * a handful of likes doesn't top the list.
- */
-function heat(p: Post, now = Date.now()): number {
-	const e = p.likeCount + 3 * p.retweetCount + 2 * p.replyCount + 3 * p.quoteCount;
-	const ageH = Math.max(1, (now - new Date(p.createdAt).getTime()) / 3600_000);
-	return e / Math.max(1, p.author.followers / 1000) / ageH;
-}
-
 async function main() {
-	const wl = JSON.parse(await readFile('scripts/radar/watchlist.json', 'utf8')) as Watchlist;
-	const handles = Object.entries(wl.groups).flatMap(([group, g]) => g.accounts.map((h) => ({ h, group })));
+	const wl = await loadWatchlist();
+	const handles = handlesOf(wl);
 
 	if (process.argv.includes('--verify')) {
 		for (const { h, group } of handles) {
@@ -122,7 +63,7 @@ async function main() {
 		.filter((c) => !used.has(c.draft!.text) && !!used.add(c.draft!.text))
 		.slice(0, wl.limits.perDay);
 
-	console.log(`TwitterAPI.io: ${requests} requests, ${returned} posts returned (~$${((returned / 1000) * 0.15).toFixed(4)} at $0.15 per 1,000).`);
+	console.log(costLine());
 	console.log(`${candidates.length} posts in the window from ${handles.length} accounts; ${candidates.filter((c) => c.draft).length} matched an angle; ${picks.length} would have been alerts.\n`);
 	const lines: string[] = [];
 	for (const c of picks) {
