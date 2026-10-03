@@ -67,7 +67,7 @@ const SLATE: Item[] = [
 		text: `Split all 21 million bitcoin evenly across 8.2 billion people and each gets ${f0(fair * 1e8)} sats ($${f0(fair * px)}).\n\nGold: ${fg.big}${fg.unit}\nCash: ${fc.big} $1 bills\nCocaine (US wholesale): ${fk.big}${fk.unit}\nManhattan: ${fm.big}${fm.unit}`,
 		reply: 'Weigh your share:\n' + L(`btc=${fair}&commodity=gold`) },
 	{ id: 'wi-manhattan', at: '2026-10-03T18:15:00Z', media: () => jpg(get('manhattan_b-1'), 'wi-manhattan'),
-		text: `Today’s Weigh-In: 1 BTC = ${wi.manhattan.big}${wi.manhattan.unit} of Manhattan land.\n\nA doormat or three, at the Battery.`,
+		text: `Today’s Weigh-In: at ${closeWord}’s close of $${f0(px)}, 1 BTC = ${wi.manhattan.big}${wi.manhattan.unit} of Manhattan land.\n\nA doormat or three, at the Battery.`,
 		reply: 'How far up the island does your stack get?\n' + L('btc=1&commodity=manhattan') },
 	{ id: 'hero-downs', at: '2026-10-03T19:00:00Z', media: () => pair(`gold_b-1_${PEAK}`, 'gold_b-1', 'downs'),
 		text: `The chart gold fans love.\n\n${nice(PEAK)}: 1 BTC bought ${P[PEAK].xau_per_btc.toFixed(1)} oz of gold.\n${closeWord}: ${g.toFixed(1)} oz.\n\nSince then gold is ${pct(goldSincePeak)} and bitcoin is ${pct(btcSincePeak)}. We weigh both ways.`,
@@ -81,7 +81,7 @@ const SLATE: Item[] = [
 		text: `${nice(otdGold)}: 1 BTC bought ${sig3(P[otdGold].xau_per_btc)} oz of gold.\n\nToday: ${g.toFixed(1)} oz.`,
 		reply: 'Every day since 2013:\n' + L(`btc=1&commodity=gold&date=${otdGold}`) },
 	{ id: 'wi-cocaine', at: '2026-10-04T01:30:00Z', media: () => jpg(get('cocaine_b-1'), 'wi-cocaine'),
-		text: `Today’s Weigh-In: 1 BTC = ${wi.cocaine.big}${wi.cocaine.unit} of cocaine at US wholesale (UNODC/DEA prices, illustrative).\n\nAbout ${Math.round(px / tiers.wholesale.pricePerKg)} taped one-kilo bricks.`,
+		text: `Today’s Weigh-In: at ${closeWord}’s close of $${f0(px)}, 1 BTC = ${wi.cocaine.big}${wi.cocaine.unit} of cocaine at US wholesale (UNODC/DEA prices, illustrative).\n\nAbout ${Math.round(px / tiers.wholesale.pricePerKg)} taped one-kilo bricks.`,
 		reply: 'Switch price tiers on the cocaine tab:\n' + L('btc=1&commodity=cocaine') },
 ];
 
