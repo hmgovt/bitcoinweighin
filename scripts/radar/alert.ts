@@ -50,7 +50,10 @@ async function main() {
 		const links = Object.values(c.links);
 		const passing: Option[] = [];
 		const rejected: string[] = [];
-		for (const o of d?.options ?? []) {
+		for (const raw of d?.options ?? []) {
+			// A link given by its key ("moon") means that link; any other stray link is dropped, not the reply.
+			const link = raw.link && (c.links[raw.link] ?? raw.link);
+			const o: Option = { ...raw, link: link && links.includes(link) ? link : '' };
 			const r = checkOption(o, sources, links, recent);
 			if (r.ok) passing.push(o); else rejected.push(r.problems.join('; '));
 		}
