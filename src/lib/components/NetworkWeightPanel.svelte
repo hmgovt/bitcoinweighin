@@ -305,7 +305,7 @@
 			</div>
 			<div class="globe" bind:this={globeColEl}>
 				{#if MiningGlobe}
-					<MiningGlobe {showSoloMiners} />
+					<MiningGlobe {showSoloMiners} hashrateEh={liveEh} />
 				{:else}
 					<div class="globe-wait" aria-hidden="true"></div>
 				{/if}
@@ -585,16 +585,16 @@
 		background: rgba(3, 105, 161, 0.16);
 	}
 	.globe {
-		max-width: 400px;
+		max-width: 640px;
 		margin: 12px auto 0;
 	}
+	/* Holds the globe's square plus its chips and key until the chunk lands. */
 	.globe-wait {
 		width: 100%;
-		max-width: 480px;
 		aspect-ratio: 1;
-		margin: 0 auto;
+		margin: 0 auto 96px;
 		border-radius: 50%;
-		background: radial-gradient(circle at 35% 35%, #1e3a5f, #0a1628);
+		background: radial-gradient(circle at 35% 35%, #1b2a3f, #070b12);
 	}
 	.solo-note {
 		margin: 12px 0 0;
