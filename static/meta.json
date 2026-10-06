@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2026-10-05T07:53:35.358Z",
+  "lastUpdated": "2026-10-06T08:17:32.456Z",
   "dateRange": {
     "first": "2013-01-02",
-    "last": "2026-10-04"
+    "last": "2026-10-05"
   },
-  "totalDates": 5019,
-  "fileSizeBytes": 474468,
+  "totalDates": 5020,
+  "fileSizeBytes": 474581,
   "sources": [
     {
       "id": "btc",
