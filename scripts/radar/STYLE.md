@@ -42,6 +42,53 @@ less gold, we say so.
 
 Skipping is a good outcome. A weak reply costs more than none.
 
+## How the replies we actually sent were built (5 Oct 2026)
+
+The owner rewrites drafts before sending. These are the sent versions, and
+they show what to aim for:
+
+- **Open on a detail from their post**, not on our figure. "Built on CME
+  futures, so…" and "The same approval covers 3x gold, so…" each pick a fact
+  the post itself gave, then turn it.
+- **A line break before the payoff.** Setup, blank line, then the number.
+- **Talk like a person:** "so here's the ratio between the two", "Just keep
+  DCA'ing indeed", "The elevator's under construction." Play on their joke or
+  their phrase when there is one.
+- **Bitcoin's bad news is fine.** "A year ago 1 BTC bought 31.6 oz of gold…
+  Today it buys 20.8" was among the best-read replies.
+- **Links are optional.** The two best-read replies (about 380 views each, under
+  a WatcherGuru post) had none.
+
+Sent replies:
+
+**Post (@WatcherGuru):** "SEC approves first-ever 3x leveraged Bitcoin and Ethereum ETFs… along with 3x gold, silver… These are based on CME futures contracts, not spot Bitcoin…"
+> Built on CME futures, so no coins change hands.
+>
+> The real thing is getting scarce: 19,979,850 of 21,000,000 bitcoin are mined, with about 1,020,150 left to issue.
+
+> The same approval covers 3x gold, so here's the ratio between the two:
+>
+> A year ago 1 BTC bought 31.6 oz of gold, a cube 3.7 cm across.
+>
+> Today it buys 20.8 oz, a cube 3.2 cm across.
+
+**Post (@saylor):** "I was told there would be an elevator." (with a video)
+> The elevator's under construction. All 21 million bitcoin, stacked in $1 bills, already reach halfway to the Moon.
+>
+> Top floor opens at $167,595 a coin.
+
+**Post (@AlexesNakamoto):** "…BTC's low so far was back on July 1… Just keep DCA'ing."
+(The fact sheet now carries `post-date` facts for dates a post names: that
+day's close and gold, and what $10 a day bought since.)
+> $10 a day DCA'd since 1 July: $960 in, 0.0136 BTC stacked, worth $1,172 at Sunday's close.
+>
+> Just keep DCA'ing indeed.
+
+**Post (@Strategy):** "…Last week, we acquired 334 $BTC… As of 10/4/26, we hold 848,000 BTC…"
+> Measured in Manhattan real estate, last week's 334 BTC buys about 5,800 sq ft, more than two standard 25×100 ft city lots.
+>
+> All 848,000 BTC cover 4.2% of the island, lot by lot from the Battery to Fulton Street.
+
 ## Good examples
 
 **Post (@AdamBLiv):** "BTC/Gold ratio has ripped +69% off its March bottom. 12.2 → 20.6 ounces of gold per bitcoin…"

@@ -6,6 +6,10 @@ from the X app. **Nothing here ever posts to X.**
 
 ## How a run works (`.github/workflows/radar.yml`, every 15 min)
 
+A Cloudflare Worker (`workers/radar-trigger`) starts each run on time; GitHub's
+own schedule in the workflow is only the fallback, because GitHub runs busy
+schedules late or not at all.
+
 1. **Sweep** (`sweep.ts`): one TwitterAPI.io search for every original post from
    the watchlist since the last run. On-topic posts wait as "pending"; once one is
    10+ minutes old its counts are re-read. If its heat clears `sweep.minHeat`, and

@@ -11,13 +11,16 @@
  *   … --build                                                              # make the images only
  *   …                                                                      # schedule every post still ahead
  *   … --only=id,id
+ *   … --discord [--note="…"]   # also send each post, image attached, to DISCORD_WEBHOOK_URL
+ *                                (with --dry: Discord only, nothing scheduled)
  *
  * Every post's link should have its own card: 1 BTC or a holder at the
  * latest close is always rendered; anything with a date or an odd amount
  * must be listed in scripts/og/card-links.json before the post goes out.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, openAsBlob, statSync, writeFileSync } from 'node:fs';
+import { basename } from 'node:path';
 import { postThread } from '../opentweet.ts';
 import { cardModel, presetBtc, sig3 } from '../../../functions/_card.ts';
 
@@ -87,18 +90,51 @@ export function images(out: string) {
 	return { get, jpg, pair, grid };
 }
 
-/** Print, build or schedule a slate, per the command-line flags. */
+/** Escape Discord's formatting (links untouched) so a copied post is exactly the post. */
+const plain = (t: string) => t.split(/(https?:\/\/\S+)/).map((part, i) => (i % 2 ? part : part.replace(/([*_~`|\\])/g, '\\$1').replace(/^([#>-])/gm, '\\$1'))).join('');
+const ukTime = (iso: string) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+
+/**
+ * Send one post to Discord as a message to copy from: time, text, first reply,
+ * and its image or video attached. Discord takes files up to 25 MB on a webhook.
+ */
+export async function toDiscord(it: Item, n: number, of: number, file: string | undefined, note?: string) {
+	const url = process.env.DISCORD_WEBHOOK_URL;
+	if (!url) throw new Error('DISCORD_WEBHOOK_URL is not set');
+	const fits = file && existsSync(file) && statSync(file).size < 24 * 1024 * 1024;
+	const lines = [
+		`**Post ${n} of ${of} · ${ukTime(it.at)} UK**`,
+		plain(it.text),
+		it.reply ? `↳ **First reply:** ${plain(it.reply)}` : '',
+		file && !fits ? `-# The file is too big for Discord: ${file}` : '',
+		note ? `-# ${note}` : '',
+	].filter(Boolean);
+	const form = new FormData();
+	// flags 4: no link previews, so the message stays a clean copy of the post.
+	form.append('payload_json', JSON.stringify({ username: 'Bitcoin Weigh-In posts', content: lines.join('\n').slice(0, 2000), flags: 4, allowed_mentions: { parse: [] } }));
+	if (fits) form.append('files[0]', await openAsBlob(file!), basename(file!));
+	const r = await fetch(url, { method: 'POST', body: form });
+	if (!r.ok) throw new Error(`Discord ${r.status} for ${it.id}`);
+}
+
+/** Print, build, schedule or send a slate to Discord, per the command-line flags. */
 export async function run(slate: Item[], out: string, header: string) {
 	const dry = process.argv.includes('--dry');
 	const build = process.argv.includes('--build');
+	const discord = process.argv.includes('--discord');
+	const note = process.argv.find((a) => a.startsWith('--note='))?.slice(7);
 	const only = process.argv.find((a) => a.startsWith('--only='))?.slice(7).split(',');
 	console.log(header);
 	const preview: string[] = [];
-	for (const it of [...slate].sort((a, b) => a.at.localeCompare(b.at))) {
-		if (only && !only.includes(it.id)) continue;
+	const items = [...slate].sort((a, b) => a.at.localeCompare(b.at)).filter((it) => !only || only.includes(it.id));
+	for (const [i, it] of items.entries()) {
 		for (const [n, t] of [['text', it.text], ['reply', it.reply]] as const) if (t.length > 280) throw new Error(`${it.id} ${n} is ${t.length} chars`);
 		preview.push(`## ${it.at.slice(5, 16).replace('T', ' ')} UTC · ${it.id}${it.media ? ' · image' : ''}\n${it.text}\n↳ ${it.reply || '(no reply)'}\n`);
 		if (build) { if (it.media) console.log('built', it.media()); continue; }
+		if (discord) {
+			await toDiscord(it, i + 1, items.length, it.media?.(), note);
+			console.log(`sent ${it.id} to Discord`);
+		}
 		if (dry) continue;
 		if (Date.parse(it.at) - Date.now() < 3 * 60_000) { console.log(`skip ${it.id} (time passed)`); continue; }
 		const file = it.media?.();
