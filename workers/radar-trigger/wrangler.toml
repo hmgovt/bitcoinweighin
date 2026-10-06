@@ -1,0 +1,12 @@
+# Cloudflare Worker that starts the reply radar on a punctual schedule.
+# See README.md. Deployed by hand (dashboard or `npx wrangler deploy` from
+# this folder); the site's Pages build ignores it.
+name = "radar-trigger"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[triggers]
+# UTC, like the workflow's own schedule: 07:00–23:45 covers 09:00–23:30
+# London in summer and winter time.
+crons = ["*/15 7-23 * * *"]

@@ -12,11 +12,16 @@ name: Reply radar
 # Cron is UTC; 07:00–23:45 UTC covers the 09:00–23:30 London window in both
 # summer and winter time. sweep.ts does nothing outside the window.
 #
+# GitHub runs busy schedules late or drops them (3 to 5 runs a day in the
+# first week), so a Cloudflare Worker (workers/radar-trigger) starts the
+# radar every 15 minutes through workflow_dispatch. The schedule below is the
+# fallback, off the quarter-hours that everyone else's schedules crowd.
+#
 # Post text is untrusted, so drafting runs in its own job with no other
 # secrets, and only its drafts.json reaches the job that sends alerts.
 on:
   schedule:
-    - cron: '*/15 7-23 * * *'
+    - cron: '7,22,37,52 7-23 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
