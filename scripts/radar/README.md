@@ -53,6 +53,7 @@ Locally:
 
 ## Tuning
 
-`watchlist.json` → `sweep` (thresholds), `limits` (caps), `hours` (window).
+`watchlist.json` → `sweep` (thresholds), `limits` (caps), `hours` (window),
+`priority` (accounts alerted at half the usual heat and ranked first).
 Better replies come from `STYLE.md` (add good and bad examples from real
 alerts) and from adding checked facts to `reference-facts.json`.

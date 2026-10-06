@@ -100,10 +100,11 @@ async function main() {
 
 	const today = localDay(new Date(now), tz);
 	const day = (state.days[today] ??= { count: 0, accounts: [] });
+	const prio = new Set(wl.priority.map((a) => a.toLowerCase()));
 	const hot = current
 		.map((p) => ({ p, h: heat(p, now), meta: state.pending[p.id] }))
-		.filter(({ p, h, meta }) => meta && h >= minHeat && p.likeCount >= minLikes)
-		.sort((a, b) => b.h - a.h);
+		.filter(({ p, h, meta }) => meta && isHot(h, p.likeCount, prio.has(meta.author), minHeat, minLikes))
+		.sort((a, b) => rank(b.h, prio.has(b.meta.author)) - rank(a.h, prio.has(a.meta.author)));
 
 	const facts = await dailyFacts();
 	const candidates: Candidate[] = [];
@@ -135,6 +136,17 @@ async function main() {
 	output('candidates', candidates.length);
 	console.log(`${fresh.length} new posts, ${added} on topic; ${due.length} weighed, ${hot.length} hot, ${candidates.length} to draft. ${Object.keys(state.pending).length} still pending. Today: ${day.count}/${wl.limits.perDay}.`);
 	if (!fx) console.log(costLine());
+}
+
+/**
+ * Priority accounts (watchlist.json `priority`) count as taking off at half the
+ * usual heat, and rank ahead of everyone else at the same heat.
+ */
+export function isHot(heat: number, likes: number, priority: boolean, minHeat: number, minLikes: number): boolean {
+	return heat >= minHeat * (priority ? 0.5 : 1) && likes >= minLikes;
+}
+export function rank(heat: number, priority: boolean): number {
+	return heat * (priority ? 2 : 1);
 }
 
 if (process.argv[1]?.endsWith('sweep.ts')) main().catch((e) => { console.error(e); process.exit(1); });

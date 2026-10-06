@@ -13,10 +13,10 @@
 	"groups": {
 		"holders": { "angle": "How much of Manhattan, or how much gold, their stack buys", "accounts": ["saylor", "Strategy", "nayibbukele", "BTCtreasuries"] },
 		"etf": { "angle": "BlackRock's ETF coins in gold or Manhattan; flows in physical terms", "accounts": ["JSeyff"] },
-		"voices": { "angle": "Gold cube, Moon stack or sats grid, matched to the post", "accounts": ["APompliano", "saifedean", "LynAldenContact", "PrestonPysh", "natbrunell", "willywoo", "100trillionUSD", "adam3us", "jack", "MartyBent"] },
+		"voices": { "angle": "Gold cube, Moon stack or sats grid, matched to the post", "accounts": ["APompliano", "saifedean", "LynAldenContact", "PrestonPysh", "natbrunell", "willywoo", "100trillionUSD", "adam3us", "jack", "MartyBent", "PunterJeff"] },
 		"media": { "angle": "Any comparison that fits the post", "accounts": ["DocumentingBTC", "BitcoinMagazine", "BitcoinArchive", "AdamBLiv", "Thebitcoinway_"] },
 		"gold-macro": { "angle": "We weigh both ways: the Dec 2024 peak vs today, Fort Knox share, 2013 vs now", "accounts": ["PeterSchiff", "GoldTelegraph", "KobeissiLetter", "RaoulGMI", "LukeGromen", "JamesLavish", "zerohedge"] },
 		"news": { "angle": "Price milestones (Moon stack %), Strategy buys, ETF news; only posts taking off", "accounts": ["WatcherGuru", "BitcoinNews", "CoinDesk", "Cointelegraph", "unusual_whales"] }
 	},
-	"priority": ["PeterSchiff"]
+	"priority": ["PeterSchiff", "saifedean"]
 }
