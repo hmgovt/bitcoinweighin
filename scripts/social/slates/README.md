@@ -2,6 +2,7 @@
 
 One file per day (`<date>.ts`), built the evening before from the launch-week
 calendar and the recurring series, on the shared machinery in `lib.ts`.
+How to write the posts: `../WRITING.md`.
 
 Every night, after the 02:00 UTC price update and the deploy that rebuilds the
 link cards, the next day's slate runs and schedules itself in OpenTweet with
