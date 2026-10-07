@@ -42,7 +42,27 @@ export function evalExpr(expr: string): number | null {
 
 export interface Check { ok: boolean; problems: string[] }
 
-export function checkOption(opt: Option, sources: string[], allowedLinks: string[], recent: string[] = []): Check {
+/** Fact-sheet lines that only say what one coin is worth today: true under any post. */
+const GENERIC = new Set(['close', 'gold-1', 'silver-1', 'cash-1', 'manhattan-1', 'cocaine-1', 'pu238-1', 'oil-1']);
+/** Posts that are about one of those things, where restating it is an answer. */
+const ABOUT_COMMODITY = /\b(gold|silver|dollars?|cash|bills?|banknotes?|manhattan|cocaine|plutonium|oil|brent)\b/i;
+
+/**
+ * A reply whose every figure could come from the one-coin lines, under a post
+ * that isn't about those things: it ignores the post (a bank's custody news
+ * answered with what a bitcoin weighs in gold). Such a draft is refused.
+ */
+export function isGeneric(text: string, sources: string[], post: string): boolean {
+	if (ABOUT_COMMODITY.test(post)) return false;
+	const nums = numbersIn(text).filter((n) => !FREE(n.value, n.raw));
+	if (!nums.length) return false;
+	const lines = sources.map((l) => ({ id: /^\[([\w-]+)\]/.exec(l)?.[1] ?? '', vals: numbersIn(l).map((n) => n.value) }));
+	// Generic when every figure could have come from a one-coin line (the price
+	// itself shows up in other lines too, so "only from" would never fire).
+	return nums.every((n) => lines.some((l) => GENERIC.has(l.id) && l.vals.some((v) => close(n.value, v))));
+}
+
+export function checkOption(opt: Option, sources: string[], allowedLinks: string[], recent: string[] = [], post?: string): Check {
 	const problems: string[] = [];
 	const found = sources.flatMap((s) => numbersIn(s));
 	const known = found.map((n) => n.value);
@@ -73,6 +93,7 @@ export function checkOption(opt: Option, sources: string[], allowedLinks: string
 		seen.add(n.raw);
 	}
 
+	if (post !== undefined && isGeneric(opt.text, sources, post)) problems.push('generic: only says what one bitcoin is worth, not what the post is about');
 	if (/#\w/.test(opt.text)) problems.push('has a hashtag');
 	if (/https?:\/\//.test(opt.text)) problems.push('link belongs in the link field, not the text');
 	if (opt.link && !allowedLinks.includes(opt.link)) problems.push('link is not one of ours');

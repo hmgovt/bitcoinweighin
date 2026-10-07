@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkOption, evalExpr, numbersIn } from '../scripts/radar/validate';
+import { checkOption, evalExpr, isGeneric, numbersIn } from '../scripts/radar/validate';
 
 const FACTS = [
 	'[holder-strategy] Strategy holds 847,666 BTC, worth $71.7 billion: 537 tonnes of gold.',
@@ -62,5 +62,28 @@ describe('scaled numbers', () => {
 		const facts = [...FACTS, 'El Salvador: 4.93 tonnes of gold.'];
 		expect(checkOption({ text: 'It would stack 4.9 million km high.' }, facts, []).ok).toBe(false);
 		expect(checkOption({ text: 'It would stack 4.4 million km high.' }, facts, []).ok).toBe(true);
+	});
+});
+
+describe('isGeneric', () => {
+	const SHEET = [
+		'[close] Latest daily close: 2026-10-06. 1 BTC = $85,528; gold $4,148/oz.',
+		'[gold-1] 1 BTC buys 20.6 oz of gold (641 g): a cube 3.2 cm across.',
+		'[cash-1] 1 BTC in $1 bills: 85,528 bills, a stack 9.34 m tall. 85.5 kg of paper.',
+		'[all-21m] All 21,000,000 bitcoin at $85,528 are worth $1.8 trillion.',
+		'[gold-in-btc-russia] Russia\'s ~2,330 t of official gold is worth $312 billion: about 3.65 million BTC, 17.4% of all 21,000,000 bitcoin.',
+	];
+	const CUSTODY = 'Russia\'s largest bank Sberbank officially approved as crypto custodian.';
+	it('refuses a reply that only says what one coin weighs, under a post about something else', () => {
+		expect(isGeneric('One bitcoin of gold is a 3.2 cm cube, 641 g. In $1 bills, 85,528 notes, 9.3 m tall.', SHEET, CUSTODY)).toBe(true);
+	});
+	it('keeps a reply about the post\'s subject', () => {
+		expect(isGeneric('Russia\'s 2,330 tonnes of gold would buy about 3.65 million bitcoin: 17.4% of all there will ever be.', SHEET, CUSTODY)).toBe(false);
+	});
+	it('keeps one-coin figures under a post about that commodity', () => {
+		expect(isGeneric('1 BTC buys 20.6 oz of gold, a 3.2 cm cube.', SHEET, 'Gold just hit a record against the dollar')).toBe(false);
+	});
+	it('ignores replies with no figures', () => {
+		expect(isGeneric('Not your keys, not your coins.', SHEET, CUSTODY)).toBe(false);
 	});
 });
