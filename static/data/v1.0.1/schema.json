@@ -129,7 +129,7 @@
       "type": "string",
       "unit": "pipe-delimited column names",
       "source": "internal",
-      "notes": "Empty string when no fields were forward-filled, or a pipe-delimited list of field names (e.g. \"xpt_usd|brent_usd\") when some were. Per-row tracking begins 2026-05-17; historical rows carry an empty string regardless of their true fill state."
+      "notes": "Empty string when no fields were forward-filled, or a pipe-delimited list of column names (e.g. \"brent_usd\") whose source had not published a value for that date: the value is the latest one published, and is revised (and the name dropped) once the source catches up. Tracked from 2026-09-30; earlier rows carry an empty string regardless of their true fill state."
     }
   ]
 }

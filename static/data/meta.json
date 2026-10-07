@@ -1,6 +1,6 @@
 {
   "version": "1.0.1",
-  "last_updated": "2026-10-07T07:53:15.187Z",
+  "last_updated": "2026-10-07T10:38:36.796Z",
   "coverage": {
     "first_date": "2013-01-02",
     "last_date": "2026-10-06"
@@ -162,17 +162,17 @@
     }
   ],
   "forward_fill_provenance": {
-    "note": "Per-row forward-fill provenance is not tracked in v1.0; the forward_filled column is empty for all rows. Prospective tracking begins in v1.1.",
+    "note": "From 2026-09-30, forward_filled names each column whose source had not yet published for that date (the value is the latest published, revised once the source catches up). Earlier rows carry an empty string: their fill state is not reconstructable.",
     "daily_run_health": "/health.json"
   },
   "checksums": {
     "CHANGELOG.md": "6c671871d131011a84874899a25a19acf7eb3d6d03f42a71eefdff6556f4985f",
     "CITATION.cff": "6dd9dfe21b4393e35a673e034e574b7d9e18330c8da84c780ecb80d34c753ad7",
     "LICENSE.txt": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
-    "prices.csv": "3ea59f3ac74801e0b1b708567e58d602f12b74a266c1415aeca15b188c64bffe",
-    "prices.json": "8dc81e1b24a5602bdc347d4295a0d0bf6478110a1a6296da529b9dc28618d02a",
-    "prices.ndjson": "e401784ccde2e12ec50c4b2c804dbbeccc31224e95ff36a28798f4e445d3cab1",
-    "prices.parquet": "f052d7809fd30a040b02e231633eeaecaa423a70fab88df802c3c345edbf384b",
-    "schema.json": "0ae7badd92d0e984eb6fe8bb2f37512b4cf210aae485d2db6e639f9ca9724ac2"
+    "prices.csv": "cf6c3afa410be178f7bf1925b30dd654774d9470b5d2996945a90a44d7dfea2e",
+    "prices.json": "1f2ae42850f9b223012ba95c6b97a4071468cd2eadc8ec380cb4b95fd85dd5f0",
+    "prices.ndjson": "e581eb691c5c5655c0e93ac078c97893039bdb0dd4a852735f43e6b91f5c6a77",
+    "prices.parquet": "4cf3506da6f2e63718b4a33c8357e1c1b9de5cf26402349425a5359993cfd639",
+    "schema.json": "507a072720399680df4c64a756919123fe98ea59bbe323dc978358b9acb730ba"
   }
 }
