@@ -10,6 +10,7 @@
  *   npm run build && npx vite preview --port 4173 &
  *   npx tsx scripts/clips/make-manhattan-clip.ts --base=http://localhost:4173
  *   npx tsx scripts/clips/make-manhattan-clip.ts --holder=satoshi --out=satoshi.mp4
+ *   npx tsx scripts/clips/make-manhattan-clip.ts --cut=long      # the TikTok cut: /clip/manhattan-long
  *
  * Price and date default to the dataset's last day (static/data/prices.json),
  * so the numbers on screen are the site's numbers for that day.
@@ -25,25 +26,27 @@ const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`
 
 const base = arg('base') ?? process.env.SITE_BASE_URL ?? 'http://localhost:4173';
 const holder = arg('holder') ?? 'strategy';
+/** "long": the minute-plus TikTok cut (src/lib/clips/manhattanLongClip.ts), every stack in turn. */
+const long = arg('cut') === 'long';
 const fps = Number(arg('fps') ?? 30);
 const width = Number(arg('width') ?? 540);
 const height = Number(arg('height') ?? 960);
 const dpr = Number(arg('dpr') ?? 2);
-const out = resolve(arg('out') ?? `output/clips/manhattan-${holder}${arg('still') ? '.png' : '.mp4'}`);
+const out = resolve(arg('out') ?? `output/clips/manhattan-${long ? 'long' : holder}${arg('still') ? '.png' : '.mp4'}`);
 /** Render only the first N seconds (quick looks). */
 const only = arg('seconds') ? Number(arg('seconds')) : null;
 /** Save one PNG at this clip time instead of a video (e.g. --still=24.5). */
 const still = arg('still') ? Number(arg('still')) : null;
 
-async function lastPrice(): Promise<{ price: number; date: string }> {
-	if (arg('price')) return { price: Number(arg('price')), date: arg('date') ?? '' };
-	const rows = JSON.parse(await readFile('static/data/prices.json', 'utf8')) as Record<string, { btc_usd: number | null }>;
+async function lastPrice(): Promise<{ price: number; date: string; supply: number }> {
+	const rows = JSON.parse(await readFile('static/data/prices.json', 'utf8')) as Record<string, { btc_usd: number | null; btc_supply: number | null }>;
+	if (arg('price')) return { price: Number(arg('price')), date: arg('date') ?? '', supply: Number(arg('supply') ?? 0) || rows[arg('date') ?? '']?.btc_supply || 0 };
 	const date = Object.keys(rows).sort().filter((d) => rows[d].btc_usd).pop()!;
-	return { price: rows[date].btc_usd!, date };
+	return { price: rows[date].btc_usd!, date, supply: rows[date].btc_supply! };
 }
 
 async function main() {
-	const { price, date } = await lastPrice();
+	const { price, date, supply } = await lastPrice();
 	await mkdir(dirname(out), { recursive: true });
 	const dir = await mkdtemp(join(tmpdir(), 'clip-'));
 	const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -71,7 +74,9 @@ async function main() {
 			};
 			w.__present = () => new Promise((r) => realRaf(() => r()));
 		});
-		const url = `${base}/clip/manhattan?holder=${holder}&price=${price}&date=${date}${still !== null ? '&counter=0' : ''}`;
+		const url = long
+			? `${base}/clip/manhattan-long?price=${price}&date=${date}&supply=${supply}`
+			: `${base}/clip/manhattan?holder=${holder}&price=${price}&date=${date}${still !== null ? '&counter=0' : ''}`;
 		console.log(`→ ${url}`);
 		await page.goto(url, { waitUntil: 'networkidle' });
 		await page.waitForFunction(() => (window as unknown as { __clipReady?: () => boolean }).__clipReady?.(), null, { timeout: 900_000, polling: 1000 });
