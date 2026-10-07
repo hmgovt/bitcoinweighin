@@ -9,6 +9,11 @@
  *
  * Returning `null` (rather than throwing) lets the orchestrator skip
  * one bad source without aborting the rest of the daily sync.
+ *
+ * The site's response headers grew past Node's 16 KB default around
+ * 1 Oct 2026 (a ~16 KB `link` preload header), which fails every fetch
+ * with UND_ERR_HEADERS_OVERFLOW. `npm run holdings:sync` raises the
+ * limit with --max-http-header-size.
  */
 
 const BASE = 'https://bitcointreasuries.net';
@@ -36,7 +41,10 @@ export async function fetchBitcointreasuries(
 		}
 		html = await res.text();
 	} catch (err) {
-		console.warn(`  bitcointreasuries: fetch failed for ${path}: ${err}`);
+		// Node's fetch reports every network failure as "fetch failed"; the reason is in err.cause.
+		const cause = (err as { cause?: { code?: string; message?: string } }).cause;
+		const why = cause ? ` (${[cause.code, cause.message].filter(Boolean).join(': ')})` : '';
+		console.warn(`  bitcointreasuries: fetch failed for ${path}: ${err}${why}`);
 		return null;
 	}
 

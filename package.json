@@ -22,7 +22,7 @@
     "holdings:list": "tsx scripts/holdings-list.ts",
     "holdings:update": "tsx scripts/holdings-update.ts",
     "holdings:check": "tsx scripts/holdings-check.ts",
-    "holdings:sync": "tsx scripts/holdings-sync.ts",
+    "holdings:sync": "NODE_OPTIONS=\"$NODE_OPTIONS --max-http-header-size=65536\" tsx scripts/holdings-sync.ts",
     "bot": "tsx scripts/bot/run.ts",
     "bot:verify": "tsx scripts/bot/verify-auth.ts"
   },
