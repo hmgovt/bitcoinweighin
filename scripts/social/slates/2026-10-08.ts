@@ -9,6 +9,7 @@
  * rendered at, so their posts name that close; the third is live.
  */
 import { L, f0, images, loadPrices, presetBtc, run, weekday, type Item } from './lib.ts';
+import { LAND_VALUE_USD } from '../../../src/lib/manhattan.ts';
 
 const OUT = 'output/slates/2026-10-08';
 const { P, close, prev } = await loadPrices();
@@ -23,13 +24,22 @@ const stackKm = (govt * px * 0.10922) / 1e6;
 const ISS_KM = 400;
 const issTimes = stackKm / ISS_KM;
 
+// Every coin mined so far against Manhattan's land, at the latest close (live,
+// for the long cut's first reply; the video itself is at the 6 Oct close).
+const mined = (P[close] as unknown as { btc_supply: number }).btc_supply;
+const minedShare = (mined * px) / LAND_VALUE_USD;
+const wholeAt = Math.round(LAND_VALUE_USD / mined / 100) * 100;
+const minedLine = minedShare < 1
+	? `At ${closeWord}’s close it’s ${Math.round(minedShare * 100)}%. At about $${f0(wholeAt)} a coin, it’s the whole island.`
+	: `At ${closeWord}’s close it’s the whole island, with ${Math.round((minedShare - 1) * 100)}% to spare.`;
+
 const SLATE: Item[] = [
 	{ id: 'three-elements', at: '2026-10-08T13:30:00Z', media: () => 'scripts/social/media/metals-new-element.mp4',
 		text: `One bitcoin buys 44 kg of silver.\n\nOr 638 g of gold.\n\nOr 17 g of plutonium-238, the fuel that has powered Voyager since 1977.\n\nSame coin, at Tuesday’s close. Which would you take home?`,
 		reply: 'The plutonium price is illustrative (DOE and NASA estimates). Weigh any amount in all three:\n' + L('btc=1&commodity=pu238') },
 	{ id: 'manhattan-long', at: '2026-10-08T17:00:00Z', media: () => 'scripts/social/media/manhattan-long.mp4',
-		text: `Every bitcoin ever mined would buy 98% of Manhattan.\n\nSo we filled the island stack by stack: the 2010 pizza, the US government, BlackRock vs Strategy, Satoshi.\n\nWho gets furthest up the island? Guess, then watch.`,
-		reply: 'Prices at Tuesday’s close. Land valued at $1.74T (2014 study), spread evenly, so it’s illustrative. Fill the island with any amount:\n' + L('btc=1&commodity=manhattan') },
+		text: `Every bitcoin ever mined would buy 98% of Manhattan.\n\nSaylor calls bitcoin “cyber Manhattan,” so we raced the biggest stacks up the real island: the 2010 pizza coins, the US government, BlackRock, Strategy and Satoshi.\n\nWho gets furthest? Guess, then watch.`,
+		reply: `${minedLine} (2014 land value, illustrative.)\n\nReply with your stack and we’ll say how far it gets:\n` + L('btc=1&commodity=manhattan') },
 	{ id: 'govt-iss', at: '2026-10-08T21:30:00Z', media: () => jpg(get('cash_p-us-govt'), 'govt-iss'),
 		text: `The US government holds ${f0(govt)} bitcoin.\n\nStacked in $1 bills at ${closeWord}’s close, would it reach the Space Station?\n\nGuess before you look.`,
 		reply: issTimes >= 1
