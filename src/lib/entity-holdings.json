@@ -54,9 +54,9 @@
       "slug": "us-govt",
       "label": "US Government",
       "btc": 328372,
-      "asOf": "2026-05-15",
+      "asOf": "2026-10-07",
       "type": "nation-state",
-      "source": "https://bitcointreasuries.net/",
+      "source": "https://bitcointreasuries.net/governments/united-states",
       "sourceName": "Bitcoin Treasuries + Arkham Intelligence",
       "note": "Primarily from seizures (Silk Road, Bitfinex hack, etc.). Estimates range 198k–328k depending on whether seized-but-pending vs. fully forfeited assets are counted; this is the inclusive figure. Strategic Bitcoin Reserve being formalised; no active buying program."
     },
