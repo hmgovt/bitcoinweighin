@@ -39,6 +39,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
 
 const PRICES_PATH = join(ROOT, 'static', 'prices.json');
+const NDJSON_PATH = join(ROOT, 'data', 'prices.ndjson');
 const META_PATH = join(ROOT, 'static', 'meta.json');
 const CONFIG_PATH = join(ROOT, 'dataset-config.json');
 const PROVENANCE_PATH = join(ROOT, 'src', 'lib', 'data-provenance.json');
@@ -110,12 +111,37 @@ const COLUMN_ORDER: Array<keyof Row> = [
 	'forward_filled',
 ];
 
+/** prices.ndjson field → dataset column, for the forward_filled list. */
+const FIELD_COLUMN: Record<string, string> = {
+	btc: 'btc_usd',
+	xau: 'xau_usd',
+	xag: 'xag_usd',
+	xpt: 'xpt_usd',
+	hg: 'copper_usd',
+	brent: 'brent_usd',
+	wheat: 'wheat_usd',
+	coffee: 'coffee_usd',
+};
+
+/** Each date's forward-filled columns, pipe-delimited, from the rows fetch-daily marked. */
+function readForwardFilled(): Map<string, string> {
+	const out = new Map<string, string>();
+	if (!existsSync(NDJSON_PATH)) return out;
+	for (const line of readFileSync(NDJSON_PATH, 'utf-8').split('\n')) {
+		if (!line.includes('forward_filled')) continue;
+		const row = JSON.parse(line) as { date: string; forward_filled?: string[] };
+		const cols = (row.forward_filled ?? []).map((f) => FIELD_COLUMN[f]).filter(Boolean);
+		if (cols.length) out.set(row.date, cols.join('|'));
+	}
+	return out;
+}
+
 function ratio(numerator: number | null, denominator: number | null): number | null {
 	if (numerator === null || denominator === null || denominator === 0) return null;
 	return +(numerator / denominator).toFixed(8);
 }
 
-function buildRows(prices: Record<string, PricesEntry>): Row[] {
+function buildRows(prices: Record<string, PricesEntry>, filled: Map<string, string>): Row[] {
 	const dates = Object.keys(prices).sort();
 	return dates.map((date) => {
 		const p = prices[date];
@@ -145,7 +171,7 @@ function buildRows(prices: Record<string, PricesEntry>): Row[] {
 			brent_per_btc: ratio(btc_usd, brent_usd),
 			wheat_per_btc: ratio(btc_usd, wheat_usd),
 			coffee_per_btc: ratio(btc_usd, coffee_usd),
-			forward_filled: '',
+			forward_filled: filled.get(date) ?? '',
 		};
 	});
 }
@@ -335,7 +361,7 @@ const SCHEMA_COLUMNS = [
 		type: 'string',
 		unit: 'pipe-delimited column names',
 		source: 'internal',
-		notes: 'Empty string when no fields were forward-filled, or a pipe-delimited list of field names (e.g. "xpt_usd|brent_usd") when some were. Per-row tracking begins 2026-05-17; historical rows carry an empty string regardless of their true fill state.',
+		notes: 'Empty string when no fields were forward-filled, or a pipe-delimited list of column names (e.g. "brent_usd") whose source had not published a value for that date: the value is the latest one published, and is revised (and the name dropped) once the source catches up. Tracked from 2026-09-30; earlier rows carry an empty string regardless of their true fill state.',
 	},
 ];
 
@@ -431,7 +457,7 @@ async function main() {
 	mkdirSync(versionDir, { recursive: true });
 	mkdirSync(latestDir, { recursive: true });
 
-	const rows = buildRows(prices);
+	const rows = buildRows(prices, readForwardFilled());
 	const firstDate = rows[0].date;
 	const lastDate = rows[rows.length - 1].date;
 	const dateReleased = new Date().toISOString().slice(0, 10);
@@ -491,7 +517,7 @@ async function main() {
 		sources: upstreamMeta.sources,
 		provenance: provenance.commodities,
 		forward_fill_provenance: {
-			note: 'Per-row forward-fill provenance is not tracked in v1.0; the forward_filled column is empty for all rows. Prospective tracking begins in v1.1.',
+			note: 'From 2026-09-30, forward_filled names each column whose source had not yet published for that date (the value is the latest published, revised once the source catches up). Earlier rows carry an empty string: their fill state is not reconstructable.',
 			daily_run_health: '/health.json',
 		},
 		checksums,
