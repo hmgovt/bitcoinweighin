@@ -68,20 +68,31 @@ async function build(): Promise<FactSheet> {
 
 	const ref = JSON.parse(await readFile('scripts/radar/reference-facts.json', 'utf8')) as {
 		facts: { id: string; text: string }[];
-		goldReserves: { holders: { name: string; slug: string; tonnes: number }[] };
+		goldReserves: { asOf: string; holders: { name: string; slug: string; tonnes: number }[] };
+		everyday: { items: { slug: string; label: string; usd: number; asOf: string; source: string }[] };
 	};
 	for (const f of ref.facts) add(`ref-${f.id}`, f.text);
 
 	// Weighed the other way: a nation's gold, or all the gold ever mined, in bitcoin.
 	// A post about a country or its bank can then be answered about that country.
 	const reserves = ref.goldReserves.holders;
-	add('ref-reserves', `Official gold reserves, approximate (World Gold Council, 2025): ${reserves.map((r) => `${r.name.replace(/^the /, '')} ${f0(r.tonnes)} t`).join('; ')}.`);
+	add('ref-reserves', `Official gold reserves (World Gold Council, ${ref.goldReserves.asOf}): ${reserves.map((r) => `${r.name.replace(/^the /, '')} ${f0(r.tonnes)} t`).join('; ')}.`);
 	const inBtc = (t: number) => (t * 1e6 / OZ) * day.xau_usd / px;
 	for (const r of reserves) {
 		const btc = inBtc(r.tonnes);
 		const whose = r.name.charAt(0).toUpperCase() + r.name.slice(1) + (r.name.endsWith('s') ? "'" : "'s");
-		add(`gold-in-btc-${r.slug}`, `${whose} ~${f0(r.tonnes)} t of official gold is worth ${usd(r.tonnes * 1e6 / OZ * day.xau_usd)} at today's gold price: about ${aboutBtc(btc)}, ${((btc / 21e6) * 100).toFixed(1)}% of all 21,000,000 bitcoin.`);
+		add(`gold-in-btc-${r.slug}`, `${whose} ~${f0(r.tonnes)} t of official gold (${ref.goldReserves.asOf}) is worth ${usd(r.tonnes * 1e6 / OZ * day.xau_usd)} at today's gold price: about ${aboutBtc(btc)}, ${((btc / 21e6) * 100).toFixed(1)}% of all 21,000,000 bitcoin.`);
 	}
+	// Everyday prices: what one coin is in pay, homes, gas and eggs.
+	for (const e of ref.everyday.items) {
+		const n = px / e.usd;
+		const price = e.usd >= 100 ? f0(e.usd) : e.usd.toFixed(e.usd < 10 ? 3 : 2).replace(/0+$/, '');
+		const said = e.slug === 'wage-week' ? `1 BTC is ${f0(n)} weeks of it, about ${(n / 52).toFixed(1)} years`
+			: n < 100 ? `In bitcoin: ${(1 / n).toFixed(2)} BTC`
+			: `1 BTC buys ${f0(Number(n.toPrecision(3)))} of them`;
+		add(`everyday-${e.slug}`, `${e.label}: $${price} (${e.asOf}, ${e.source}). ${said}.`);
+	}
+
 	const allGold = inBtc(216_000);
 	add('gold-in-btc-all', `All the gold ever mined (~216,000 t) is worth ${usd(216_000 * 1e6 / OZ * day.xau_usd)} at today's gold price: ${(allGold / 21e6).toFixed(1)}× the value of all 21,000,000 bitcoin.`);
 

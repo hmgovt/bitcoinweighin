@@ -43,9 +43,9 @@ export function evalExpr(expr: string): number | null {
 export interface Check { ok: boolean; problems: string[] }
 
 /** Fact-sheet lines that only say what one coin is worth today: true under any post. */
-const GENERIC = new Set(['close', 'gold-1', 'silver-1', 'cash-1', 'manhattan-1', 'cocaine-1', 'pu238-1', 'oil-1']);
+const GENERIC = new Set(['close', 'gold-1', 'silver-1', 'cash-1', 'manhattan-1', 'cocaine-1', 'pu238-1', 'oil-1', 'everyday-wage-week', 'everyday-house', 'everyday-gas', 'everyday-eggs']);
 /** Posts that are about one of those things, where restating it is an answer. */
-const ABOUT_COMMODITY = /\b(gold|silver|dollars?|cash|bills?|banknotes?|manhattan|cocaine|plutonium|oil|brent)\b/i;
+const ABOUT_COMMODITY = /\b(gold|silver|dollars?|cash|bills?|banknotes?|manhattan|cocaine|plutonium|oil|brent|wages?|salar(y|ies)|pay|paycheck|incomes?|houses?|homes?|housing|mortgages?|gas|gasoline|eggs|inflation|cpi|cost of living)\b/i;
 
 /**
  * A reply whose every figure could come from the one-coin lines, under a post

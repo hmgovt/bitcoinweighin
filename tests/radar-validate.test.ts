@@ -83,6 +83,12 @@ describe('isGeneric', () => {
 	it('keeps one-coin figures under a post about that commodity', () => {
 		expect(isGeneric('1 BTC buys 20.6 oz of gold, a 3.2 cm cube.', SHEET, 'Gold just hit a record against the dollar')).toBe(false);
 	});
+	it('treats everyday prices as one-coin figures, fine only under posts about them', () => {
+		const sheet = [...SHEET, '[everyday-house] Median price of a new US house: $410,700 (Q2 2026). In bitcoin: 4.80 BTC.'];
+		const reply = 'A median new US house is 4.80 BTC.';
+		expect(isGeneric(reply, sheet, CUSTODY)).toBe(true);
+		expect(isGeneric(reply, sheet, 'US home prices hit another record')).toBe(false);
+	});
 	it('ignores replies with no figures', () => {
 		expect(isGeneric('Not your keys, not your coins.', SHEET, CUSTODY)).toBe(false);
 	});
