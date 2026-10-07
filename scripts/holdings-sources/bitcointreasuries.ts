@@ -36,7 +36,10 @@ export async function fetchBitcointreasuries(
 		}
 		html = await res.text();
 	} catch (err) {
-		console.warn(`  bitcointreasuries: fetch failed for ${path}: ${err}`);
+		// Node's fetch reports every network failure as "fetch failed"; the reason is in err.cause.
+		const cause = (err as { cause?: { code?: string; message?: string } }).cause;
+		const why = cause ? ` (${[cause.code, cause.message].filter(Boolean).join(': ')})` : '';
+		console.warn(`  bitcointreasuries: fetch failed for ${path}: ${err}${why}`);
 		return null;
 	}
 
