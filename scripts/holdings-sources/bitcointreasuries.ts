@@ -9,6 +9,11 @@
  *
  * Returning `null` (rather than throwing) lets the orchestrator skip
  * one bad source without aborting the rest of the daily sync.
+ *
+ * The site's response headers grew past Node's 16 KB default around
+ * 1 Oct 2026 (a ~16 KB `link` preload header), which fails every fetch
+ * with UND_ERR_HEADERS_OVERFLOW. `npm run holdings:sync` raises the
+ * limit with --max-http-header-size.
  */
 
 const BASE = 'https://bitcointreasuries.net';
