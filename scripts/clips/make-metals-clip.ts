@@ -7,6 +7,7 @@
  *   npm run build && npx vite preview --port 4173 &
  *   npx tsx scripts/clips/make-metals-clip.ts
  *   npx tsx scripts/clips/make-metals-clip.ts --btc=0.1 --out=output/clips/metals-tenth.mp4
+ *   npx tsx scripts/clips/make-metals-clip.ts --lead="The new element, weighed in the old ones."
  *
  * Frame-exact on a virtual clock (./virtual-clock.ts). Silent. The figures
  * are the link cards' own (functions/_card.ts) for the dataset's last day.
@@ -32,12 +33,14 @@ const dpr = Number(arg('dpr') ?? 2);
 const segS = Number(arg('seg') ?? 4.5);
 const endS = Number(arg('end') ?? 3.5);
 const out = resolve(arg('out') ?? `output/clips/metals-${btc}btc.mp4`);
+/** The end card's first line, above the three weights. */
+const lead = arg('lead') ?? 'Same coin.';
 
 /** In stage order; the key is the homepage's own tab shortcut. */
 const METALS = [
-	{ id: 'gold', key: 'g', name: 'gold' },
-	{ id: 'silver', key: 's', name: 'silver' },
-	{ id: 'pu238', key: 'p', name: 'plutonium-238' },
+	{ id: 'gold', key: 'g', name: 'gold', tile: { z: 79, sym: 'Au', label: 'Gold', mass: '196.97' } },
+	{ id: 'silver', key: 's', name: 'silver', tile: { z: 47, sym: 'Ag', label: 'Silver', mass: '107.87' } },
+	{ id: 'pu238', key: 'p', name: 'plutonium-238', tile: { z: 94, sym: 'Pu', label: 'Plutonium-238', mass: '238.05' } },
 ];
 
 /** A mass in words a reader can feel: "638 g", "44 kg". */
@@ -57,7 +60,7 @@ section.hero-stage ${STAGES} { position: fixed !important; inset: 0 !important; 
 ${CHROME} { display: none !important; }
 html, body { overflow: hidden !important; }
 .mc { position: fixed; z-index: 2147483600; font-family: 'Inter Tight', system-ui, sans-serif; color: #fafafa; pointer-events: none; }
-#mc-top { right: 22px; top: 22px; text-align: right;
+#mc-top { right: 22px; top: 22px; text-align: right; padding: 7px 10px; border-radius: 6px; background: #0b0b0dc0;
 	font: 600 14px/1.5 'JetBrains Mono', ui-monospace, monospace; letter-spacing: 0.06em; color: #f7931a; text-transform: uppercase; }
 #mc-top span { color: #a1a1aa; }
 .mc-panel { left: 0; right: 0; bottom: 0; padding: 120px 30px 64px; background: linear-gradient(#0b0b0d00, #0b0b0de6 42%); }
@@ -67,9 +70,16 @@ html, body { overflow: hidden !important; }
 .mc-panel .mid { font-size: 38px; font-weight: 800; letter-spacing: -0.03em; margin-top: 4px; }
 .mc-panel .sub { font-size: 22px; color: #d4d4d8; margin-top: 14px; }
 .mc-panel .fine { font: 12px/1.4 'JetBrains Mono', ui-monospace, monospace; color: #a1a1aa; margin-top: 10px; }
+.mc-tile { left: 22px; top: 22px; width: 108px; height: 124px; box-sizing: border-box; padding: 8px 10px;
+	border: 2px solid #f7931a; border-radius: 6px; background: #0b0b0dcc; }
+.mc-tile p { margin: 0; }
+.mc-tile .z { font: 600 14px/1 'JetBrains Mono', ui-monospace, monospace; color: #a1a1aa; }
+.mc-tile .s { font-size: 50px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; margin-top: 6px; }
+.mc-tile .n { font-size: 12px; font-weight: 600; color: #e4e4e7; margin-top: 7px; white-space: nowrap; }
+.mc-tile .m { font: 11px/1.3 'JetBrains Mono', ui-monospace, monospace; color: #a1a1aa; }
 #mc-end { inset: 0; background: #0b0b0d; display: flex; flex-direction: column; justify-content: center; padding: 0 36px; gap: 20px; }
 #mc-end p { margin: 0; }
-#mc-end .l { font-size: 30px; color: #a1a1aa; font-weight: 700; }
+#mc-end .l { font-size: 30px; color: #a1a1aa; font-weight: 700; line-height: 1.2; }
 #mc-end .b { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.12; }
 #mc-end .b span { color: #f7931a; }
 #mc-end .u { font-size: 28px; font-weight: 700; margin-top: 26px; }
@@ -121,18 +131,22 @@ async function main() {
 				figures.map((f) => [
 					`mc-${f.id}`,
 					`<p class="big">${f.card.big}<span>${f.card.unit}</span></p><p class="mid">${f.card.mid}</p>` +
-						`<p class="sub">${f.card.subs[0].replace(/\.$/, '')} · ${massWords(f.grams)}</p>` +
+						// The mass, unless the big figure already is one (plutonium's grams).
+						`<p class="sub">${f.card.subs[0].replace(/\.$/, '')}${f.card.unit.trim() === 'g' ? '' : ` · ${massWords(f.grams)}`}</p>` +
 						(f.card.fine ? `<p class="fine">${f.card.fine}</p>` : ''),
 				])
 			),
-			'mc-end': `<p class="l">Same coin.</p><p class="b">${figures.map((f, i) => (i === figures.length - 1 ? `<span>${massWords(f.grams)} of ${f.name}.</span>` : `${massWords(f.grams)} of ${f.name}.`)).join('<br>')}</p><p class="u">bitcoinweighin.com</p>`,
+			...Object.fromEntries(
+				figures.map((f) => [`mc-tile-${f.id}`, `<p class="z">${f.tile.z}</p><p class="s">${f.tile.sym}</p><p class="n">${f.tile.label}</p><p class="m">${f.tile.mass}</p>`])
+			),
+			'mc-end': `<p class="l">${lead}</p><p class="b">${figures.map((f, i) => (i === figures.length - 1 ? `<span>${massWords(f.grams)} of ${f.name}.</span>` : `${massWords(f.grams)} of ${f.name}.`)).join('<br>')}</p><p class="u">bitcoinweighin.com</p>`,
 		};
 		await page.evaluate(`(() => {
 			const o = ${JSON.stringify(overlays)};
 			for (const id of Object.keys(o)) {
 				const d = document.createElement('div');
 				d.id = id;
-				d.className = 'mc' + (id === 'mc-top' || id === 'mc-end' ? '' : ' mc-panel');
+				d.className = 'mc' + (id.startsWith('mc-tile-') ? ' mc-tile' : id === 'mc-top' || id === 'mc-end' ? '' : ' mc-panel');
 				d.innerHTML = o[id];
 				d.style.opacity = id === 'mc-top' ? '1' : '0';
 				document.body.appendChild(d);
@@ -168,7 +182,7 @@ async function main() {
 				const s = i * segS;
 				const inn = smooth((t - s - 0.5) / 0.4);
 				const outt = i === figures.length - 1 ? endIn : smooth((t - (s + segS) + 0.3) / 0.3);
-				ops[`mc-${f.id}`] = inn * (1 - outt);
+				ops[`mc-${f.id}`] = ops[`mc-tile-${f.id}`] = inn * (1 - outt);
 			});
 			await page.evaluate((o) => { for (const [id, v] of Object.entries(o)) (document.getElementById(id) as HTMLElement).style.opacity = String(v); }, ops);
 			await advance(page, frames === 0 ? 0 : frameMs);
