@@ -21,9 +21,14 @@ less gold, we say so.
   $89 million. If nothing on the fact sheet is about the subject, and nothing
   can be worked out for it, skip.
 - **Flip it.** Weighing their thing in bitcoin often lands harder than weighing
-  bitcoin in their thing: "Russia's 2,330 tonnes of gold would buy about 17% of
+  bitcoin in their thing: "Russia's 2,284 tonnes of gold would buy about 17% of
   all the bitcoin there will ever be." The sheet has every big gold holder
   weighed this way (`gold-in-btc-*`), and all the gold ever mined.
+- **Everyday prices for everyday posts.** For posts about pay, homes, gas,
+  eggs or inflation, the sheet weighs one coin in things people buy
+  (`everyday-*`, from FRED): about 1.3 years of median full-time US pay, a
+  median new US house for under 5 BTC. Use them only when the post is about
+  those things.
 - **The who-cares test.** Would someone who owns no bitcoin stop on it? What one
   bitcoin weighs in gold or bills is our wallpaper, not news: never lead with it
   unless the post is about gold, cash or the price. Drafts made only of those
@@ -132,8 +137,8 @@ Why: it makes the price move physical, and the "$1,676 per 1%" figure is a new h
   cube, 638 g… In $1 bills it's 85,528 notes… The bitcoin version is a key that
   weighs nothing." It ignores Sberbank and Russia and restates our wallpaper; the
   owner's verdict: "Literally, who cares?" Better, about the subject: "Russia's
-  central bank holds about 2,330 tonnes of gold. At today's prices that would buy
-  about 3.65 million bitcoin: 17% of every coin that will ever exist."
+  central bank holds about 2,284 tonnes of gold. At today's prices that would buy
+  about 3.58 million bitcoin: 17% of every coin that will ever exist."
 
 - "Strategy's 847,666 BTC would buy 4.1% of Manhattan's land." Under a post
   about $STRC preferred shares. It doesn't answer the post; it's the same line we'd

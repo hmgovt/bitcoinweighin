@@ -1,19 +1,32 @@
 {
 	"_doc": "Checked reference facts the radar's reply drafts may use alongside the site's live figures. Every number a draft uses must come from here, the day's fact sheet, or the post itself (validate.ts enforces it). Approximate where marked; keep sources current, and add a fact only once checked.",
 	"goldReserves": {
-		"_doc": "Official gold reserves, approximate (World Gold Council, 2025). facts.ts turns them into the reserves line and into each holder's gold in bitcoin at the day's prices. Recheck against the WGC table before relying on a figure to the tonne.",
+		"_doc": "Official gold reserves (World Gold Council data as of Q2/August 2026, via Wikipedia's Gold reserve table, checked 7 Oct 2026). facts.ts turns them into the reserves line and into each holder's gold in bitcoin at the day's prices. Recheck each quarter.",
+		"asOf": "Q2/August 2026",
 		"holders": [
-			{ "name": "the United States", "slug": "us", "tonnes": 8133 },
+			{ "name": "the United States", "slug": "us", "tonnes": 8134 },
 			{ "name": "Germany", "slug": "germany", "tonnes": 3350 },
 			{ "name": "Italy", "slug": "italy", "tonnes": 2452 },
 			{ "name": "France", "slug": "france", "tonnes": 2437 },
-			{ "name": "Russia", "slug": "russia", "tonnes": 2330 },
-			{ "name": "China", "slug": "china", "tonnes": 2300 },
+			{ "name": "China", "slug": "china", "tonnes": 2410 },
+			{ "name": "Russia", "slug": "russia", "tonnes": 2284 },
 			{ "name": "Switzerland", "slug": "switzerland", "tonnes": 1040 },
-			{ "name": "India", "slug": "india", "tonnes": 880 },
+			{ "name": "India", "slug": "india", "tonnes": 881 },
 			{ "name": "Japan", "slug": "japan", "tonnes": 846 },
-			{ "name": "the Netherlands", "slug": "netherlands", "tonnes": 612 },
+			{ "name": "Poland", "slug": "poland", "tonnes": 641 },
+			{ "name": "the Netherlands", "slug": "netherlands", "tonnes": 613 },
+			{ "name": "Turkey", "slug": "turkey", "tonnes": 531 },
+			{ "name": "Saudi Arabia", "slug": "saudi-arabia", "tonnes": 323 },
 			{ "name": "the United Kingdom", "slug": "uk", "tonnes": 310 }
+		]
+	},
+	"everyday": {
+		"_doc": "Everyday US prices, from FRED (checked 7 Oct 2026), so a reply can weigh bitcoin in things people buy. facts.ts weighs 1 BTC in each at the day's price. Refresh quarterly (gas monthly): fredgraph.csv?id=<series>.",
+		"items": [
+			{ "slug": "wage-week", "label": "Median weekly pay for a full-time US worker", "usd": 1258, "asOf": "Q2 2026", "source": "BLS via FRED LES1252881500Q" },
+			{ "slug": "house", "label": "Median price of a new US house", "usd": 410700, "asOf": "Q2 2026", "source": "Census/HUD via FRED MSPUS" },
+			{ "slug": "gas", "label": "A US gallon of regular gas", "usd": 4.354, "asOf": "week of 5 Oct 2026", "source": "EIA via FRED GASREGW" },
+			{ "slug": "eggs", "label": "A dozen large eggs in the US", "usd": 2.272, "asOf": "Aug 2026", "source": "BLS via FRED APU0000708111" }
 		]
 	},
 	"facts": [
