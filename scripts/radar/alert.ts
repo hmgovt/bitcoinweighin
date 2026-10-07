@@ -64,10 +64,16 @@ async function main() {
 			// A link given by its key ("moon") means that link; any other stray link is dropped, not the reply.
 			const link = raw.link && (c.links[raw.link] ?? raw.link);
 			const o: Option = { ...raw, link: link && links.includes(link) ? link : '' };
-			const r = checkOption(o, sources, links, recent);
+			const r = checkOption(o, sources, links, recent, c.text);
 			if (r.ok) passing.push(o); else rejected.push({ o, problems: r.problems });
 		}
 		if (d?.skip && !passing.length) { skipped.push(`@${c.author}: ${d.reason ?? 'no angle'} <${c.url}>`); continue; }
+		// Claude drafted, but nothing usable came of it: skip rather than send the
+		// stock template, which says the same thing under every post.
+		if (d?.options?.length && !passing.length && !unchecked(rejected)) {
+			skipped.push(`@${c.author}: no draft good enough (${rejected.map((x) => x.problems[0]).join(' | ').slice(0, 160)}) <${c.url}>`);
+			continue;
+		}
 
 		const when = new Intl.DateTimeFormat('en-GB', { timeZone: wl.hours.tz, hour: '2-digit', minute: '2-digit' }).format(new Date(c.createdAt));
 		const lines = [

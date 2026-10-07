@@ -66,8 +66,24 @@ async function build(): Promise<FactSheet> {
 	add('all-21m', `All 21,000,000 bitcoin at $${f0(px)} are worth ${usd(cap)}: ${sig3(tonnes(21e6 * g))} tonnes of gold, ${((tonnes(21e6 * g) / 216_000) * 100).toFixed(1)}% of all the gold ever mined.`);
 	add('moon', `All 21,000,000 bitcoin stacked as $1 bills reach ${sig3((cap * NOTE_M) / 1000)} km, ${moonPct.toFixed(1)}% of the way to the Moon. They arrive at $${f0((MOON_KM * 1000) / NOTE_M / 21e6)} a coin; every $${f0((MOON_KM * 10) / NOTE_M / 21e6)} on the price adds 1% (${f0(MOON_KM / 100)} km).`);
 
-	const ref = JSON.parse(await readFile('scripts/radar/reference-facts.json', 'utf8')) as { facts: { id: string; text: string }[] };
+	const ref = JSON.parse(await readFile('scripts/radar/reference-facts.json', 'utf8')) as {
+		facts: { id: string; text: string }[];
+		goldReserves: { holders: { name: string; slug: string; tonnes: number }[] };
+	};
 	for (const f of ref.facts) add(`ref-${f.id}`, f.text);
+
+	// Weighed the other way: a nation's gold, or all the gold ever mined, in bitcoin.
+	// A post about a country or its bank can then be answered about that country.
+	const reserves = ref.goldReserves.holders;
+	add('ref-reserves', `Official gold reserves, approximate (World Gold Council, 2025): ${reserves.map((r) => `${r.name.replace(/^the /, '')} ${f0(r.tonnes)} t`).join('; ')}.`);
+	const inBtc = (t: number) => (t * 1e6 / OZ) * day.xau_usd / px;
+	for (const r of reserves) {
+		const btc = inBtc(r.tonnes);
+		const whose = r.name.charAt(0).toUpperCase() + r.name.slice(1) + (r.name.endsWith('s') ? "'" : "'s");
+		add(`gold-in-btc-${r.slug}`, `${whose} ~${f0(r.tonnes)} t of official gold is worth ${usd(r.tonnes * 1e6 / OZ * day.xau_usd)} at today's gold price: about ${aboutBtc(btc)}, ${((btc / 21e6) * 100).toFixed(1)}% of all 21,000,000 bitcoin.`);
+	}
+	const allGold = inBtc(216_000);
+	add('gold-in-btc-all', `All the gold ever mined (~216,000 t) is worth ${usd(216_000 * 1e6 / OZ * day.xau_usd)} at today's gold price: ${(allGold / 21e6).toFixed(1)}× the value of all 21,000,000 bitcoin.`);
 
 	const links: Record<string, string> = {
 		'gold-1': L('btc=1&commodity=gold'),
@@ -156,6 +172,9 @@ export async function datedFacts(text: string): Promise<string[]> {
 	}
 	return out;
 }
+
+/** Tonnes are approximate, so their bitcoin is too: three significant figures. */
+const aboutBtc = (btc: number) => (btc >= 1e6 ? `${sig3(btc / 1e6)} million BTC` : `${f0(Number(btc.toPrecision(3)))} BTC`);
 
 function shiftDays(d: string, n: number): string {
 	return new Date(Date.parse(d + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);

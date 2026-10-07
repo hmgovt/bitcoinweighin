@@ -14,6 +14,20 @@ less gold, we say so.
 
 ## What makes a good reply
 
+- **Find the subject, then weigh that.** Before anything else, name what the
+  post is about: a country, a bank, a company, a person, a sum, a date. Then
+  weigh *that*, not bitcoin in general. Russia's biggest bank in the news?
+  Weigh Russia's gold reserve in bitcoin. An $89 million purchase? Stack the
+  $89 million. If nothing on the fact sheet is about the subject, and nothing
+  can be worked out for it, skip.
+- **Flip it.** Weighing their thing in bitcoin often lands harder than weighing
+  bitcoin in their thing: "Russia's 2,330 tonnes of gold would buy about 17% of
+  all the bitcoin there will ever be." The sheet has every big gold holder
+  weighed this way (`gold-in-btc-*`), and all the gold ever mined.
+- **The who-cares test.** Would someone who owns no bitcoin stop on it? What one
+  bitcoin weighs in gold or bills is our wallpaper, not news: never lead with it
+  unless the post is about gold, cash or the price. Drafts made only of those
+  one-coin figures under a post about something else are refused automatically.
 - **Answer the post.** Start from what *they* said: their number, their word,
   their argument. A reply that would fit under any bitcoin post is a bad reply.
 - **One insight, made physical.** Turn their abstraction into something you can
@@ -112,6 +126,14 @@ Why: it stays on their topic (debt) and the contrast makes the fixed-supply poin
 Why: it makes the price move physical, and the "$1,676 per 1%" figure is a new handle on it.
 
 ## Bad examples (don't)
+
+- Under "Russia's largest bank Sberbank officially approved as crypto
+  custodian": "Custody, made physical. One bitcoin's worth of gold is a 3.2 cm
+  cube, 638 g… In $1 bills it's 85,528 notes… The bitcoin version is a key that
+  weighs nothing." It ignores Sberbank and Russia and restates our wallpaper; the
+  owner's verdict: "Literally, who cares?" Better, about the subject: "Russia's
+  central bank holds about 2,330 tonnes of gold. At today's prices that would buy
+  about 3.65 million bitcoin: 17% of every coin that will ever exist."
 
 - "Strategy's 847,666 BTC would buy 4.1% of Manhattan's land." Under a post
   about $STRC preferred shares. It doesn't answer the post; it's the same line we'd

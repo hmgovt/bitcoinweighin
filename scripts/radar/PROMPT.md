@@ -8,9 +8,11 @@ and decides whether to send it; nothing you write is posted automatically.
    off right now, with its author, counts, a `facts` list (the only figures you
    may use besides numbers in the post itself), `links` (the only links you may
    use) and a `fallback` template reply.
-3. For each candidate, think about what the post is actually saying and look for
-   the one surprising, physical insight the facts allow. Write up to two
-   options that take different angles, or skip it.
+3. For each candidate, first name the post's subject (a country, a bank, a
+   company, a person, a sum, a date), then look for the one surprising, physical
+   insight the facts allow about that subject. Restating what one bitcoin weighs
+   is not an insight; if you can't find one about the subject, skip the post.
+   Otherwise write up to two options that take different angles.
 4. Write `output/radar/drafts.json` in exactly this shape:
 
 ```json
