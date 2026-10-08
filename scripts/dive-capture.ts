@@ -37,7 +37,7 @@ export interface CaptureOptions {
 }
 
 export async function openDive(o: CaptureOptions): Promise<DiveCapture> {
-	const browser: Browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+	const browser: Browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 	const page = await browser.newPage({ viewport: { width: o.width, height: o.height + 200 }, deviceScaleFactor: o.dpr ?? 1 });
 	await page.addInitScript(() => {
 		const realNow = performance.now.bind(performance);
