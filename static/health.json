@@ -1,7 +1,7 @@
 {
-  "lastRun": "2026-10-07T07:53:13.988Z",
+  "lastRun": "2026-10-08T08:08:56.210Z",
   "type": "daily",
-  "date": "2026-10-06",
+  "date": "2026-10-07",
   "sources": {
     "btc": {
       "status": "ok",
@@ -24,11 +24,55 @@
     "oil_brent": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 2,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-09-26&observation_end=2026-10-06&api_key=***&file_type=json",
-      "matchedDate": "2026-09-29"
+      "rowCount": 7,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-09-27&observation_end=2026-10-07&api_key=***&file_type=json",
+      "matchedDate": "2026-10-06"
     }
   },
+  "revisions": [
+    {
+      "date": "2026-09-30",
+      "field": "brent",
+      "from": 113.96,
+      "to": 115.91
+    },
+    {
+      "date": "2026-10-01",
+      "field": "brent",
+      "from": 113.96,
+      "to": 114.82
+    },
+    {
+      "date": "2026-10-02",
+      "field": "brent",
+      "from": 113.96,
+      "to": 135.51
+    },
+    {
+      "date": "2026-10-03",
+      "field": "brent",
+      "from": 113.96,
+      "to": 135.51
+    },
+    {
+      "date": "2026-10-04",
+      "field": "brent",
+      "from": 113.96,
+      "to": 135.51
+    },
+    {
+      "date": "2026-10-05",
+      "field": "brent",
+      "from": 113.96,
+      "to": 125.51
+    },
+    {
+      "date": "2026-10-06",
+      "field": "brent",
+      "from": 113.96,
+      "to": 125.44
+    }
+  ],
   "cross_validation": {
     "status": "skipped",
     "threshold_pct": 0.5,
