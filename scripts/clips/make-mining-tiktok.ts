@@ -1,5 +1,5 @@
 /**
- * make-mining-tiktok.ts — the /mining dive as a TikTok cut (1080×1920, ~24 s),
+ * make-mining-tiktok.ts — the /mining dive as a TikTok cut (rendered at 720×1280 and scaled to 1080×1920, ~23 s; full-size software WebGL is too slow),
  * built to scripts/clips/VIDEO.md: frame one is the payoff (the die, "a
  * trillion guesses a second"), a new part of the miner every ~3.5 s, and it
  * ends on the opening shot so it loops. Captions sit inside TikTok's safe
@@ -16,7 +16,7 @@ import { miningShortFacts } from '../bot/make-mining-short.ts';
 import { n0 } from '../../src/lib/mining/format.ts';
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split('=').slice(1).join('=');
-const FPS = 30;
+const FPS = 24;
 const base = arg('base') ?? process.env.SITE_BASE_URL ?? 'http://localhost:4173';
 const out = resolve(arg('out') ?? 'output/clips/mining-tiktok.mp4');
 
@@ -25,7 +25,7 @@ const HOOK = 'This chip guesses a trillion times a second.<small>Almost every gu
 async function main() {
 	const f = miningShortFacts();
 	const dir = await mkdtemp(join(tmpdir(), 'mining-tiktok-'));
-	const cap = await openDive({ base, dir, fps: FPS, width: 540, height: 960, dpr: 2 });
+	const cap = await openDive({ base, dir, fps: FPS, width: 540, height: 960, dpr: 4 / 3 });
 	try {
 		await cap.page.evaluate(() => {
 			const st = document.querySelector('.stage3d') as HTMLElement;
