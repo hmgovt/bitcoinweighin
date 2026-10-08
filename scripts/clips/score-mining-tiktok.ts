@@ -14,7 +14,7 @@ const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.sp
 
 /** The cut's beats, seconds (make-mining-tiktok.ts). */
 const CUTS = [0, 3.2, 6.7, 10.0, 13.6, 16.9, 20.5];
-const DURATION = 22.7;
+const DURATION = 19.0;
 const BPM = 112;
 const beat = 60 / BPM;
 

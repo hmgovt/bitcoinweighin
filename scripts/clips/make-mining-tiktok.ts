@@ -2,7 +2,7 @@
  * make-mining-tiktok.ts — the /mining dive as a TikTok cut (rendered at 720×1280 and scaled to 1080×1920, ~23 s; full-size software WebGL is too slow),
  * built to scripts/clips/VIDEO.md: frame one is the payoff (the die, "a
  * trillion guesses a second"), a new part of the miner every ~3.5 s, and it
- * ends on the opening shot so it loops. Captions sit inside TikTok's safe
+ * ends diving into one core. Captions sit inside TikTok's safe
  * zone. Silent: add a sound in the app.
  *
  *   npm run build && npx vite preview --port 4173 &
@@ -62,11 +62,9 @@ async function main() {
 		await cap.shoot(3300);
 		await cap.step(/Into the core/);
 		await say(`One guess from cores like these found block ${n0(f.height)}.<small>nonce ${f.nonce}<br>${hashHtml}</small>`);
-		await cap.shoot(3600);
-		// Back to frame one, so the end runs into the start.
-		await cap.step(/Die face/);
-		await say(HOOK);
-		await cap.shoot(2200);
+		// About 2 s into the core the page hands the dive to its 2D view and
+		// scrolls away, so the cut ends on the dive.
+		await cap.shoot(2000);
 		console.log(`captured ${cap.frames} frames`);
 		await ffmpeg([
 			'-y', '-framerate', String(FPS), '-i', join(dir, 'f%04d.png'),
