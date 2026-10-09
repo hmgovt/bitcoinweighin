@@ -27,6 +27,12 @@ export const SOURCES: SourceConfig[] = [
 
 	// Energy — FRED
 	{ id: 'oil_brent', type: 'fred', symbol: 'DCOILBRENTEU', field: 'brent' },
+
+	// Road fuel — FRED's weekly US retail averages (EIA survey, USD per US
+	// gallon, taxes included), dated each survey Monday. A daily row takes the
+	// latest survey on or before its date; the oil tab's diesel and gasoline.
+	{ id: 'gasoline', type: 'fred', symbol: 'GASREGW', field: 'gasoline' },
+	{ id: 'diesel', type: 'fred', symbol: 'GASDESW', field: 'diesel' },
 ];
 
 export const START_DATE = '2013-01-01';

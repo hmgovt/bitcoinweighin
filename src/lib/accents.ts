@@ -13,6 +13,8 @@ export function commodityAccent(id: string): string {
 			return '#85bb65';
 		case 'manhattan':
 			return '#f7931a';
+		case 'oil':
+			return '#3fb6a8';
 		default:
 			return '#d4a14a';
 	}

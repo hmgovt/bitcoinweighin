@@ -109,6 +109,14 @@
 				EIA spot price daily, typically with a one business-day lag. The daily job retries
 				transient HTTP errors on a backoff and forward-fills if the value never arrives.
 			</p>
+			<p>
+				FRED is also the source for the Oil tab's two road fuels: the EIA's weekly US retail
+				averages for regular gasoline (<code>GASREGW</code>) and No.&nbsp;2 diesel
+				(<code>GASDESW</code>), in USD per US gallon with taxes included. Each survey is dated
+				its Monday; a day takes the latest survey on or before it, so six days in seven repeat
+				the week's figure. They sit in <code>prices.json</code> as <code>gasoline</code> and
+				<code>diesel</code>, back to 2013, but are not yet columns of the citable dataset.
+			</p>
 			<h3>Stooq (retired)</h3>
 				<p>
 					Stooq was the original source for BTC, gold, silver, and several deferred commodities
@@ -177,6 +185,36 @@
 				card gives the whole 21-million supply's height at today's price, and the price at which
 				it reaches the Moon: about $167,595 per BTC. That figure doesn't move with the market,
 				since one note is one dollar (384,400&nbsp;km ÷ 0.10922&nbsp;mm ÷ 21,000,000).
+			</p>
+			<h3 id="oil">Oil: crude, diesel or gasoline</h3>
+			<p>
+				The <a href="/btc/oil" class="underline hover:no-underline">Oil</a> tab converts a sum
+				into litres of one of three fuels (<code>src/lib/oil.ts</code>): Brent crude at its daily
+				spot price per barrel (42 US gallons, 158.987&nbsp;L), or US diesel or gasoline at the
+				weekly pump price per gallon (3.785&nbsp;L). Crude is a wholesale price before refining,
+				freight and tax, so a dollar buys roughly three times the volume of crude as of
+				gasoline; the readout says which kind of price it is. Weights use typical densities:
+				0.835&nbsp;kg/L for Brent, 0.84 for diesel, 0.745 for gasoline.
+			</p>
+			<p>
+				The stage draws the volume at true size in the container that suits it. Up to four
+				full tanks, mid-size sedans (4.73&nbsp;m, 2.75&nbsp;m wheelbase) drawn see-through, with
+				the 55-litre moulded tank (0.46 × 0.80 × 0.15&nbsp;m) in place under the rear bench, its
+				filler neck running to the fuel door, and its fuel at the true level. Up to 20,000 drums,
+				55-US-gallon steel drums (208&nbsp;L, 572&nbsp;mm across, 851&nbsp;mm tall), four to a
+				pallet, drawn see-through with the last one filled to its true level. Note the drum is not the barrel: the 42-gallon oil barrel is a unit of
+				account. Up to ten tankers, VLCC supertankers (330 × 60&nbsp;m, 2&nbsp;million barrels of
+				cargo — the EIA gives 1.9–2.2&nbsp;million), with the deck cut away and the cargo tanks
+				drawn as one open hold 225 × 54&nbsp;m, so the oil stands at its true depth: a full load is
+				26&nbsp;m deep. Beyond that, an oil field: a 40 × 40 grid of pump jacks standing for
+				everything Prudhoe Bay, North America's largest field, has produced — about
+				13.2&nbsp;billion barrels from 1977 to the end of 2024 (BP Prudhoe Bay Royalty Trust,
+				annual report for 2024) — so each jack is 1/1,600 of it, about 8.25&nbsp;million barrels,
+				and the last one is lit in proportion. The jacks are symbolic of volume, not a map of the
+				field's real wells. Whatever the fuel, what you bought is drawn in bitcoin orange at every
+				scale, and a gauge on the stage reads how full the last container is: a fuel dial for the
+				car, a bar for the drum, the hold and the field. The readout adds how long the world takes to use that much oil, at
+				the IEA's 2025 figure of about 104&nbsp;million barrels a day.
 			</p>
 			<h3 id="manhattan">Manhattan (land, not a commodity)</h3>
 			<p>

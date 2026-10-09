@@ -36,6 +36,7 @@ const RELATED_DEFAULT = [
 	{ href: '/btc/cocaine', label: 'BTC → cocaine' },
 	{ href: '/btc/cash', label: 'BTC → cash' },
 	{ href: '/btc/manhattan', label: 'BTC → Manhattan land' },
+	{ href: '/btc/oil', label: 'BTC → oil' },
 ];
 
 export const COMMODITY_CONTENT: Record<string, CommodityContent> = {
@@ -289,5 +290,47 @@ export const COMMODITY_CONTENT: Record<string, CommodityContent> = {
 					"The land value is a 2014 estimate, the latest rigorous total for the whole island, so the figure is illustrative. The bitcoin side moves daily with the BTC-USD price; the methodology page gives the sources for both.",
 			},
 		],
+	},
+	oil: {
+		title: 'Bitcoin to Oil: How Many Barrels Does 1 BTC Buy Today?',
+		h1: 'Bitcoin to oil: how much crude, diesel or gasoline does 1 BTC buy?',
+		metaDescription:
+			'How many barrels of oil does 1 bitcoin buy? Live BTC-to-Brent ratio, plus US diesel and gasoline at the pump — drawn at true size from a car tank to a supertanker and an oil field.',
+		intro: [
+			'One bitcoin currently buys roughly {ratio} of Brent crude. The ratio is recomputed every day from the BTC-USD price (CoinGecko) and the Brent spot price per barrel, which FRED republishes from the US Energy Information Administration. A barrel is 42 US gallons, or about 159 litres.',
+			"On the homepage the Oil tab switches between three fuels — Brent crude, US diesel and US gasoline, the last two at the EIA's weekly average pump price — and draws what you could buy at true size: the fuel in a mid-size car's tank, a yard of 55-gallon drums, the hold of a two-million-barrel supertanker, and past ten tankers a field of pump jacks standing for Prudhoe Bay, North America's largest oil field.",
+		],
+		context: [
+			'Crude and pump fuel are different kinds of price. Brent is a wholesale spot price for unrefined oil at sea; a gallon of gasoline or diesel at a US pump carries refining, distribution, retail margin and tax on top. So the same bitcoin buys roughly three times as many litres of crude as of gasoline, and the tab says which kind of price each fuel uses.',
+			"Oil is also a useful yardstick for the scale of bitcoin itself. The world uses about 104 million barrels a day (IEA, 2025); all 21 million bitcoin buy roughly as much crude as Prudhoe Bay has produced in nearly fifty years. The Brent series goes back to 2013 in the daily dataset at /data; the weekly pump prices sit alongside it in the site's prices.json.",
+		],
+		faqs: [
+			{
+				question: 'How many barrels of oil does 1 bitcoin buy today?',
+				answer:
+					'About {ratio} of Brent crude, from the latest daily BTC-USD price and the Brent spot price per barrel (FRED, DCOILBRENTEU).',
+			},
+			{
+				question: 'Why does bitcoin buy so much less gasoline than crude?',
+				answer:
+					'Because the gasoline and diesel prices are retail pump prices — the EIA weekly US averages, taxes included — while Brent is a wholesale price for crude before refining, shipping and tax.',
+			},
+			{
+				question: 'What is the difference between a barrel and a drum?',
+				answer:
+					'A barrel of oil is a unit: 42 US gallons, about 159 litres. The steel drums drawn on the site are the common 55-gallon kind, about 208 litres each.',
+			},
+			{
+				question: 'How much oil is a supertanker?',
+				answer:
+					'A VLCC (very large crude carrier), about 330 metres long, carries around 2 million barrels; the EIA gives 1.9 to 2.2 million. The site draws its hold cut open, with the oil at its true depth.',
+			},
+			{
+				question: 'Could all the bitcoin in existence buy an oil field?',
+				answer:
+					'At recent prices, about one Prudhoe Bay: the Alaskan field has produced some 13.2 billion barrels since 1977, and 21 million bitcoin buy a similar volume of crude when one bitcoin is worth around $80,000 and Brent is around $125.',
+			},
+		],
+		relatedPages: RELATED_DEFAULT,
 	},
 };

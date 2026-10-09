@@ -107,6 +107,12 @@ function formatRatio(amount: number, commodityId: string): string {
 		return `${Math.round(amount).toLocaleString('en-US')} $1 bills`;
 	}
 
+	if (c.unit === 'barrel') {
+		const litres = Math.round(amount * 158.987).toLocaleString('en-US');
+		if (amount >= 100) return `${Math.round(amount).toLocaleString('en-US')} barrels (${litres} litres)`;
+		return `${amount.toFixed(2)} barrels (${litres} litres)`;
+	}
+
 	if (c.unit === 'm2') return `${formatArea(amount, 'imperial')} (${formatArea(amount, 'metric')})`;
 
 	return `${amount.toFixed(2)} ${c.unit}`;
