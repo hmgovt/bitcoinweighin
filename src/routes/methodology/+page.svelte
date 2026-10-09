@@ -115,7 +115,8 @@
 				(<code>GASDESW</code>), in USD per US gallon with taxes included. Each survey is dated
 				its Monday; a day takes the latest survey on or before it, so six days in seven repeat
 				the week's figure. They sit in <code>prices.json</code> as <code>gasoline</code> and
-				<code>diesel</code>, back to 2013, but are not yet columns of the citable dataset.
+				<code>diesel</code>, and since dataset v1.1.0 in the citable dataset as
+				<code>gasoline_usd</code> and <code>diesel_usd</code> (with per-BTC columns), back to 2013.
 			</p>
 			<h3>Stooq (retired)</h3>
 				<p>
