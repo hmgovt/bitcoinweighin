@@ -193,8 +193,9 @@
 				into litres of one of three fuels (<code>src/lib/oil.ts</code>): Brent crude at its daily
 				spot price per barrel (42 US gallons, 158.987&nbsp;L), or US diesel or gasoline at the
 				weekly pump price per gallon (3.785&nbsp;L). Crude is a wholesale price before refining,
-				freight and tax, so a dollar buys roughly three times the volume of crude as of
-				gasoline; the readout says which kind of price it is. Weights use typical densities:
+				freight and tax, so a dollar buys more crude than gasoline by volume: typically about
+				1.75 times as much since 2013, from 1.2 times (March 2022) to more than 8 times (April
+				2020, when crude crashed). The readout says which kind of price it is. Weights use typical densities:
 				0.835&nbsp;kg/L for Brent, 0.84 for diesel, 0.745 for gasoline.
 			</p>
 			<p>
