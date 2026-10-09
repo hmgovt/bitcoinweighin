@@ -15,10 +15,11 @@ describe('cash commodity', () => {
 	});
 
 	it('is the 5th launch commodity, after cocaine and before Manhattan', () => {
-		expect(LAUNCH_COMMODITIES).toHaveLength(6);
+		expect(LAUNCH_COMMODITIES).toHaveLength(7);
 		expect(LAUNCH_COMMODITIES[4].id).toBe('cash');
 		expect(LAUNCH_COMMODITIES[3].id).toBe('cocaine');
 		expect(LAUNCH_COMMODITIES[5].id).toBe('manhattan');
+		expect(LAUNCH_COMMODITIES[6].id).toBe('oil');
 	});
 
 	it('is present in the full catalogue', () => {

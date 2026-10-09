@@ -106,7 +106,12 @@
 					<strong>See it at scale.</strong>
 					<a href={deeplinkHref} class="underline hover:no-underline"
 						>Open the live visualisation</a
-					>{#if data.renderStyle === 'land_patch'}
+					>{#if data.renderStyle === 'oil_ladder'}
+						— switch between Brent crude, US diesel and US gasoline and see the
+						volume at true size: a car's fuel tank, a yard of 55-gallon drums, a
+						supertanker's hold, then a field of pump jacks, with a slider scrubbing
+						from 1 sat to 21 M BTC.
+					{:else if data.renderStyle === 'land_patch'}
 						— a 3-D map of every lot and building in Manhattan, with the land a
 						bitcoin amount buys filled in orange from the Battery northward, and a
 						slider scrubbing from 1 sat to 21 M BTC.
