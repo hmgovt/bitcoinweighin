@@ -301,7 +301,7 @@ export const COMMODITY_CONTENT: Record<string, CommodityContent> = {
 			"On the homepage the Oil tab switches between three fuels — Brent crude, US diesel and US gasoline, the last two at the EIA's weekly average pump price — and draws what you could buy at true size: the fuel in a mid-size car's tank, a yard of 55-gallon drums, the hold of a two-million-barrel supertanker, and past ten tankers a field of pump jacks standing for Prudhoe Bay, North America's largest oil field.",
 		],
 		context: [
-			'Crude and pump fuel are different kinds of price. Brent is a wholesale spot price for unrefined oil at sea; a gallon of gasoline or diesel at a US pump carries refining, distribution, retail margin and tax on top. So the same bitcoin buys roughly three times as many litres of crude as of gasoline, and the tab says which kind of price each fuel uses.',
+			'Crude and pump fuel are different kinds of price. Brent is a wholesale spot price for unrefined oil at sea; a gallon of gasoline or diesel at a US pump carries refining, distribution, retail margin and tax on top. So the same bitcoin buys more litres of crude than of gasoline: typically about 1.75 times as many since 2013, from 1.2 times in March 2022 to more than 8 times in April 2020, when crude crashed. The tab says which kind of price each fuel uses.',
 			"Oil is also a useful yardstick for the scale of bitcoin itself. The world uses about 104 million barrels a day (IEA, 2025); all 21 million bitcoin buy roughly as much crude as Prudhoe Bay has produced in nearly fifty years. The Brent series goes back to 2013 in the daily dataset at /data; the weekly pump prices sit alongside it in the site's prices.json.",
 		],
 		faqs: [

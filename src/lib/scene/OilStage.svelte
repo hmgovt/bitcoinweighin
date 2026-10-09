@@ -527,7 +527,7 @@
 		const m = new three.Matrix4().compose(
 			new three.Vector3(x, DRUM.palletH + 0.015, z),
 			new three.Quaternion(),
-			new three.Vector3(1, Math.max(DRUM_FULL_H * fill, 0.002), 1)
+			new three.Vector3(1, fill > 0.002 ? DRUM_FULL_H * fill : 1e-6, 1)
 		);
 		drumFuel.setMatrixAt(i, m);
 		drumFuel.instanceMatrix.needsUpdate = true;
@@ -762,7 +762,9 @@
 				const on = k < s.count;
 				c.root.visible = on;
 				const f = k < s.count - 1 ? 1 : s.lastFill;
-				c.fuel.scale.y = Math.max((TANK.h - 0.012) * f, 0.001);
+				// Under ~0.1 L there's nothing to see: a film would claim more than is there.
+				c.fuel.visible = f > 0.002;
+				c.fuel.scale.y = Math.max((TANK.h - 0.012) * f, 0.0005);
 			});
 			// Seen from the rear right quarter, the fuel-door side; Sat sits by the boot.
 			dog?.position.set(-CAR.len / 2 - 0.45, 0, CAR.wid / 2 + 0.25);
