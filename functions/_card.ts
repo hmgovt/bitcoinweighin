@@ -14,7 +14,7 @@
 import mapMeta from '../src/lib/manhattan-map.json';
 import holdings from '../src/lib/entity-holdings.json';
 import artManifest from '../static/og/art/manifest.json';
-import { OG_COMMODITIES, MANHATTAN_DEVELOPABLE_M2, computeAmount, type DayPrices } from './_lib';
+import { OG_COMMODITIES, MANHATTAN_DEVELOPABLE_M2, OIL, computeAmount, type DayPrices } from './_lib';
 
 export const CARD_W = 1200;
 export const CARD_H = 630;
@@ -136,7 +136,7 @@ function artFor(commodity: string, quantity: number): Pick<CardModel, 'art' | 'a
 
 // ── The card, as data ──────────────────────────────────────────
 
-export type Theme = 'metal' | 'floor' | 'land' | 'space';
+export type Theme = 'metal' | 'floor' | 'land' | 'space' | 'oil' | 'sea' | 'field';
 
 export interface CardModel {
 	theme: Theme;
@@ -153,7 +153,7 @@ export interface CardModel {
 	dateLabel: string;
 }
 
-const NAME: Record<string, string> = { gold: 'gold', silver: 'silver', pu238: 'plutonium-238', cocaine: 'cocaine' };
+const NAME: Record<string, string> = { gold: 'gold', silver: 'silver', pu238: 'plutonium-238', cocaine: 'cocaine', oil: 'oil' };
 
 export function cardModel(q: CardQuery): CardModel {
 	const c = OG_COMMODITIES[q.commodity] ?? OG_COMMODITIES.gold;
@@ -205,6 +205,8 @@ export function cardModel(q: CardQuery): CardModel {
 		};
 	}
 
+	if (c.id === 'oil') return { ...base, ...oilCard(amount * OIL.LITRES_PER_BARREL) };
+
 	// Manhattan
 	const m2 = amount;
 	const share = m2 / MANHATTAN_DEVELOPABLE_M2;
@@ -223,6 +225,66 @@ export function cardModel(q: CardQuery): CardModel {
 	return { ...base, theme: 'land', art, big, unit, mid: 'of Manhattan land', subs: ['At the Battery, the island’s southern tip.'], fine: 'Land value: Barr, Smith & Kulkarni (2014) · illustrative' };
 }
 
+/** A share as a percentage: "33%", "1.5%", "0.04%". */
+function pctWords(f: number): string {
+	const p = f * 100;
+	return `${p >= 10 ? Math.round(p) : sig3(p)}%`;
+}
+
+/** How long the whole world takes to use `litres` of oil. */
+export function worldSpan(litres: number): string {
+	const s = (litres / OIL.LITRES_PER_BARREL / OIL.WORLD_BARRELS_PER_DAY) * 86400;
+	const n = (v: number, unit: string) => `${sig3(v)} ${unit}${sig3(v) === '1' ? '' : 's'}`;
+	if (s < 1) return n(s * 1000, 'millisecond');
+	if (s < 120) return n(s, 'second');
+	if (s < 7200) return n(s / 60, 'minute');
+	if (s < 172800) return n(s / 3600, 'hour');
+	if (s < 2 * 365.25 * 86400) return n(s / 86400, 'day');
+	return n(s / (365.25 * 86400), 'year');
+}
+
+/**
+ * The oil card: Brent crude in barrels (litres under one barrel), on the
+ * stage's own ladder — a car's tank, 55-gallon drums, supertankers, then
+ * Prudhoe Bay — and how long the world takes to burn it.
+ */
+function oilCard(L: number): Omit<CardModel, 'eyebrow' | 'dateLabel'> {
+	const bbl = L / OIL.LITRES_PER_BARREL;
+	let big: string;
+	let unit: string;
+	if (bbl >= 1e6) {
+		const [n, suffix] = bigCount(bbl); // "13.7" + "B"
+		[big, unit] = [n + suffix, ' barrels'];
+	} else if (bbl >= 1) [big, unit] = [sig3(bbl), bbl < 1.005 ? ' barrel' : ' barrels'];
+	else [big, unit] = [sig3(L), ' litres'];
+	let rung: string;
+	const art = artFor('oil', L);
+	// The backdrop follows the picture's ground, which is the art rung's, not the amount's.
+	const artL = nearestRung('oil', L)?.q ?? L;
+	const theme: Theme = artL <= OIL.MAX_DRUMS * OIL.DRUM_L ? 'oil' : artL <= OIL.MAX_TANKERS * OIL.VLCC_BARRELS * OIL.LITRES_PER_BARREL ? 'sea' : 'field';
+	if (L <= OIL.MAX_CARS * OIL.CAR_TANK_L) {
+		const t = L / OIL.CAR_TANK_L;
+		rung = t < 0.995 ? `${pctWords(t)} of a car’s 55-litre tank.` : `${sig3(t)} tanks for a mid-size car.`;
+	} else if (L <= OIL.MAX_DRUMS * OIL.DRUM_L) {
+		rung = `${sig3(L / OIL.DRUM_L)} 55-gallon drums.`;
+	} else if (bbl <= OIL.MAX_TANKERS * OIL.VLCC_BARRELS) {
+		const t = bbl / OIL.VLCC_BARRELS;
+		rung = t < 0.995 ? `${pctWords(t)} of a supertanker’s load.` : `Enough to fill ${sig3(t)} supertankers.`;
+	} else {
+		const f = bbl / OIL.PRUDHOE_BARRELS;
+		rung = f < 0.995 ? `${pctWords(f)} of all Prudhoe Bay has produced.` : `All of Prudhoe Bay’s 13.2 billion barrels${f >= 1.05 ? `, ${sig3(f)}×` : ''}.`;
+	}
+	return {
+		theme,
+		...art,
+		big,
+		unit,
+		mid: 'of Brent crude',
+		subs: [rung, `The world burns it in ${worldSpan(L)}.`],
+		fine: 'Brent spot · FRED / EIA',
+	};
+}
+
 export function frontierStreet(m2: number): string | null {
 	let best: string | null = null;
 	for (const s of mapMeta.streets) {
@@ -234,7 +296,7 @@ export function frontierStreet(m2: number): string | null {
 
 function titleParts(q: { commodity: string; btc: number; preset?: string }): [string, string] {
 	const who = (q.preset && WHO[q.preset]) || btcWords(q.btc);
-	const what = q.commodity === 'manhattan' ? 'Manhattan' : q.commodity === 'cash' ? '$1 bills' : NAME[q.commodity] ?? 'gold';
+	const what = q.commodity === 'manhattan' ? 'Manhattan' : q.commodity === 'cash' ? '$1 bills' : q.commodity === 'oil' ? 'barrels of oil' : NAME[q.commodity] ?? 'gold';
 	return [who, what];
 }
 
@@ -246,7 +308,7 @@ export function cardTitle(q: { commodity: string; btc: number; preset?: string }
 /** The share description: no numbers, so it needs no prices and never goes stale. */
 export function cardDescription(q: { commodity: string; btc: number; preset?: string }): string {
 	const [who, what] = titleParts(q);
-	return `${who}, weighed in ${what} at today’s prices and drawn at true scale. Bitcoin measured against real things: gold, silver, plutonium-238, cocaine, cash and Manhattan.`;
+	return `${who}, weighed in ${what} at today’s prices and drawn at true scale. Bitcoin measured against real things: gold, silver, plutonium-238, cocaine, cash, Manhattan and oil.`;
 }
 
 // ── The card, as a Satori element tree ─────────────────────────
@@ -265,6 +327,10 @@ const THEME: Record<Theme, { bg: string; fade: string; art: { left: number; top:
 	floor: { bg: '#29251f', fade: '#29251f', art: { left: 170, top: -20, width: 1200, height: 630 } },
 	land: { bg: '#18181b', fade: '#18181b', art: { left: 260, top: -10, width: 1200, height: 630 } },
 	space: { bg: '#000000', fade: '#000000', art: { left: 500, top: 0, width: 700, height: 630 } },
+	// The oil stage's three grounds: the yard (car, drums), the sea (tankers), the field.
+	oil: { bg: '#3a3633', fade: '#3a3633', art: { left: 230, top: -10, width: 1200, height: 630 } },
+	sea: { bg: '#1c2029', fade: '#1c2029', art: { left: 230, top: -10, width: 1200, height: 630 } },
+	field: { bg: '#4a4233', fade: '#4a4233', art: { left: 230, top: -10, width: 1200, height: 630 } },
 };
 
 /** The part of the card the art's subject should sit in: clear of the text, inside the right edge. */
@@ -280,7 +346,7 @@ const SUBJECT_WINDOW: [number, number] = [560, 1180];
  */
 export function artLeft(m: Pick<CardModel, 'theme' | 'artX'>): number {
 	const fixed = THEME[m.theme].art.left;
-	if (!m.artX || (m.theme !== 'metal' && m.theme !== 'floor')) return fixed;
+	if (!m.artX || !['metal', 'floor', 'oil', 'sea', 'field'].includes(m.theme)) return fixed;
 	const [a, b] = m.artX;
 	const [w0, w1] = SUBJECT_WINDOW;
 	const left = Math.min((w0 + w1) / 2 - (a + b) / 2, w1 - b);

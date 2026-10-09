@@ -1,6 +1,6 @@
 /**
  * stage-still.ts — a still of any hero stage (gold, silver, Pu-238, cocaine,
- * cash, Manhattan) at any amount and date, for posts and link cards.
+ * cash, Manhattan, oil) at any amount and date, for posts and link cards.
  *
  * Opens the homepage deep link, waits for the stage to report a rendered
  * frame (HeroStage's data-commodity hook), blows the stage up to fill the
@@ -40,9 +40,9 @@ const zoom = Math.max(1, Number(arg('zoom') ?? 1));
 const out = resolve(arg('out') ?? `output/stills/${commodity}-${preset ?? btc ?? 'default'}${date ? `-${date}` : ''}.png`);
 
 // Every stage's root, and the chrome drawn over it that a still doesn't want.
-const STAGES = '.live-stage, .bill-stage, .coke-stage, .land-stage';
+const STAGES = '.live-stage, .bill-stage, .coke-stage, .land-stage, .oil-stage';
 const CHROME = [
-	'.stage-buttons', '.land-credit', '.land-note', 'button', '[role="button"]',
+	'.stage-buttons', '.land-credit', '.land-note', '.oil-gauge', '.oil-caption', '.oil-note', 'button', '[role="button"]',
 	'.hud', '.ride-hud', '.ride-card', '.ride-alt', '.ride-label', '.scale-label', '.labels', '.corner', '.dragnote',
 	'.hint', '.caption', '.caption-strip', '.chips', '.chip', '.loupe-label', '.loupe-svg', '.cube-caption', '.cube-edge', '.edge-label',
 ].map((s) => `:is(${STAGES}) ${s}`).join(', ');

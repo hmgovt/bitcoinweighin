@@ -75,3 +75,22 @@ describe('functions/_lib.ts Manhattan land vs src/lib/manhattan.ts', () => {
 		expect(OG_COMMODITIES.manhattan.illustrativePricePerUnit).toBeCloseTo(USD_PER_M2, 6);
 	});
 });
+
+import * as siteOil from '../src/lib/oil.js';
+import { OIL } from '../functions/_lib.js';
+
+describe('functions/_lib.ts oil ladder vs src/lib/oil.ts', () => {
+	it('uses the same units, containers and world use as the stage', () => {
+		expect(OIL.LITRES_PER_BARREL).toBe(siteOil.LITRES_PER_BARREL);
+		expect(OIL.CAR_TANK_L).toBe(siteOil.CAR_TANK_L);
+		expect(OIL.DRUM_L).toBe(siteOil.DRUM_L);
+		expect(OIL.VLCC_BARRELS).toBe(siteOil.VLCC_BARRELS);
+		expect(OIL.PRUDHOE_BARRELS).toBe(siteOil.PRUDHOE_BARRELS);
+		expect(OIL.WORLD_BARRELS_PER_DAY).toBe(siteOil.WORLD_BARRELS_PER_DAY);
+		expect([OIL.MAX_CARS, OIL.MAX_DRUMS, OIL.MAX_TANKERS]).toEqual([siteOil.MAX_CARS, siteOil.MAX_DRUMS, siteOil.MAX_TANKERS]);
+	});
+
+	it('prices oil from the same field as the site', () => {
+		expect(OG_COMMODITIES.oil.priceField).toBe(getCommodity('oil')!.priceField);
+	});
+});
