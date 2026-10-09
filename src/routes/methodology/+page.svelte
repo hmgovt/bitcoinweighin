@@ -198,8 +198,9 @@
 			</p>
 			<p>
 				The stage draws the volume at true size in the container that suits it. Up to four
-				full tanks, mid-size cars with see-through bodies and the 55-litre tank (0.46 × 0.20 ×
-				0.60&nbsp;m) in place under the rear seat, its fuel at the true level. Up to 20,000 drums,
+				full tanks, mid-size sedans (4.73&nbsp;m, 2.75&nbsp;m wheelbase) drawn see-through, with
+				the 55-litre moulded tank (0.46 × 0.80 × 0.15&nbsp;m) in place under the rear bench, its
+				filler neck running to the fuel door, and its fuel at the true level. Up to 20,000 drums,
 				55-US-gallon steel drums (208&nbsp;L, 572&nbsp;mm across, 851&nbsp;mm tall), four to a
 				pallet, painted by the US fuel-can convention: red for gasoline, yellow for diesel, blue
 				steel for crude. Note the drum is not the barrel: the 42-gallon oil barrel is a unit of

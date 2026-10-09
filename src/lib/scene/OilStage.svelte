@@ -59,9 +59,11 @@
 	const DRUM_PAINT: Record<Fuel, number> = { crude: 0x23466e, diesel: 0xd2a019, gasoline: 0xb3261e };
 
 	// ── Real dimensions, metres ──────────────────────────────────
-	const CAR = { len: 4.7, wid: 1.82, wheelR: 0.33, pitch: 2.7 };
-	// The 55 L tank under the rear seat: 0.46 × 0.2 × 0.6 m = 0.0552 m³.
-	const TANK = { x: -0.95, y: 0.36, len: 0.46, h: 0.2, wid: 0.6 };
+	// A mid-size sedan: 4.7 m long, 1.82 m wide, 2.75 m wheelbase, 1.58 m track, 215/55 R17 tyres.
+	const CAR = { len: 4.73, wid: 1.82, wheelR: 0.335, wb: 2.75, track: 1.58, pitch: 2.9 };
+	// The 55 L tank under the rear bench: a 0.46 × 0.80 m plan with 6 cm
+	// corners (0.3649 m²), 0.1507 m deep — 0.0550 m³.
+	const TANK = { x: -0.86, y: 0.22, len: 0.46, h: 0.1507, wid: 0.8 };
 	// 55-gal drum: 572 mm across, 851 mm tall; a 1.2 m pallet of four.
 	const DRUM = { r: 0.286, h: 0.851, pallet: 1.2, palletH: 0.144, pitch: 1.5 };
 	// VLCC: 330 m × 60 m, 30 m keel to deck, 21 m loaded draught. The hold is
@@ -127,7 +129,7 @@
 	let wantAim: THREE.Vector3 | null = null;
 	let resizeObs: ResizeObserver | null = null;
 	/** What the camera frames: a box (x0, x1, z0, z1, height) and an elevation. */
-	let frame = { x0: -1, x1: 1, z0: -1, z1: 1, h: 1, elevDeg: 25, margin: 1.15 };
+	let frame = { x0: -1, x1: 1, z0: -1, z1: 1, h: 1, elevDeg: 25, margin: 1.15, azDeg: 38 };
 
 	function hasWebGL(): boolean {
 		try {
@@ -153,54 +155,283 @@
 		return track(new three.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0, ...extra }));
 	}
 
+	/** A plan-view rounded rectangle (x × z), for the moulded tank. */
+	function roundedRect(three: typeof THREE, w: number, d: number, r: number): THREE.Shape {
+		const sh = new three.Shape();
+		const x = w / 2;
+		const y = d / 2;
+		sh.moveTo(-x + r, -y);
+		sh.lineTo(x - r, -y);
+		sh.quadraticCurveTo(x, -y, x, -y + r);
+		sh.lineTo(x, y - r);
+		sh.quadraticCurveTo(x, y, x - r, y);
+		sh.lineTo(-x + r, y);
+		sh.quadraticCurveTo(-x, y, -x, y - r);
+		sh.lineTo(-x, -y + r);
+		sh.quadraticCurveTo(-x, -y, -x + r, -y);
+		return sh;
+	}
+
+	/** Extrude a plan shape upward from y = 0 to y = h: (x, y, z) → (x, z, −y). */
+	function upExtrude(three: typeof THREE, shape: THREE.Shape, h: number): THREE.BufferGeometry {
+		return new three.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false, curveSegments: 6 }).rotateX(-Math.PI / 2);
+	}
+
+	/** Extrude a side-profile shape (x along the car, y up) to `width`, centred across the car. */
+	function sideExtrude(three: typeof THREE, shape: THREE.Shape, width: number, bevel: number): THREE.BufferGeometry {
+		const g = new three.ExtrudeGeometry(shape, {
+			depth: width - 2 * bevel,
+			bevelEnabled: true,
+			bevelThickness: bevel,
+			bevelSize: bevel * 0.8,
+			bevelSegments: 4,
+			curveSegments: 20,
+		});
+		g.translate(0, 0, -(width - 2 * bevel) / 2);
+		return g;
+	}
+
+	/** A soft contact shadow, drawn once to a canvas. */
+	function blobTexture(three: typeof THREE): THREE.Texture {
+		const c = document.createElement('canvas');
+		c.width = 128;
+		c.height = 64;
+		const g = c.getContext('2d')!;
+		const grad = g.createRadialGradient(64, 32, 4, 64, 32, 62);
+		grad.addColorStop(0, 'rgba(0,0,0,0.75)');
+		grad.addColorStop(0.55, 'rgba(0,0,0,0.45)');
+		grad.addColorStop(1, 'rgba(0,0,0,0)');
+		g.setTransform(1, 0, 0, 0.5, 0, 16);
+		g.fillStyle = grad;
+		g.fillRect(0, 0, 128, 128);
+		return track(new three.CanvasTexture(c));
+	}
+
 	function buildCars(three: typeof THREE): void {
 		if (!scene || !liquidMat) return;
 		carsGroup = new three.Group();
-		const ghost = std(three, 0xb4bac4, { transparent: true, opacity: 0.22, depthWrite: false, roughness: 0.3 });
-		const glass = std(three, 0x9fb7d0, { transparent: true, opacity: 0.12, depthWrite: false, roughness: 0.1 });
-		const edge = track(new three.LineBasicMaterial({ color: 0xc9cdd4, transparent: true, opacity: 0.55 }));
-		const tyre = std(three, 0x1b1b1e, { roughness: 0.95 });
-		const tankEdge = track(new three.LineBasicMaterial({ color: 0xfafafa }));
-		const tankShell = std(three, 0x71717a, { transparent: true, opacity: 0.18, depthWrite: false });
+		const { wb, track: tr, wheelR } = CAR;
+		const ax = wb / 2;
 
-		// Body: a sill-height lower box, a cabin, a sloped bonnet and boot.
-		const lower = track(new three.BoxGeometry(CAR.len, 0.62, CAR.wid));
-		const cabin = track(new three.BoxGeometry(2.45, 0.56, CAR.wid - 0.16));
-		const wheel = track(new three.CylinderGeometry(CAR.wheelR, CAR.wheelR, 0.22, 22).rotateX(Math.PI / 2));
-		const shell = track(new three.BoxGeometry(TANK.len, TANK.h, TANK.wid));
-		const fuelGeo = track(new three.BoxGeometry(TANK.len - 0.02, 1, TANK.wid - 0.02));
-		const lowerEdges = track(new three.EdgesGeometry(lower));
-		const cabinEdges = track(new three.EdgesGeometry(cabin));
-		const shellEdges = track(new three.EdgesGeometry(shell));
+		// ── Materials: an x-ray car — paint and glass see-through, the
+		// running gear, seats and tank solid enough to read through them.
+		const paint = track(
+			new three.MeshPhysicalMaterial({
+				color: 0x9aa4b2,
+				metalness: 0.55,
+				roughness: 0.28,
+				clearcoat: 1,
+				clearcoatRoughness: 0.12,
+				transparent: true,
+				opacity: 0.2,
+				depthWrite: false,
+			})
+		);
+		const glass = track(
+			new three.MeshPhysicalMaterial({
+				color: 0x1e2a36,
+				metalness: 0,
+				roughness: 0.05,
+				clearcoat: 1,
+				transparent: true,
+				opacity: 0.3,
+				depthWrite: false,
+			})
+		);
+		const outline = track(new three.LineBasicMaterial({ color: 0xd4d8de, transparent: true, opacity: 0.4 }));
+		const tyreMat = std(three, 0x141416, { roughness: 0.92 });
+		const rimMat = std(three, 0xc9ced6, { metalness: 0.9, roughness: 0.28 });
+		const hubMat = std(three, 0x2a2b30, { metalness: 0.6, roughness: 0.5 });
+		const steel = std(three, 0x55585f, { metalness: 0.7, roughness: 0.45 });
+		const seatMat = std(three, 0x3a3b42, { transparent: true, opacity: 0.4, depthWrite: false, roughness: 0.9 });
+		const headMat = std(three, 0xf4f6fa, { emissive: new three.Color(0xdfe8ff), emissiveIntensity: 0.6, roughness: 0.2 });
+		const tailMat = std(three, 0x7a0d0d, { emissive: new three.Color(0xb3121b), emissiveIntensity: 0.5, roughness: 0.3 });
+		// Moulded HDPE fuel tank, natural (milky) plastic, translucent so the fuel level shows.
+		const hdpe = std(three, 0xd9d5ca, { transparent: true, opacity: 0.3, depthWrite: false, roughness: 0.5 });
+		const tankLine = track(new three.LineBasicMaterial({ color: 0xf4f4f5, transparent: true, opacity: 0.85 }));
+		const neckMat = std(three, 0x2b2d31, { roughness: 0.6 });
+
+		// ── Body: a sedan's side profile, wheel arches cut, edges rounded.
+		const archR = wheelR + 0.06;
+		const body = new three.Shape();
+		body.moveTo(2.25, 0.3);
+		body.lineTo(ax + archR, 0.3);
+		body.absarc(ax, 0.3, archR, 0, Math.PI, false);
+		body.lineTo(-ax + archR, 0.3);
+		body.absarc(-ax, 0.3, archR, 0, Math.PI, false);
+		body.lineTo(-2.26, 0.3);
+		body.quadraticCurveTo(-2.36, 0.32, -2.36, 0.5); // rear bumper
+		body.lineTo(-2.34, 0.78);
+		body.quadraticCurveTo(-2.32, 0.95, -2.12, 0.98); // boot lid lip
+		body.lineTo(-1.42, 1.0);
+		body.lineTo(1.0, 0.97); // beltline
+		body.quadraticCurveTo(1.7, 0.94, 2.1, 0.84); // bonnet
+		body.quadraticCurveTo(2.36, 0.78, 2.37, 0.6); // nose
+		body.lineTo(2.35, 0.38);
+		body.quadraticCurveTo(2.33, 0.3, 2.25, 0.3);
+		const bodyGeo = track(sideExtrude(three, body, CAR.wid, 0.08));
+		const bodyEdges = track(new three.EdgesGeometry(bodyGeo, 28));
+
+		// Glasshouse: rear screen, roof, windscreen.
+		const house = new three.Shape();
+		house.moveTo(-1.42, 0.98);
+		house.quadraticCurveTo(-1.05, 1.32, -0.62, 1.42);
+		house.lineTo(0.28, 1.44);
+		house.quadraticCurveTo(0.6, 1.42, 1.02, 0.96);
+		house.lineTo(-1.42, 0.98);
+		const houseGeo = track(sideExtrude(three, house, CAR.wid - 0.2, 0.06));
+		const houseEdges = track(new three.EdgesGeometry(houseGeo, 28));
+
+		// Wheels: tyre, dark hub, five silver spokes and a rim lip.
+		const tyreGeo = track(new three.CylinderGeometry(wheelR, wheelR, 0.215, 36).rotateX(Math.PI / 2));
+		const hubGeo = track(new three.CylinderGeometry(0.205, 0.205, 0.222, 30).rotateX(Math.PI / 2));
+		const lipGeo = track(new three.TorusGeometry(0.205, 0.016, 8, 36));
+		const spokeGeo = track(new three.BoxGeometry(0.05, 0.4, 0.226));
+		const capGeo = track(new three.CylinderGeometry(0.045, 0.045, 0.23, 16).rotateX(Math.PI / 2));
+
+		// Lights, seats, axles and exhaust.
+		const headGeo = track(new three.BoxGeometry(0.04, 0.07, 0.36));
+		const tailGeo = track(new three.BoxGeometry(0.05, 0.1, 0.42));
+		const cushion = track(new three.BoxGeometry(0.52, 0.12, 0.5));
+		const backrest = track(new three.BoxGeometry(0.12, 0.6, 0.5));
+		const bench = track(new three.BoxGeometry(0.52, 0.12, 1.4));
+		const benchBack = track(new three.BoxGeometry(0.12, 0.58, 1.4));
+		const axleGeo = track(new three.CylinderGeometry(0.03, 0.03, tr, 10).rotateX(Math.PI / 2));
+		const exhaustGeo = track(
+			new three.TubeGeometry(
+				new three.CatmullRomCurve3([
+					new three.Vector3(1.6, 0.3, -0.25),
+					new three.Vector3(0.4, 0.2, -0.3),
+					new three.Vector3(-0.5, 0.2, -0.5),
+					new three.Vector3(-1.6, 0.22, -0.5),
+					new three.Vector3(-2.38, 0.26, -0.55),
+				]),
+				40,
+				0.03,
+				8
+			)
+		);
+
+		// ── The tank: a moulded saddle tank across the car under the rear
+		// bench, 0.46 m long × 0.80 m wide × 0.151 m deep with 6 cm
+		// corners — 55 litres. Fuel is the same plan, inset, at its level.
+		const tankShape = roundedRect(three, TANK.len, TANK.wid, 0.06);
+		const tankGeo = track(upExtrude(three, tankShape, TANK.h));
+		const tankEdges = track(new three.EdgesGeometry(tankGeo, 30));
+		const fuelGeo = track(upExtrude(three, roundedRect(three, TANK.len - 0.012, TANK.wid - 0.012, 0.054), 1));
+		const strapGeo = track(new three.BoxGeometry(0.04, 0.006, TANK.wid + 0.08));
+		const pumpGeo = track(new three.CylinderGeometry(0.06, 0.06, 0.03, 20));
+		// Filler neck: from the tank's right shoulder up to the fuel door.
+		const doorX = -1.72;
+		const neckGeo = track(
+			new three.TubeGeometry(
+				new three.CatmullRomCurve3([
+					new three.Vector3(TANK.x - 0.12, TANK.y + TANK.h - 0.01, TANK.wid / 2 - 0.08),
+					new three.Vector3(TANK.x - 0.35, TANK.y + TANK.h + 0.06, TANK.wid / 2 + 0.02),
+					new three.Vector3(doorX + 0.1, 0.72, CAR.wid / 2 - 0.12),
+					new three.Vector3(doorX, 0.8, CAR.wid / 2 - 0.02),
+				]),
+				32,
+				0.022,
+				10
+			)
+		);
+		const doorGeo = track(new three.CircleGeometry(0.085, 28));
+		const doorRing = track(new three.EdgesGeometry(new three.CircleGeometry(0.09, 28)));
+		const blob = track(
+			new three.MeshBasicMaterial({ map: blobTexture(three), transparent: true, depthWrite: false, toneMapped: false })
+		);
+		const blobGeo = track(new three.PlaneGeometry(CAR.len * 1.25, CAR.wid * 1.6).rotateX(-Math.PI / 2));
 
 		for (let k = 0; k < MAX_CARS; k++) {
 			const root = new three.Group();
-			const body = new three.Mesh(lower, ghost);
-			body.position.y = 0.18 + 0.31;
-			const top = new three.Mesh(cabin, glass);
-			top.position.set(-0.25, 0.8 + 0.28, 0);
-			const le = new three.LineSegments(lowerEdges, edge);
-			le.position.copy(body.position);
-			const ce = new three.LineSegments(cabinEdges, edge);
-			ce.position.copy(top.position);
-			root.add(body, top, le, ce);
-			for (const [x, z] of [
-				[1.42, 0.8],
-				[1.42, -0.8],
-				[-1.42, 0.8],
-				[-1.42, -0.8],
+			const shadow = new three.Mesh(blobGeo, blob);
+			shadow.position.y = 0.004;
+			shadow.renderOrder = -1;
+			const shell = new three.Mesh(bodyGeo, paint);
+			const glassHouse = new three.Mesh(houseGeo, glass);
+			shell.renderOrder = glassHouse.renderOrder = 3;
+			root.add(
+				shadow,
+				shell,
+				glassHouse,
+				new three.LineSegments(bodyEdges, outline),
+				new three.LineSegments(houseEdges, outline)
+			);
+
+			for (const [x, side] of [
+				[ax, 1],
+				[ax, -1],
+				[-ax, 1],
+				[-ax, -1],
 			]) {
-				const w = new three.Mesh(wheel, tyre);
-				w.position.set(x, CAR.wheelR, z);
+				const w = new three.Group();
+				w.add(new three.Mesh(tyreGeo, tyreMat), new three.Mesh(hubGeo, hubMat), new three.Mesh(capGeo, rimMat));
+				for (let i = 0; i < 5; i++) {
+					const sp = new three.Mesh(spokeGeo, rimMat);
+					sp.rotation.z = (i * 2 * Math.PI) / 5;
+					w.add(sp);
+				}
+				for (const f of [-1, 1]) {
+					const lip = new three.Mesh(lipGeo, rimMat);
+					lip.position.z = f * 0.11;
+					w.add(lip);
+				}
+				w.position.set(x, wheelR, (side * tr) / 2);
 				root.add(w);
 			}
-			const tankBox = new three.Mesh(shell, tankShell);
-			tankBox.position.set(TANK.x, TANK.y + TANK.h / 2, 0);
-			const tankLines = new three.LineSegments(shellEdges, tankEdge);
-			tankLines.position.copy(tankBox.position);
+			for (const x of [ax, -ax]) {
+				const a = new three.Mesh(axleGeo, steel);
+				a.position.set(x, wheelR, 0);
+				root.add(a);
+			}
+			root.add(new three.Mesh(exhaustGeo, steel));
+			for (const z of [-0.62, 0.62]) {
+				const h = new three.Mesh(headGeo, headMat);
+				h.position.set(2.305, 0.69, z * 0.95);
+				const t = new three.Mesh(tailGeo, tailMat);
+				t.position.set(-2.325, 0.84, z);
+				root.add(h, t);
+			}
+			// Front seats and the rear bench (over the tank).
+			for (const z of [-0.42, 0.42]) {
+				const c = new three.Mesh(cushion, seatMat);
+				c.position.set(0.15, 0.56, z);
+				const b = new three.Mesh(backrest, seatMat);
+				b.position.set(-0.17, 0.88, z);
+				b.rotation.z = 0.18;
+				root.add(c, b);
+			}
+			const rb = new three.Mesh(bench, seatMat);
+			rb.position.set(-0.85, 0.58, 0);
+			const rbb = new three.Mesh(benchBack, seatMat);
+			rbb.position.set(-1.18, 0.9, 0);
+			rbb.rotation.z = 0.25;
+			root.add(rb, rbb);
+
+			// Tank, straps, pump flange, filler neck and fuel door.
+			const tankMesh = new three.Mesh(tankGeo, hdpe);
+			tankMesh.position.set(TANK.x, TANK.y, 0);
+			tankMesh.renderOrder = 2;
+			const tankOutline = new three.LineSegments(tankEdges, tankLine);
+			tankOutline.position.copy(tankMesh.position);
 			const fuelMesh = new three.Mesh(fuelGeo, liquidMat);
-			fuelMesh.renderOrder = 2;
-			root.add(fuelMesh, tankBox, tankLines);
+			fuelMesh.position.set(TANK.x, TANK.y + 0.006, 0);
+			root.add(fuelMesh, tankMesh, tankOutline);
+			for (const dx of [-0.13, 0.13]) {
+				const st = new three.Mesh(strapGeo, steel);
+				st.position.set(TANK.x + dx, TANK.y - 0.004, 0);
+				root.add(st);
+			}
+			const pump = new three.Mesh(pumpGeo, neckMat);
+			pump.position.set(TANK.x + 0.05, TANK.y + TANK.h + 0.015, -0.12);
+			root.add(pump, new three.Mesh(neckGeo, neckMat));
+			const door = new three.Mesh(doorGeo, std(three, 0x6b7280, { metalness: 0.6, roughness: 0.35 }));
+			door.position.set(doorX, 0.8, CAR.wid / 2 + 0.005);
+			const ring = new three.LineSegments(doorRing, tankLine);
+			ring.position.copy(door.position);
+			root.add(door, ring);
+
 			root.position.set(0, 0, -k * CAR.pitch);
 			carsGroup.add(root);
 			cars.push({ root, fuel: fuelMesh });
@@ -454,16 +685,14 @@
 				const on = k < s.count;
 				c.root.visible = on;
 				const f = k < s.count - 1 ? 1 : s.lastFill;
-				const h = Math.max(TANK.h * f, 0.002);
-				c.fuel.scale.y = h;
-				c.fuel.position.set(TANK.x, TANK.y + h / 2, 0);
+				c.fuel.scale.y = Math.max((TANK.h - 0.012) * f, 0.001);
 			});
-			// Sat by the first car's front wheel.
-			dog?.position.set(CAR.len / 2 + 0.7, 0, 1.0);
-			dog?.rotation.set(0, -Math.PI / 2 + 0.5, 0);
+			// Seen from the rear right quarter, the fuel-door side; Sat sits by the boot.
+			dog?.position.set(-CAR.len / 2 - 0.45, 0, CAR.wid / 2 + 0.25);
+			dog?.rotation.set(0, Math.PI * 0.85, 0);
 			const zBack = -(s.count - 1) * CAR.pitch - CAR.wid / 2;
-			frame = { x0: -CAR.len / 2, x1: CAR.len / 2 + 1.1, z0: zBack, z1: CAR.wid / 2 + 0.4, h: 1.45, elevDeg: 24, margin: 1.12 };
-			caption = `Mid-size car · ${CAR_TANK_L} L tank under the rear seat, drawn in place`;
+			frame = { x0: -CAR.len / 2 - 0.7, x1: CAR.len / 2, z0: zBack, z1: CAR.wid / 2 + 0.4, h: 1.45, elevDeg: 27, margin: 1.04, azDeg: -48 };
+			caption = `Mid-size sedan, drawn see-through · its ${CAR_TANK_L} L tank sits under the rear bench, filled to the true level`;
 		} else if (kind === 'drums') {
 			layDrums(three, s.count);
 			const nPal = Math.ceil(s.count / 4);
@@ -480,6 +709,7 @@
 				h: DRUM.palletH + DRUM.h,
 				elevDeg: 28 + Math.min(14, Math.log10(s.count) * 4),
 				margin: 1.1,
+				azDeg: 38,
 			};
 			caption = '55-gallon steel drums (208 L), four to a pallet';
 		} else if (kind === 'tanker') {
@@ -500,6 +730,7 @@
 				// Low enough over a single ship to see the oil line on the hold's far wall.
 				elevDeg: s.count === 1 ? 24 : 32,
 				margin: 1.08,
+				azDeg: 38,
 			};
 			caption = 'VLCC supertanker, 330 m · deck cut away: the oil stands at its true depth in the hold';
 		} else {
@@ -518,6 +749,7 @@
 				h: 7,
 				elevDeg: 30 + Math.min(14, side / 3),
 				margin: 1.05,
+				azDeg: 38,
 			};
 			caption = 'Pump jacks · each stands for 1/1,600 of Prudhoe Bay’s 13.2 billion barrels';
 		}
@@ -536,9 +768,9 @@
 	function reframe(swayRad: number): void {
 		if (!camera || !camPos || !camAim || !wantPos || !wantAim) return;
 		const aspect = height > 0 ? width / height : 1;
-		const { x0, x1, z0, z1, h, elevDeg, margin } = frame;
+		const { x0, x1, z0, z1, h, elevDeg, margin, azDeg } = frame;
 		const elev = (elevDeg * Math.PI) / 180;
-		const az = (38 * Math.PI) / 180 + swayRad;
+		const az = (azDeg * Math.PI) / 180 + swayRad;
 		const back: [number, number, number] = [Math.sin(az) * Math.cos(elev), Math.sin(elev), Math.cos(az) * Math.cos(elev)];
 		const right: [number, number, number] = [Math.cos(az), 0, -Math.sin(az)];
 		const up: [number, number, number] = [-Math.sin(az) * Math.sin(elev), Math.cos(elev), -Math.cos(az) * Math.sin(elev)];
