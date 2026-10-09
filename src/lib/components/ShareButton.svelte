@@ -71,6 +71,9 @@
 			return formatMassConsumer(amt * c.unitMassGrams, 'metric');
 		}
 		if (c.unit === 'm2') return formatArea(amt, 'imperial');
+		if (c.unit === 'barrel') {
+			return `${amt >= 100 ? Math.round(amt).toLocaleString('en-US') : amt.toPrecision(3)} barrels`;
+		}
 		const formatted =
 			amt >= 1000 ? Math.round(amt).toLocaleString('en-US')
 				: amt >= 1 ? amt.toFixed(2)
@@ -80,7 +83,7 @@
 
 	const isLand = $derived(commodity?.unit === 'm2');
 	const commodityName = $derived(
-		isLand ? 'Manhattan land' : (commodity?.displayName.toLowerCase() ?? 'gold')
+		isLand ? 'Manhattan land' : commodity?.id === 'oil' ? 'Brent crude' : (commodity?.displayName.toLowerCase() ?? 'gold')
 	);
 
 	function buildShareText(): string {

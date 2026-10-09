@@ -98,3 +98,35 @@ describe('link card — numbers and words', () => {
 		expect(cardKey({ commodity: 'gold', btc: parseFloat('0.50') })).toBe(cardKey({ commodity: 'gold', btc: 0.5 }));
 	});
 });
+
+describe('link card — oil', () => {
+	// Brent at $125.44 and BTC at $81,848.89: 1 BTC buys 652.5 barrels.
+	const oilDay = { btc: 81_848.89, brent: 125.44 };
+	const oil = (btc: number, preset?: string) => cardModel({ commodity: 'oil', btc, preset, date: '2026-10-08', day: oilDay });
+
+	it('weighs 1 BTC in barrels of Brent, as drums, and the time the world takes to burn it', () => {
+		const m = oil(1);
+		expect(`${m.big}${m.unit}`).toBe('652 barrels');
+		expect(m.mid).toBe('of Brent crude');
+		expect(m.subs[0]).toBe('498 55-gallon drums.');
+		expect(m.subs[1]).toBe('The world burns it in 542 milliseconds.');
+		expect(m.theme).toBe('oil');
+	});
+
+	it('climbs the stage’s ladder: a car’s tank, a supertanker, Prudhoe Bay', () => {
+		const sats = oil(0.0003);
+		expect(`${sats.big}${sats.unit}`).toBe('31.1 litres');
+		expect(sats.subs[0]).toBe('57% of a car’s 55-litre tank.');
+		expect(oil(1000).subs[0]).toBe('33% of a supertanker’s load.');
+		expect(oil(20_000).subs[0]).toBe('Enough to fill 6.52 supertankers.');
+		expect(oil(300_000).subs[0]).toBe('1.48% of all Prudhoe Bay has produced.');
+		const all = oil(21_000_000, 'market-cap');
+		expect(`${all.big}${all.unit}`).toBe('13.7B barrels');
+		expect(all.subs[0]).toBe('All of Prudhoe Bay’s 13.2 billion barrels.');
+	});
+
+	it('titles the link in barrels of oil, and keys its card', () => {
+		expect(cardTitle({ commodity: 'oil', btc: 1 })).toBe('1 bitcoin, weighed in barrels of oil · Bitcoin Weigh-In');
+		expect(cardKey({ commodity: 'oil', preset: 'satoshi' })).toBe('oil_p-satoshi');
+	});
+});
