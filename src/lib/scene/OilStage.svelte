@@ -12,6 +12,11 @@
 	 *   field  — a 40 × 40 grid of pump jacks standing for Prudhoe Bay's 13.2
 	 *            billion barrels, lit as the amount claims them.
 	 *
+	 * Whatever the fuel, what you bought is drawn in bitcoin orange — the
+	 * fuel in the tank, the drums' contents, the oil in the hold, the claimed
+	 * part of the field — and a gauge on the stage reads how full the last
+	 * container is.
+	 *
 	 * Everything is built procedurally (no model files but Sat, who stands
 	 * by the cars and drums for scale). Instanced meshes keep the drums and
 	 * jacks to a handful of draw calls; changing the amount moves instance
@@ -26,37 +31,31 @@
 		MAX_CARS,
 		MAX_DRUMS,
 		MAX_TANKERS,
+		PRUDHOE_L,
 		VLCC_L,
+		formatVolume,
 		oilScene,
-		type Fuel,
 		type OilScene,
 	} from '../oil.js';
 	import { fitDistance } from './landPatch.js';
+	import { system } from '../stores/system.js';
+	import { formatNum } from '../format.js';
 
 	let {
 		litres = 0,
-		fuel = 'crude',
 		staged = $bindable(false),
 		ready = $bindable(false),
 	}: {
 		/** Fuel bought, litres (btc × price ÷ USD per litre, see oil.ts). */
 		litres?: number;
-		fuel?: Fuel;
 		staged?: boolean;
 		ready?: boolean;
 	} = $props();
 
 	const BG = 0x18181b;
-	const ORANGE = 0xf7931a;
 
-	/** Liquid colours: crude near-black, diesel amber, gasoline pale straw. */
-	const LIQUID: Record<Fuel, { color: number; emissive: number }> = {
-		crude: { color: 0x1c130b, emissive: 0x3a220c },
-		diesel: { color: 0xc98f12, emissive: 0x4a3205 },
-		gasoline: { color: 0xead27e, emissive: 0x4a3f18 },
-	};
-	/** Drum paint by the US fuel-can convention: red gasoline, yellow diesel; crude in blue steel. */
-	const DRUM_PAINT: Record<Fuel, number> = { crude: 0x23466e, diesel: 0xd2a019, gasoline: 0xb3261e };
+	/** What you bought, in every container: bitcoin orange. */
+	const FUEL_ORANGE = 0xf7931a;
 
 	// ── Real dimensions, metres ──────────────────────────────────
 	// A mid-size sedan: 4.7 m long, 1.82 m wide, 2.75 m wheelbase, 1.58 m track, 215/55 R17 tyres.
@@ -79,6 +78,59 @@
 	let loading = $state(true);
 	let noWebGL = $state(false);
 	let caption = $state('');
+	/** What the on-stage gauge reads: the rung, and how full its last container is. */
+	let gaugeState = $state<{ kind: OilScene['kind']; count: number; fill: number } | null>(null);
+
+	function pct(f: number): string {
+		if (f >= 0.995) return 'Full';
+		const p = f * 100;
+		return `${p >= 1 ? Math.round(p) : p < 0.1 ? '<0.1' : p.toFixed(1)}% full`;
+	}
+
+	/** The gauge's words, in the reader's units: a fuel dial for the car, a bar for the rest. */
+	const gauge = $derived.by(() => {
+		const g = gaugeState;
+		if (!g) return null;
+		const vol = (L: number) => formatVolume(L, $system);
+		const before = g.count - 1;
+		switch (g.kind) {
+			case 'tank':
+				return {
+					dial: true,
+					fill: g.fill,
+					title: g.count > 1 ? `Car ${g.count} of ${g.count}` : 'Fuel gauge',
+					detail:
+						`${pct(g.fill)} · ${vol(g.fill * CAR_TANK_L)} of ${vol(CAR_TANK_L)}` +
+						(before ? ` · ${before} full tank${before > 1 ? 's' : ''} beside it` : ''),
+				};
+			case 'drums':
+				return {
+					dial: false,
+					fill: g.fill,
+					title: before ? `Drum ${formatNum(g.count)}` : 'The drum',
+					detail: `${pct(g.fill)}` + (before ? ` · ${formatNum(before)} full drum${before > 1 ? 's' : ''} before it` : ''),
+				};
+			case 'tanker':
+				return {
+					dial: false,
+					fill: g.fill,
+					title: before ? `Tanker ${g.count}’s hold` : 'The hold',
+					detail: `${pct(g.fill)} · ${vol(g.fill * VLCC_L)}` + (before ? ` · ${before} full tanker${before > 1 ? 's' : ''}` : ''),
+				};
+			case 'field': {
+				const f = Math.min(1, g.fill);
+				return {
+					dial: false,
+					fill: f,
+					title: 'Prudhoe Bay',
+					detail:
+						f >= 1
+							? 'All 13.2 billion barrels claimed'
+							: `${f >= 0.1 ? Math.round(f * 100) : (f * 100).toPrecision(2)}% of its 13.2 billion barrels claimed`,
+				};
+			}
+		}
+	});
 
 	let T: typeof THREE | null = null;
 	let renderer: THREE.WebGLRenderer | null = null;
@@ -94,7 +146,9 @@
 	let carsGroup: THREE.Group | null = null;
 	const cars: { root: THREE.Group; fuel: THREE.Mesh }[] = [];
 	let drums: THREE.InstancedMesh | null = null;
-	let lids: THREE.InstancedMesh | null = null;
+	let drumFuel: THREE.InstancedMesh | null = null;
+	/** The drum currently drawn part-full, reset to full when the count moves. */
+	let partDrum = -1;
 	let pallets: THREE.InstancedMesh | null = null;
 	let drumsSide = -1;
 	let shipsGroup: THREE.Group | null = null;
@@ -109,8 +163,10 @@
 	/** Field cells in fill order: a square growing from the near corner. */
 	let fieldOrder: [number, number][] = [];
 
-	let liquidMat: THREE.MeshStandardMaterial | null = null;
-	let drumMat: THREE.MeshStandardMaterial | null = null;
+	/** The fuel's top surface — exactly #f7931a, unlit — and its sides a shade deeper. */
+	let liquidMat: THREE.MeshBasicMaterial | null = null;
+	let liquidTop: THREE.MeshBasicMaterial | null = null;
+	let drumMat: THREE.MeshPhysicalMaterial | null = null;
 
 	let width = 1;
 	let height = 1;
@@ -247,7 +303,7 @@
 		const headMat = std(three, 0xf4f6fa, { emissive: new three.Color(0xdfe8ff), emissiveIntensity: 0.6, roughness: 0.2 });
 		const tailMat = std(three, 0x7a0d0d, { emissive: new three.Color(0xb3121b), emissiveIntensity: 0.5, roughness: 0.3 });
 		// Moulded HDPE fuel tank, natural (milky) plastic, translucent so the fuel level shows.
-		const hdpe = std(three, 0xd9d5ca, { transparent: true, opacity: 0.3, depthWrite: false, roughness: 0.5 });
+		const hdpe = std(three, 0xd9d5ca, { transparent: true, opacity: 0.22, depthWrite: false, roughness: 0.5 });
 		const tankLine = track(new three.LineBasicMaterial({ color: 0xf4f4f5, transparent: true, opacity: 0.85 }));
 		const neckMat = std(three, 0x2b2d31, { roughness: 0.6 });
 
@@ -415,7 +471,7 @@
 			tankMesh.renderOrder = 2;
 			const tankOutline = new three.LineSegments(tankEdges, tankLine);
 			tankOutline.position.copy(tankMesh.position);
-			const fuelMesh = new three.Mesh(fuelGeo, liquidMat);
+			const fuelMesh = new three.Mesh(fuelGeo, [liquidTop!, liquidMat]);
 			fuelMesh.position.set(TANK.x, TANK.y + 0.006, 0);
 			root.add(fuelMesh, tankMesh, tankOutline);
 			for (const dx of [-0.13, 0.13]) {
@@ -440,52 +496,72 @@
 	}
 
 	function buildDrums(three: typeof THREE): void {
-		if (!scene || !drumMat) return;
-		const body = track(new three.CylinderGeometry(DRUM.r, DRUM.r, DRUM.h, 18));
-		// Two rolling hoops, as on a real drum.
-		const lidGeo = track(new three.CylinderGeometry(DRUM.r * 0.93, DRUM.r * 0.93, 0.012, 18));
+		if (!scene || !drumMat || !liquidMat) return;
+		// Steel drums drawn see-through, the fuel inside at its level.
+		const body = track(new three.CylinderGeometry(DRUM.r, DRUM.r, DRUM.h, 20));
+		const fuelGeo = track(new three.CylinderGeometry(DRUM.r * 0.95, DRUM.r * 0.95, 1, 20).translate(0, 0.5, 0));
 		const pal = track(new three.BoxGeometry(DRUM.pallet, DRUM.palletH, DRUM.pallet));
+		drumFuel = new three.InstancedMesh(fuelGeo, [liquidMat, liquidTop!, liquidMat], MAX_DRUMS);
 		drums = new three.InstancedMesh(body, drumMat, MAX_DRUMS);
-		lids = new three.InstancedMesh(lidGeo, std(three, 0x8f939b, { metalness: 0.4, roughness: 0.5 }), MAX_DRUMS);
+		drums.renderOrder = 2;
 		pallets = new three.InstancedMesh(pal, std(three, 0x8a6a45, { roughness: 1 }), Math.ceil(MAX_DRUMS / 4));
-		for (const m of [drums, lids, pallets]) {
+		for (const m of [drumFuel, drums, pallets]) {
 			m.frustumCulled = false;
 			m.count = 0;
 			scene.add(m);
 		}
 	}
 
-	/** Lay out `n` drums four to a pallet, the pallets in a square growing away from the camera. */
-	function layDrums(three: typeof THREE, n: number): void {
-		if (!drums || !lids || !pallets) return;
+	/** Centre of drum `i` on the floor, for a yard `side` pallets square. */
+	function drumAt(i: number, side: number): [number, number] {
+		const p = Math.floor(i / 4);
+		const d = i % 4;
+		return [-(p % side) * DRUM.pitch + (d % 2 ? 1 : -1) * 0.3, -Math.floor(p / side) * DRUM.pitch + (d < 2 ? 1 : -1) * 0.3];
+	}
+
+	const DRUM_FULL_H = DRUM.h - 0.03;
+
+	function setDrumFuel(three: typeof THREE, i: number, side: number, fill: number): void {
+		if (!drumFuel) return;
+		const [x, z] = drumAt(i, side);
+		const m = new three.Matrix4().compose(
+			new three.Vector3(x, DRUM.palletH + 0.015, z),
+			new three.Quaternion(),
+			new three.Vector3(1, Math.max(DRUM_FULL_H * fill, 0.002), 1)
+		);
+		drumFuel.setMatrixAt(i, m);
+		drumFuel.instanceMatrix.needsUpdate = true;
+	}
+
+	/** Lay out `n` drums four to a pallet, the pallets in a square growing away from the camera; the last `lastFill` full. */
+	function layDrums(three: typeof THREE, n: number, lastFill: number): void {
+		if (!drums || !drumFuel || !pallets) return;
 		const nPal = Math.ceil(n / 4);
 		const side = Math.max(1, Math.ceil(Math.sqrt(nPal)));
-		if (side !== drumsSide || drums.count < n) {
+		if (side !== drumsSide) {
 			drumsSide = side;
+			partDrum = -1;
 			const m = new three.Matrix4();
 			const total = Math.min(MAX_DRUMS, side * side * 4);
 			for (let p = 0; p < Math.ceil(total / 4); p++) {
-				const px = -(p % side) * DRUM.pitch;
-				const pz = -Math.floor(p / side) * DRUM.pitch;
-				m.makeTranslation(px, DRUM.palletH / 2, pz);
+				m.makeTranslation(-(p % side) * DRUM.pitch, DRUM.palletH / 2, -Math.floor(p / side) * DRUM.pitch);
 				pallets.setMatrixAt(p, m);
-				for (let d = 0; d < 4; d++) {
-					const i = p * 4 + d;
-					if (i >= MAX_DRUMS) break;
-					const dx = (d % 2 ? 1 : -1) * 0.3;
-					const dz = (d < 2 ? 1 : -1) * 0.3;
-					m.makeTranslation(px + dx, DRUM.palletH + DRUM.h / 2, pz + dz);
-					drums.setMatrixAt(i, m);
-					m.makeTranslation(px + dx, DRUM.palletH + DRUM.h + 0.006, pz + dz);
-					lids.setMatrixAt(i, m);
-				}
+			}
+			for (let i = 0; i < total; i++) {
+				const [x, z] = drumAt(i, side);
+				m.makeTranslation(x, DRUM.palletH + DRUM.h / 2, z);
+				drums.setMatrixAt(i, m);
+				setDrumFuel(three, i, side, 1);
 			}
 			drums.instanceMatrix.needsUpdate = true;
-			lids.instanceMatrix.needsUpdate = true;
 			pallets.instanceMatrix.needsUpdate = true;
 		}
+		// Only the last drum is part-full: refill the one that was, then lower this one.
+		if (partDrum >= 0 && partDrum !== n - 1) setDrumFuel(three, partDrum, side, 1);
+		setDrumFuel(three, n - 1, side, lastFill);
+		partDrum = n - 1;
 		drums.count = n;
-		lids.count = n;
+		drumFuel.count = n;
 		pallets.count = nPal;
 	}
 
@@ -518,7 +594,8 @@
 		);
 		hull.rotateX(-Math.PI / 2);
 		hull.translate(0, SHIP.keel, 0);
-		const deckMat = std(three, 0x7a3b2c, { roughness: 0.9 });
+		// Deck in tanker green; orange is kept for the oil alone.
+		const deckMat = std(three, 0x4d5a4c, { roughness: 0.9 });
 		// Mid grey, so the dark oil line shows against the hold's walls.
 		const hullMat = std(three, 0x5a5f69, { roughness: 0.7, side: three.DoubleSide });
 		const floor = track(new three.PlaneGeometry(SHIP.holdX1 - SHIP.holdX0, SHIP.holdW).rotateX(-Math.PI / 2));
@@ -531,7 +608,7 @@
 		const funnel = track(new three.BoxGeometry(8, 12, 9));
 		funnel.translate(aft + 12, SHIP.deck + 30, 0);
 		const houseMat = std(three, 0xe4e4e7, { roughness: 0.6 });
-		const funnelMat = std(three, ORANGE, { roughness: 0.6 });
+		const funnelMat = std(three, 0x1f2024, { roughness: 0.6 });
 		// A frame round the hold's cut edge, so the cutaway reads as one.
 		const rim = track(
 			new three.EdgesGeometry(new three.BoxGeometry(SHIP.holdX1 - SHIP.holdX0, 0.01, SHIP.holdW))
@@ -548,7 +625,7 @@
 				new three.Mesh(funnel, funnelMat),
 				new three.LineSegments(rim, rimMat)
 			);
-			const oil = new three.Mesh(oilGeo, liquidMat);
+			const oil = new three.Mesh(oilGeo, [liquidMat, liquidMat, liquidTop!, liquidMat, liquidMat, liquidMat]);
 			root.add(oil);
 			root.position.z = -k * SHIP.pitch;
 			shipsGroup.add(root);
@@ -613,7 +690,7 @@
 		jacksDark = new three.InstancedMesh(jackGeo, std(three, 0x6b6b74, { roughness: 0.8 }), N);
 		pads = new three.InstancedMesh(
 			padGeo,
-			track(new three.MeshBasicMaterial({ color: ORANGE, transparent: true, opacity: 0.55, toneMapped: false })),
+			track(new three.MeshBasicMaterial({ color: FUEL_ORANGE, transparent: true, opacity: 0.85, toneMapped: false })),
 			N
 		);
 		// Fill order: a square growing from the near corner, shell by shell.
@@ -672,7 +749,7 @@
 		const s = oilScene(L);
 		const kind = s.kind;
 		carsGroup.visible = kind === 'tank';
-		drums.visible = lids!.visible = pallets!.visible = kind === 'drums';
+		drums.visible = drumFuel!.visible = pallets!.visible = kind === 'drums';
 		shipsGroup.visible = kind === 'tanker';
 		fieldGroup.visible = kind === 'field';
 		ground.visible = kind !== 'tanker';
@@ -694,7 +771,7 @@
 			frame = { x0: -CAR.len / 2 - 0.7, x1: CAR.len / 2, z0: zBack, z1: CAR.wid / 2 + 0.4, h: 1.45, elevDeg: 27, margin: 1.04, azDeg: -48 };
 			caption = `Mid-size sedan, drawn see-through · its ${CAR_TANK_L} L tank sits under the rear bench, filled to the true level`;
 		} else if (kind === 'drums') {
-			layDrums(three, s.count);
+			layDrums(three, s.count, s.lastFill);
 			const nPal = Math.ceil(s.count / 4);
 			const side = Math.max(1, Math.ceil(Math.sqrt(nPal)));
 			const rows = Math.ceil(nPal / side);
@@ -711,7 +788,7 @@
 				margin: 1.1,
 				azDeg: 38,
 			};
-			caption = '55-gallon steel drums (208 L), four to a pallet';
+			caption = '55-gallon steel drums (208 L), four to a pallet, drawn see-through';
 		} else if (kind === 'tanker') {
 			layWater(three, s.count);
 			ships.forEach((sh, k) => {
@@ -753,6 +830,10 @@
 			};
 			caption = 'Pump jacks · each stands for 1/1,600 of Prudhoe Bay’s 13.2 billion barrels';
 		}
+		gaugeState =
+			L > 0
+				? { kind, count: s.count, fill: kind === 'field' ? L / PRUDHOE_L : s.lastFill }
+				: null;
 		if (kind !== lastKind) {
 			lastKind = kind;
 			// A rung change cuts rather than flies: there's nothing to see between a car and a tanker.
@@ -829,13 +910,6 @@
 		render();
 	}
 
-	function applyFuel(f: Fuel): void {
-		if (!liquidMat || !drumMat) return;
-		liquidMat.color.setHex(LIQUID[f].color);
-		liquidMat.emissive.setHex(LIQUID[f].emissive);
-		drumMat.color.setHex(DRUM_PAINT[f]);
-	}
-
 	async function hydrate(): Promise<void> {
 		if (destroyed || !containerEl) return;
 		const [three, gltfMod, moMod, bguMod, materials, maths] = await Promise.all([
@@ -883,13 +957,25 @@
 		ground.position.y = -0.001;
 		scene.add(ground);
 
-		liquidMat = std(three, LIQUID.crude.color, { roughness: 0.12, metalness: 0.05, emissive: new three.Color(LIQUID.crude.emissive) });
-		drumMat = std(three, DRUM_PAINT.crude, { roughness: 0.45, metalness: 0.35 });
+		// Unlit and not tone-mapped, so lighting can't wash it towards yellow;
+		// the sides a shade deeper than the surface, so a level reads as a level.
+		liquidMat = track(new three.MeshBasicMaterial({ color: 0xd2770c, toneMapped: false, fog: false }));
+		liquidTop = track(new three.MeshBasicMaterial({ color: FUEL_ORANGE, toneMapped: false, fog: false }));
+		drumMat = track(
+			new three.MeshPhysicalMaterial({
+				color: 0xa7adb6,
+				metalness: 0.6,
+				roughness: 0.35,
+				clearcoat: 0.6,
+				transparent: true,
+				opacity: 0.3,
+				depthWrite: false,
+			})
+		);
 		buildCars(three);
 		buildDrums(three);
 		buildShips(three);
 		buildField(three, bguMod.mergeGeometries);
-		applyFuel(fuel);
 		loading = false;
 
 		resizeObs = new ResizeObserver(() => {
@@ -945,14 +1031,16 @@
 		water?.geometry.dispose();
 		for (const d of disposables) d.dispose();
 		disposables.length = 0;
-		for (const m of [drums, lids, pallets, jacksLit, jacksDark, pads]) m?.dispose();
+		for (const m of [drums, drumFuel, pallets, jacksLit, jacksDark, pads]) m?.dispose();
 		if (renderer) {
 			renderer.domElement.remove();
 			renderer.dispose();
 		}
 		renderer = scene = camera = null;
 		carsGroup = shipsGroup = fieldGroup = null;
-		drums = lids = pallets = jacksLit = jacksDark = pads = null;
+		drums = drumFuel = pallets = jacksLit = jacksDark = pads = null;
+		partDrum = -1;
+		drumsSide = -1;
 		cars.length = 0;
 		ships.length = 0;
 		water = null;
@@ -983,12 +1071,6 @@
 		refresh(L);
 	});
 
-	$effect(() => {
-		const f = fuel;
-		if (!T) return;
-		applyFuel(f);
-		render();
-	});
 </script>
 
 <div class="oil-stage" bind:this={containerEl}>
@@ -996,6 +1078,40 @@
 		<div class="oil-note">Filling up…</div>
 	{:else if noWebGL}
 		<div class="oil-note">The 3-D scene couldn't load here; the figures below still hold.</div>
+	{/if}
+	{#if gauge && !noWebGL && !loading}
+		<div class="oil-gauge" aria-label="{gauge.title}: {gauge.detail}">
+			<div class="g-title">{gauge.title}</div>
+			{#if gauge.dial}
+				{@const th = Math.PI * (1 - Math.min(1, Math.max(0, gauge.fill)))}
+				<svg class="g-dial" viewBox="0 0 120 68" aria-hidden="true">
+					<path d="M 12 60 A 48 48 0 0 1 108 60" class="g-track" />
+					{#if gauge.fill > 0.002}
+						<path
+							d="M 12 60 A 48 48 0 0 1 {60 + 48 * Math.cos(th)} {60 - 48 * Math.sin(th)}"
+							class="g-arc"
+						/>
+					{/if}
+					{#each [0, 0.25, 0.5, 0.75, 1] as t (t)}
+						{@const a = Math.PI * (1 - t)}
+						<line
+							x1={60 + 40 * Math.cos(a)}
+							y1={60 - 40 * Math.sin(a)}
+							x2={60 + 34 * Math.cos(a)}
+							y2={60 - 34 * Math.sin(a)}
+							class="g-tick"
+						/>
+					{/each}
+					<text x="8" y="67" class="g-ef">E</text>
+					<text x="106" y="67" class="g-ef">F</text>
+					<line x1="60" y1="60" x2={60 + 38 * Math.cos(th)} y2={60 - 38 * Math.sin(th)} class="g-needle" />
+					<circle cx="60" cy="60" r="4" class="g-hub" />
+				</svg>
+			{:else}
+				<div class="g-bar"><div class="g-bar-fill" style:width="{Math.min(100, gauge.fill * 100)}%"></div></div>
+			{/if}
+			<div class="g-detail">{gauge.detail}</div>
+		</div>
 	{/if}
 	{#if caption && !noWebGL}
 		<div class="oil-caption">{caption}</div>
@@ -1028,6 +1144,92 @@
 		font: 500 13px/1.4 'Inter Tight', system-ui, sans-serif;
 		color: #a1a1aa;
 		z-index: 1;
+	}
+	.oil-gauge {
+		position: absolute;
+		top: 10px;
+		left: 10px;
+		z-index: 1;
+		width: 168px;
+		padding: 8px 10px 9px;
+		border-radius: 8px;
+		background: rgba(17, 17, 19, 0.72);
+		border: 1px solid rgba(247, 147, 26, 0.35);
+		backdrop-filter: blur(4px);
+		pointer-events: none;
+		font-family: 'Inter Tight', system-ui, sans-serif;
+	}
+	.g-title {
+		font-size: 9.5px;
+		font-weight: 600;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: #a1a1aa;
+	}
+	.g-dial {
+		display: block;
+		width: 100%;
+		height: auto;
+		margin-top: 4px;
+	}
+	.g-track {
+		fill: none;
+		stroke: #3f3f46;
+		stroke-width: 7;
+		stroke-linecap: round;
+	}
+	.g-arc {
+		fill: none;
+		stroke: #f7931a;
+		stroke-width: 7;
+		stroke-linecap: round;
+	}
+	.g-tick {
+		stroke: #71717a;
+		stroke-width: 1.5;
+	}
+	.g-ef {
+		font: 700 9px 'Inter Tight', system-ui, sans-serif;
+		fill: #a1a1aa;
+	}
+	.g-needle {
+		stroke: #fafafa;
+		stroke-width: 2.5;
+		stroke-linecap: round;
+	}
+	.g-hub {
+		fill: #fafafa;
+	}
+	.g-bar {
+		height: 8px;
+		margin-top: 7px;
+		border-radius: 4px;
+		background: #3f3f46;
+		overflow: hidden;
+	}
+	.g-bar-fill {
+		height: 100%;
+		min-width: 2px;
+		background: #f7931a;
+		border-radius: 4px;
+	}
+	.g-detail {
+		margin-top: 6px;
+		font: 500 11px/1.35 'JetBrains Mono', ui-monospace, monospace;
+		color: #fafafa;
+		font-variant-numeric: tabular-nums;
+	}
+	@media (max-width: 520px) {
+		.oil-gauge {
+			width: 118px;
+			padding: 6px 8px 7px;
+		}
+		.g-dial {
+			width: 84px;
+		}
+		.g-detail {
+			font-size: 9.5px;
+		}
 	}
 	.oil-caption {
 		position: absolute;

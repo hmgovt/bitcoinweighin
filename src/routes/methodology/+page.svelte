@@ -202,8 +202,7 @@
 				the 55-litre moulded tank (0.46 × 0.80 × 0.15&nbsp;m) in place under the rear bench, its
 				filler neck running to the fuel door, and its fuel at the true level. Up to 20,000 drums,
 				55-US-gallon steel drums (208&nbsp;L, 572&nbsp;mm across, 851&nbsp;mm tall), four to a
-				pallet, painted by the US fuel-can convention: red for gasoline, yellow for diesel, blue
-				steel for crude. Note the drum is not the barrel: the 42-gallon oil barrel is a unit of
+				pallet, drawn see-through with the last one filled to its true level. Note the drum is not the barrel: the 42-gallon oil barrel is a unit of
 				account. Up to ten tankers, VLCC supertankers (330 × 60&nbsp;m, 2&nbsp;million barrels of
 				cargo — the EIA gives 1.9–2.2&nbsp;million), with the deck cut away and the cargo tanks
 				drawn as one open hold 225 × 54&nbsp;m, so the oil stands at its true depth: a full load is
@@ -212,7 +211,9 @@
 				13.2&nbsp;billion barrels from 1977 to the end of 2024 (BP Prudhoe Bay Royalty Trust,
 				annual report for 2024) — so each jack is 1/1,600 of it, about 8.25&nbsp;million barrels,
 				and the last one is lit in proportion. The jacks are symbolic of volume, not a map of the
-				field's real wells. The readout adds how long the world takes to use that much oil, at
+				field's real wells. Whatever the fuel, what you bought is drawn in bitcoin orange at every
+				scale, and a gauge on the stage reads how full the last container is: a fuel dial for the
+				car, a bar for the drum, the hold and the field. The readout adds how long the world takes to use that much oil, at
 				the IEA's 2025 figure of about 104&nbsp;million barrels a day.
 			</p>
 			<h3 id="manhattan">Manhattan (land, not a commodity)</h3>

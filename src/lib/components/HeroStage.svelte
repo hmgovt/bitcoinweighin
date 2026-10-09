@@ -451,7 +451,7 @@
 		</div>
 	{:else if isOil}
 		<div class="oil-frame">
-			<OilStage litres={oilLitres} {fuel} bind:staged={oilStaged} bind:ready={oilRendered} />
+			<OilStage litres={oilLitres} bind:staged={oilStaged} bind:ready={oilRendered} />
 		</div>
 	{:else if isLand}
 		<div class="land-frame">
