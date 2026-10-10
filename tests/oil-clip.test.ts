@@ -18,15 +18,37 @@ const I: OilClipInputs = {
 };
 
 describe('the oil clip timeline', () => {
-	it('stops are in order and each is held', () => {
+	it('opens on the payoff: all 21 million bitcoin as oil, captioned from frame 0', () => {
+		const f = clipFrame(0, I);
+		expect(f.stop).toBe('open');
+		expect(f.litres).toBeCloseTo(stopLitres('all', 'crude', I), 3);
+		expect(f.caption).toBe(1);
+		expect(f.flash).toBe(0);
+	});
+
+	it('smash-cuts to one sat by 2.1 s', () => {
+		const f = clipFrame(2.15, I);
+		expect(f.stop).toBe('sat');
+		expect(f.btc).toBeCloseTo(1e-8, 12);
+		expect(f.flash).toBeGreaterThan(0);
+	});
+
+	it('stops are in order, short, and the whole cut is under 50 s', () => {
 		let last = 0;
 		for (const s of STOPS) {
 			expect(s.at).toBeGreaterThanOrEqual(last);
 			expect(s.until).toBeGreaterThan(s.at);
+			expect(s.until - s.at).toBeLessThan(8.25);
 			last = s.until;
 		}
-		expect(BEATS.endCard).toBeGreaterThanOrEqual(STOPS[STOPS.length - 1].at);
-		expect(BEATS.duration).toBeGreaterThan(BEATS.endCard);
+		expect(BEATS.duration).toBe(STOPS[STOPS.length - 1].until);
+		expect(BEATS.duration).toBeLessThan(50);
+	});
+
+	it('never holds a still frame: a climb, a caption or a chart is always moving', () => {
+		for (const s of STOPS.filter((x) => !['history', 'end'].includes(x.key))) {
+			expect(s.until - s.at).toBeLessThanOrEqual(3.4);
+		}
 	});
 
 	it('holds each stop at its exact amount', () => {
@@ -48,13 +70,15 @@ describe('the oil clip timeline', () => {
 		expect(tankBtc(I) * 1e8).toBeCloseTo(53_016, -1);
 	});
 
-	it('climbs monotonically from one sat to all 21 million', () => {
+	it('climbs monotonically from one sat to all 21 million, counter showing only mid-climb', () => {
 		let prev = 0;
+		const start = STOPS.find((s) => s.key === 'sat')!.at;
 		const end = STOPS.find((s) => s.key === 'all')!.at;
-		for (let t = BEATS.hookEnd; t <= end; t += 0.05) {
+		for (let t = start; t <= end; t += 0.02) {
 			const f = clipFrame(t, I);
 			expect(f.litres).toBeGreaterThanOrEqual(prev * (1 - 1e-12));
 			prev = f.litres;
+			if (f.counter > 0.05) expect(f.caption).toBe(0);
 		}
 	});
 
@@ -69,13 +93,19 @@ describe('the oil clip timeline', () => {
 		expect(historyAt(0.5, I).barrels).toBeCloseTo(1865.7, 1);
 	});
 
-	it('opens on the hook card and closes on the end card, nothing else on top', () => {
-		const a = clipFrame(1, I);
-		expect(a.hook).toBe(1);
-		expect(a.headline).toBe(0);
-		const z = clipFrame(BEATS.duration - 0.5, I);
-		expect(z.endCard).toBe(1);
-		expect(z.headline).toBe(0);
+	it('ends on the field again, so a replay loops into the opening', () => {
+		const z = clipFrame(BEATS.duration - 0.01, I);
+		expect(z.stop).toBe('end');
+		expect(z.litres).toBeCloseTo(clipFrame(0, I).litres, 6);
+		expect(z.cta).toBe(1);
 		expect(z.chart).toBe(0);
+	});
+});
+
+describe('the oil clip camera', () => {
+	it('starts in among the jacks and pulls back to the whole field before the cut', () => {
+		expect(clipFrame(0, I).zoom).toBeCloseTo(14, 6);
+		expect(clipFrame(1.0, I).zoom).toBeLessThan(clipFrame(0.5, I).zoom);
+		expect(clipFrame(1.9, I).zoom).toBeCloseTo(1, 6);
 	});
 });

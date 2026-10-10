@@ -43,11 +43,14 @@
 
 	let {
 		litres = 0,
+		zoom = 1,
 		staged = $bindable(false),
 		ready = $bindable(false),
 	}: {
 		/** Fuel bought, litres (btc × price ÷ USD per litre, see oil.ts). */
 		litres?: number;
+		/** Push the camera in by this factor from its framing (the video clips). */
+		zoom?: number;
 		staged?: boolean;
 		ready?: boolean;
 	} = $props();
@@ -862,7 +865,7 @@
 		const cy = h * 0.4;
 		const corners: [number, number, number][] = [];
 		for (const x of [x0, x1]) for (const z of [z0, z1]) for (const y of [0, h]) corners.push([x - cx, y - cy, z - cz]);
-		const dist = fitDistance(corners, back, right, up, (35 * Math.PI) / 180, aspect, margin);
+		const dist = fitDistance(corners, back, right, up, (35 * Math.PI) / 180, aspect, margin) / Math.max(zoom, 0.1);
 		wantAim.set(cx, cy, cz);
 		wantPos.set(cx + back[0] * dist, cy + back[1] * dist, cz + back[2] * dist);
 		if (prefersReduced || !framedOnce) {
