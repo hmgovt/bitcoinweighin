@@ -31,7 +31,7 @@ export const COLOR_STOPS = [
  *   16 g    → 0.187 (dull red — 1 BTC)
  *   160 g   → 0.343 (cherry red — 10 BTC)
  *   1.6 kg  → 0.557 (orange — 100 BTC, "bright orange")
- *   4.5 kg  → 0.749 (orange-yellow — 280 BTC, Voyager fuel-load)
+ *   4.5 kg  → 0.749 (orange-yellow — 280 BTC, one Voyager RTG's fuel)
  *   10 kg  → 0.898 (near white-yellow — 625 BTC, theoretical critical)
  *   16 kg  → 0.986 (white-hot — 1000 BTC)
  *

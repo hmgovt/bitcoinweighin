@@ -1,8 +1,10 @@
 /**
- * The "cyber Manhattan" video clip: a quote card, then the whole island,
- * then a dive to what 1 BTC buys at the Battery and a pull-back as the
- * amount climbs to a holder's stack, filling real lots northward. Rendered
- * by /clip/manhattan and captured frame by frame by
+ * The "cyber Manhattan" video, cut for the feed: it opens on the payoff
+ * (the whole island, a holder's land already lit) with Saylor's phrase on
+ * screen from frame 0, dives to what 1 BTC buys at the Battery, climbs lot
+ * by lot to the holder's stack, then to all 21 million, and ends over the
+ * island again so a replay loops into the opening. Rendered by
+ * /clip/manhattan and captured frame by frame by
  * scripts/clips/make-manhattan-clip.ts. Pure: everything here is a function
  * of the clip time, so every capture of the same inputs is the same video.
  */
@@ -10,12 +12,19 @@ import { DEVELOPABLE_M2, landM2, frontierStreet } from '../manhattan.js';
 
 /** Beat boundaries, seconds. */
 export const BEATS = {
-	quoteEnd: 4.8,
-	questionEnd: 7.6,
-	growStart: 12,
-	growEnd: 22,
-	endCard: 26.5,
-	duration: 30,
+	/** The open: the island, the holder's land lit, the quote. */
+	openEnd: 2.4,
+	/** 1 BTC at the Battery (the camera dives in from the open). */
+	oneBtc: 3.3,
+	growStart: 6,
+	growEnd: 12.6,
+	/** The holder's result. */
+	resultEnd: 16.6,
+	/** The climb to all 21 million, and its result. */
+	allStart: 17.2,
+	allEnd: 18.4,
+	endCard: 22.4,
+	duration: 26,
 } as const;
 
 export interface ClipFrame {
@@ -27,14 +36,17 @@ export interface ClipFrame {
 	/** Cross street the fill has reached (null south of Wall Street). */
 	street: string | null;
 	/** Overlay opacities, 0–1. */
-	quote: number;
-	question: number;
+	open: number;
 	oneBtc: number;
 	counter: number;
 	result: number;
-	footer: number;
+	all: number;
 	endCard: number;
+	/** Caption pop (1 = settled) for whichever caption just arrived. */
+	pop: number;
 }
+
+const ALL_BTC = 21_000_000;
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const smooth = (x: number) => {
@@ -42,29 +54,32 @@ const smooth = (x: number) => {
 	return t * t * (3 - 2 * t);
 };
 /** 0→1 over [a, a+fade], 1 until b, 1→0 over [b, b+fade]. */
-const window_ = (t: number, a: number, b: number, fade = 0.45) =>
+const window_ = (t: number, a: number, b: number, fade = 0.15) =>
 	Math.min(smooth((t - a) / fade), 1 - smooth((t - b) / fade));
+const logLerp = (a: number, b: number, g: number) => Math.pow(10, Math.log10(a) + (Math.log10(b) - Math.log10(a)) * g);
 
 export function clipFrame(t: number, holderBtc: number, btcUsd: number): ClipFrame {
 	const B = BEATS;
-	let btc = 0;
-	if (t >= B.questionEnd) {
-		const g = smooth((t - B.growStart) / (B.growEnd - B.growStart));
-		// Log-spaced: every order of magnitude gets the same screen time.
-		btc = Math.pow(10, Math.log10(Math.max(holderBtc, 1)) * g);
-	}
+	let btc: number;
+	if (t < B.openEnd) btc = holderBtc;
+	else if (t < B.growStart) btc = 1;
+	else if (t < B.allStart) btc = logLerp(1, Math.max(holderBtc, 1), smooth((t - B.growStart) / (B.growEnd - B.growStart)));
+	else btc = logLerp(Math.max(holderBtc, 1), ALL_BTC, smooth((t - B.allStart) / (B.allEnd - B.allStart)));
 	const areaM2 = landM2(btc, btcUsd);
+	// The open and the close frame the whole island; otherwise the camera follows the land.
+	const frameM2 = t < B.openEnd || t >= B.endCard ? DEVELOPABLE_M2 : areaM2;
+	const arrived = t < B.openEnd ? 0 : t < B.growStart ? B.oneBtc : t < B.allStart ? B.growEnd : B.allEnd;
 	return {
 		areaM2,
-		frameM2: t < B.questionEnd ? DEVELOPABLE_M2 : areaM2,
+		frameM2,
 		btc,
 		street: frontierStreet(areaM2),
-		quote: 1 - smooth((t - (B.quoteEnd - 0.6)) / 0.6),
-		question: window_(t, B.quoteEnd, B.questionEnd - 0.5),
-		oneBtc: window_(t, B.questionEnd + 2.2, B.growStart - 0.2, 0.35),
-		counter: window_(t, B.growStart - 0.2, B.endCard - 0.4, 0.35),
-		result: smooth((t - (B.growEnd + 0.3)) / 0.5) * (1 - smooth((t - (B.endCard - 0.4)) / 0.45)),
-		footer: smooth((t - B.quoteEnd) / 0.5),
-		endCard: smooth((t - B.endCard) / 0.5),
+		open: t < B.openEnd - 0.15 ? 1 : 1 - smooth((t - (B.openEnd - 0.15)) / 0.15),
+		oneBtc: window_(t, B.oneBtc, B.growStart - 0.2),
+		counter: window_(t, B.growStart, B.growEnd - 0.1, 0.1) + window_(t, B.allStart, B.allEnd - 0.1, 0.1),
+		result: window_(t, B.growEnd, B.resultEnd),
+		all: window_(t, B.allEnd, B.endCard - 0.2),
+		endCard: smooth((t - B.endCard) / 0.3),
+		pop: t < B.openEnd ? 1 : 1 + 0.18 * (1 - smooth((t - arrived) / 0.22)),
 	};
 }

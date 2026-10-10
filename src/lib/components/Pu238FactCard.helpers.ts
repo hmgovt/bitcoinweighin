@@ -36,7 +36,7 @@ export function pu238Fact(g: number): string {
 	if (g < 200) return "About one GPHS fuel module — NASA's standard heat-source unit (~150 g)";
 	if (g < 1000) return 'Several GPHS modules — enough for a small RTG';
 	if (g < 5000)
-		return "Roughly Voyager 1's original fuel load (~4.5 kg) — the substance powering humanity's farthest object";
+		return "About one of Voyager 1's three power units (~4.5 kg each) — the fuel keeping humanity's farthest object alive";
 	if (g < 10000)
 		return 'Approaching theoretical critical mass for bare metal (~10 kg) — would melt itself long before assembly';
 	if (g < 50000) return "Multiple flagship deep-space missions' worth of fuel";
@@ -57,7 +57,7 @@ export function pu238Blurb(g: number): string | null {
 		return "NASA's General Purpose Heat Source — the standard ~150 g brick used in deep-space RTGs since Galileo.";
 	if (g < 1000) return 'A few GPHS bricks ganged together is the canonical small-RTG fuel load.';
 	if (g < 5000)
-		return 'Voyager 1 launched in 1977 with ~4.5 kg of Pu-238 — still transmitting from interstellar space.';
+		return 'Voyager 1 launched in 1977 with three RTGs of ~4.5 kg of Pu-238 each, about 13.5 kg in all — still transmitting from interstellar space.';
 	if (g < 10000)
 		return 'Bare-metal critical mass for Pu-238 is theoretical: the heat would melt the assembly first.';
 	if (g < 50000)

@@ -137,6 +137,19 @@ export function oilScene(litres: number): OilScene {
 	return { kind: 'field', ...f, count: Math.min(f.count, FIELD_JACKS) };
 }
 
+/** The containers per rung, litres each (the field's pump jacks: JACK_L). */
+const PER: Record<OilStageKind, number> = { tank: CAR_TANK_L, drums: DRUM_L, tanker: VLCC_L, field: JACK_L };
+
+/**
+ * `litres` drawn on a chosen rung, whatever the amount: an empty tanker
+ * filling, say (the video clips). Always at least one container.
+ */
+export function sceneOn(kind: OilStageKind, litres: number): OilScene {
+	const exact = Math.max(0, litres) / PER[kind];
+	const count = Math.max(1, Math.ceil(exact - 1e-9));
+	return { kind, count, lastFill: Math.min(1, Math.max(0, exact - (count - 1))), exact };
+}
+
 /** How long the whole world takes to burn through `litres` of oil, seconds. */
 export function worldSeconds(litres: number): number {
 	return (litres / LITRES_PER_BARREL / WORLD_BARRELS_PER_DAY) * 86400;

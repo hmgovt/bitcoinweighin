@@ -109,6 +109,7 @@
 		ongrab,
 		clipInfo = null,
 		accent = '#d4a14a',
+		capture = false,
 	}: {
 		commodity: Commodity;
 		amount: number | null;
@@ -128,6 +129,12 @@
 		clipInfo?: ClipInfo | null;
 		/** Commodity accent colour — loupe ring and overlays. */
 		accent?: string;
+		/**
+		 * Frame-by-frame video capture (/clip pages only): hydrate at once,
+		 * even in a headless browser, and keep the full render path however
+		 * slow a frame is, since the capture's clock waits for every frame.
+		 */
+		capture?: boolean;
 	} = $props();
 
 	const BG = 0x18181b;
@@ -1479,7 +1486,7 @@
 		// resolution) starts at full quality and is downgraded together, once,
 		// by the empirical probe right after the scene is built.
 		renderer = new three.WebGLRenderer({
-			antialias: !isKnownConstrainedDevice(),
+			antialias: capture || !isKnownConstrainedDevice(),
 			alpha: false,
 		});
 		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1588,7 +1595,7 @@
 		});
 		renderer.getDrawingBufferSize(S.buf);
 		probeMsPerMpx = renderCostMs / Math.max((S.buf.x * S.buf.y) / 1e6, 0.05);
-		if (renderCostMs > 50) {
+		if (renderCostMs > 50 && !capture) {
 			if (composer) {
 				composer.dispose();
 				composer = null;
@@ -1864,7 +1871,14 @@
 		// catches genuinely slow real hardware (that check runs regardless
 		// of this one), this just also avoids the download for the specific
 		// case where we already know for certain the visitor isn't a human.
-		if (prefersReduced || !hasWebGL() || isAutomatedBrowser()) return;
+		if (!capture && (prefersReduced || !hasWebGL() || isAutomatedBrowser())) return;
+		if (capture) {
+			void hydrate();
+			return () => {
+				destroyed = true;
+				teardown();
+			};
+		}
 
 		let triggered = false;
 		let idleId: number | null = null;

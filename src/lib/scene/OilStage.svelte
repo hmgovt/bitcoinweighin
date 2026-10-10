@@ -35,6 +35,8 @@
 		VLCC_L,
 		formatVolume,
 		oilScene,
+		sceneOn,
+		type OilStageKind,
 		type OilScene,
 	} from '../oil.js';
 	import { fitDistance } from './landPatch.js';
@@ -44,11 +46,14 @@
 	let {
 		litres = 0,
 		zoom = 1,
+		rung,
 		staged = $bindable(false),
 		ready = $bindable(false),
 	}: {
 		/** Fuel bought, litres (btc × price ÷ USD per litre, see oil.ts). */
 		litres?: number;
+		/** Draw on this rung whatever the amount, e.g. an empty tanker filling (the video clips). */
+		rung?: OilStageKind;
 		/** Push the camera in by this factor from its framing (the video clips). */
 		zoom?: number;
 		staged?: boolean;
@@ -749,7 +754,7 @@
 	function refresh(L: number): void {
 		const three = T;
 		if (!three || !scene || !carsGroup || !drums || !shipsGroup || !fieldGroup || !groundMat || !ground) return;
-		const s = oilScene(L);
+		const s = rung ? sceneOn(rung, L) : oilScene(L);
 		const kind = s.kind;
 		carsGroup.visible = kind === 'tank';
 		drums.visible = drumFuel!.visible = pallets!.visible = kind === 'drums';
@@ -800,6 +805,8 @@
 				sh.root.visible = k < s.count;
 				const f = k < s.count - 1 ? 1 : s.lastFill;
 				const depth = Math.max((f * VLCC_L) / 1000 / HOLD_AREA, 0.05);
+				// An empty hold is empty: no minimum film of oil.
+				sh.oil.visible = f > 0.001;
 				sh.oil.scale.y = depth;
 				sh.oil.position.set((SHIP.holdX0 + SHIP.holdX1) / 2, SHIP_FLOOR + depth / 2, 0);
 			});

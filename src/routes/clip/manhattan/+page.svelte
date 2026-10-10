@@ -1,11 +1,11 @@
 <!-- src/routes/clip/manhattan/+page.svelte -->
 <script lang="ts">
 	/**
-	 * /clip/manhattan — the "cyber Manhattan" video clip, played on the real
-	 * Manhattan stage. Not a page for people: scripts/clips/make-manhattan-clip.ts
-	 * opens it at 540×960, calls window.__clipStart() once the map is ready,
-	 * and screenshots it frame by frame on a virtual clock. The timeline is
-	 * $lib/clips/manhattanClip.ts.
+	 * /clip/manhattan — the "cyber Manhattan" video, played on the real
+	 * Manhattan stage, vertical (or 16:9 in a landscape window). Not a page
+	 * for people: scripts/clips/make-manhattan-clip.ts opens it, calls
+	 * window.__clipStart() once the map is ready, and screenshots it frame by
+	 * frame on a virtual clock. The timeline is $lib/clips/manhattanClip.ts.
 	 *
 	 *   ?holder=<entity slug>   default strategy (src/lib/entity-holdings.json)
 	 *   ?price=<BTC-USD>&date=<YYYY-MM-DD>   default: the dataset's last day
@@ -23,23 +23,17 @@
 	let holderSlug = $state('strategy');
 	let price = $state(0);
 	let date = $state('');
-	/** ?counter=0: no running counter (stills, where the headline says it all). */
-	let showCounter = $state(true);
 
 	const holder = $derived(holdings.entities.find((e) => e.slug === holderSlug) ?? holdings.entities.find((e) => e.slug === 'strategy')!);
 	const f = $derived(clipFrame(t, holder.btc, price));
-	const finalM2 = $derived(landM2(holder.btc, price));
-	const finalFrame = $derived(clipFrame(BEATS.growEnd, holder.btc, price));
-	const share = $derived(finalM2 / DEVELOPABLE_M2);
-	const oneM2 = $derived(landM2(1, price));
+	const holderM2 = $derived(landM2(holder.btc, price));
+	const holderFrame = $derived(clipFrame(BEATS.growEnd, holder.btc, price));
+	const allShare = $derived(landM2(21_000_000, price) / DEVELOPABLE_M2);
 
-	const both = (m2: number) => `${formatArea(m2, 'metric')} (${formatArea(m2, 'imperial')})`;
+	const both = (m2: number) => `${formatArea(m2, 'imperial')} (${formatArea(m2, 'metric')})`;
 	const pct = (s: number) => `${s < 0.1 ? (s * 100).toFixed(1) : Math.round(s * 100)}%`;
 	const possessive = (name: string) => (name.endsWith('s') ? `${name}’` : `${name}’s`);
-	// The whole supply reads as a subject, not an owner.
-	const whole = $derived(holder.slug === 'market-cap');
-	const whose = $derived(whole ? 'all 21 million' : possessive(holder.label));
-	const subject = $derived(whole ? 'All 21 million bitcoin buy' : `${possessive(holder.label)} ${formatBtc(holder.btc)} buys`);
+	const n0 = (x: number) => Math.round(x).toLocaleString('en-US');
 	const dateLabel = $derived(
 		date ? new Date(date + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : ''
 	);
@@ -47,7 +41,6 @@
 	onMount(() => {
 		const q = new URLSearchParams(location.search);
 		holderSlug = q.get('holder') ?? 'strategy';
-		showCounter = q.get('counter') !== '0';
 		const p = Number(q.get('price'));
 		if (p > 0) {
 			price = p;
@@ -61,8 +54,6 @@
 					date = last;
 				});
 		}
-		// The clip's clock: performance.now() from __clipStart(), which the
-		// capture script drives virtually (one frame at a time).
 		let t0: number | null = null;
 		let raf = 0;
 		const w = window as unknown as {
@@ -74,13 +65,8 @@
 		w.__clipStart = () => (t0 = performance.now());
 		w.__clipReady = () => ready && price > 0;
 		w.__clipDuration = BEATS.duration;
-		// A full-screen card hides the map, so the capture can repeat the
-		// frame without rendering it. Read from the clock, not the last paint.
-		w.__clipOpaque = () => {
-			if (t0 === null) return false;
-			const c = clipFrame((performance.now() - t0) / 1000, holder.btc, price);
-			return c.quote >= 1 || c.endCard >= 1;
-		};
+		// Nothing covers the map completely any more: every frame renders.
+		w.__clipOpaque = () => false;
 		const tick = () => {
 			raf = requestAnimationFrame(tick);
 			if (t0 !== null) t = (performance.now() - t0) / 1000;
@@ -100,53 +86,51 @@
 		<LandStage areaM2={price > 0 ? f.areaM2 : 0} frameM2={price > 0 ? f.frameM2 : DEVELOPABLE_M2} bind:ready />
 	</div>
 
-	<!-- Beat 1: the quote -->
-	<div class="card quote" style:opacity={f.quote}>
-		<p class="q-lead">Michael Saylor calls bitcoin</p>
-		<p class="q-big">“cyber Manhattan.”</p>
-		<p class="q-src">— CNBC, <i>Money Movers</i>, 16 Dec 2024</p>
-	</div>
+	{#if price > 0}
+		<!-- The open: on screen from frame 0, over the island with the holder's land lit. -->
+		<div class="caps" style:opacity={f.open}>
+			<p class="kicker-big">Michael Saylor calls bitcoin</p>
+			<p class="punch huge" style:opacity={t >= 0.6 ? 1 : 0} style:transform="scale({t >= 0.6 ? 1 + 0.25 * Math.max(0, 1 - (t - 0.6) / 0.2) : 1})">
+				“CYBER MANHATTAN”
+			</p>
+			<p class="small" style:opacity={t >= 1.2 ? 1 : 0}>So how much of the <em>real</em> one does bitcoin buy?</p>
+		</div>
 
-	<!-- Beat 2: the question, over the whole island -->
-	<div class="top" style:opacity={f.question}>
-		<p class="h">So how much of the <em>real</em> Manhattan {whole ? 'would' : 'does'} {whose} bitcoin buy?</p>
-	</div>
+		<div class="caps" style:opacity={f.oneBtc}>
+			<p class="kicker">1 bitcoin</p>
+			<p class="punch" style:transform="scale({f.pop})">= {formatArea(landM2(1, price), 'imperial').toUpperCase()}</p>
+			<p class="small">of land at the Battery, Manhattan’s southern tip. ({formatArea(landM2(1, price), 'metric')})</p>
+		</div>
 
-	<!-- Beat 3: one coin at the Battery -->
-	<div class="top" style:opacity={f.oneBtc}>
-		<p class="h"><span class="or">1 BTC</span> buys {both(oneM2)}</p>
-		<p class="sub">of land at the Battery, Manhattan’s southern tip</p>
-	</div>
+		<div class="counter" style:opacity={Math.min(1, f.counter)}>
+			<div class="c-btc">{formatBtc(f.btc < 10 ? Math.round(f.btc * 100) / 100 : Math.round(f.btc))}</div>
+			<div class="c-area">{both(f.areaM2)}</div>
+			<div class="c-reach">{f.street ? `The Battery → ${f.street}` : 'At the Battery'}</div>
+		</div>
 
-	<!-- Beat 4: the climb -->
-	<div class="counter" style:opacity={showCounter ? f.counter : 0}>
-		<div class="c-btc">{formatBtc(f.btc < 10 ? Math.round(f.btc * 100) / 100 : Math.round(f.btc))}</div>
-		<div class="c-area">{both(f.areaM2)}</div>
-		<div class="c-reach">{f.street ? `The Battery → ${f.street}` : 'At the Battery'}</div>
-	</div>
+		<div class="caps" style:opacity={f.result}>
+			<p class="kicker">{possessive(holder.label)} {n0(holder.btc)} BTC</p>
+			<p class="punch" style:transform="scale({f.pop})">= {pct(holderM2 / DEVELOPABLE_M2)} OF MANHATTAN</p>
+			<p class="small">The Battery → {holderFrame.street ?? 'the Battery'}. That’s it.</p>
+		</div>
 
-	<!-- Beat 5: the answer -->
-	<div class="top" style:opacity={f.result}>
-		{#if share >= 1}
-			<p class="h">{subject} <span class="or">all</span> of Manhattan’s land</p>
-			<p class="sub">Every lot from the Battery to Inwood, with {both(finalM2 - DEVELOPABLE_M2)} to spare.</p>
-		{:else}
-			<p class="h">{subject} <span class="or">{pct(share)}</span> of Manhattan’s land</p>
-			<p class="sub">From the Battery to {finalFrame.street ?? 'the Battery'}. That’s it.</p>
-		{/if}
-	</div>
+		<div class="caps" style:opacity={f.all}>
+			<p class="kicker">All 21 million bitcoin</p>
+			<p class="punch" style:transform="scale({f.pop})">
+				= {allShare >= 0.995 ? 'ALL OF MANHATTAN' : `${pct(allShare)} OF MANHATTAN`}
+			</p>
+			<p class="small">The land only: ${(LAND_VALUE_USD / 1e12).toFixed(2)} trillion for the whole island ({LAND_VALUE_YEAR} estimate). The buildings would cost far more.</p>
+		</div>
 
-	<div class="footer" style:opacity={f.footer * (1 - f.endCard)}>
-		BTC ${Math.round(price).toLocaleString('en-US')} · {dateLabel} · Land: ${(LAND_VALUE_USD / 1e12).toFixed(2)}T for the whole island
-		({LAND_VALUE_YEAR}, Barr, Smith &amp; Kulkarni), spread evenly, illustrative · Map: NYC Open Data
-	</div>
-
-	<!-- Beat 6: the end card -->
-	<div class="card end" style:opacity={f.endCard}>
-		<BrandMark size={84} />
-		<p class="e-url">bitcoinweighin.com</p>
-		<p class="e-sub">Weigh any amount of bitcoin in gold, cash, plutonium… and Manhattan.</p>
-	</div>
+		<div class="cta" style:opacity={f.endCard}>
+			<p class="cta-big">WEIGH YOUR BITCOIN</p>
+			<div class="cta-url"><BrandMark size={44} /> <span>bitcoinweighin.com</span></div>
+			<p class="cta-src">
+				BTC ${n0(price)} · {dateLabel} close · Land: Barr, Smith &amp; Kulkarni ({LAND_VALUE_YEAR}), spread evenly, illustrative ·
+				Quote: CNBC, 16 Dec 2024 · Map: NYC Open Data
+			</p>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -163,7 +147,11 @@
 		font-family: 'Inter Tight', system-ui, sans-serif;
 		color: #fafafa;
 	}
-	.stage,
+	.stage {
+		position: absolute;
+		inset: 0;
+		top: 24%;
+	}
 	.stage :global(.land-stage) {
 		position: absolute;
 		inset: 0;
@@ -173,128 +161,136 @@
 	.stage :global(.land-credit) {
 		display: none;
 	}
-	.card {
+	.caps,
+	.counter,
+	.cta {
 		position: absolute;
-		inset: 0;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		text-align: center;
-		padding: 0 44px;
-		background: #0b0b0d;
-		z-index: 3;
-	}
-	.card p {
-		margin: 0;
-	}
-	.q-lead {
-		font-size: 24px;
-		font-weight: 500;
-		color: #a1a1aa;
-	}
-	.q-big {
-		font-size: 58px;
-		font-weight: 700;
-		letter-spacing: -0.03em;
-		line-height: 1.05;
-		margin: 16px 0 22px !important;
-		color: #f7931a;
-	}
-	.q-src {
-		font-size: 17px;
-		color: #71717a;
-	}
-	.top {
-		position: absolute;
-		left: 0;
-		right: 0;
-		top: 0;
-		padding: 64px 36px 90px;
-		background: linear-gradient(#18181bf2 0%, #18181bcc 55%, #18181b00 100%);
+		left: 28px;
+		right: 64px;
+		top: 70px;
 		z-index: 2;
 	}
-	.top p {
+	.caps p,
+	.cta p {
 		margin: 0;
 	}
-	.h {
-		font-size: 34px;
-		font-weight: 700;
-		line-height: 1.15;
+	.kicker {
+		font-size: 22px;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #f7931a;
+	}
+	.kicker-big {
+		font-size: 32px;
+		font-weight: 900;
+		line-height: 1.05;
+		text-transform: uppercase;
+	}
+	.punch {
+		margin-top: 4px !important;
+		font-size: 44px;
+		font-weight: 900;
+		line-height: 1;
 		letter-spacing: -0.02em;
 		text-wrap: balance;
+		transform-origin: left center;
+		text-shadow: 0 3px 18px #000a;
 	}
-	.h em {
+	.huge {
+		margin-top: 10px !important;
+		font-size: 56px;
+		color: #f7931a;
+	}
+	.small {
+		margin-top: 10px !important;
+		font-size: 17px;
+		font-weight: 600;
+		line-height: 1.3;
+		color: #d4d4d8;
+		text-wrap: pretty;
+	}
+	.small em {
 		font-style: normal;
 		color: #f7931a;
 	}
-	.or {
-		color: #f7931a;
-	}
-	.sub {
-		margin-top: 12px !important;
-		font-size: 19px;
-		font-weight: 500;
-		color: #d4d4d8;
-	}
 	.counter {
-		position: absolute;
-		left: 24px;
-		right: 24px;
-		bottom: 96px;
-		padding: 18px 22px;
-		border-radius: 14px;
-		background: #0b0b0de0;
-		border: 1px solid #27272a;
-		z-index: 2;
-	}
-	.c-btc {
 		font-family: 'JetBrains Mono', ui-monospace, monospace;
-		font-size: 40px;
-		font-weight: 600;
-		letter-spacing: -0.02em;
-		color: #f7931a;
 		font-variant-numeric: tabular-nums;
+	}
+	.counter .c-btc {
+		font-size: 40px;
+		font-weight: 700;
+		color: #f7931a;
+		letter-spacing: -0.02em;
 	}
 	.c-area {
-		font-family: 'JetBrains Mono', ui-monospace, monospace;
+		margin-top: 6px;
 		font-size: 19px;
 		color: #fafafa;
-		margin-top: 6px;
-		font-variant-numeric: tabular-nums;
 	}
 	.c-reach {
-		font-size: 19px;
-		font-weight: 600;
-		color: #d4d4d8;
 		margin-top: 6px;
+		font-family: 'Inter Tight', system-ui, sans-serif;
+		font-size: 19px;
+		font-weight: 700;
+		color: #d4d4d8;
 	}
-	.footer {
-		position: absolute;
-		left: 24px;
-		right: 24px;
-		bottom: 18px;
-		padding: 8px 10px;
-		border-radius: 8px;
-		background: #0b0b0dc0;
+	.cta-big {
+		font-size: 50px;
+		font-weight: 900;
+		line-height: 1;
+		letter-spacing: -0.02em;
+		color: #f7931a;
+	}
+	.cta-url {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin-top: 14px;
+		font-size: 28px;
+		font-weight: 800;
+	}
+	.cta-src {
+		margin-top: 12px !important;
 		font-family: 'JetBrains Mono', ui-monospace, monospace;
 		font-size: 11px;
 		line-height: 1.5;
 		color: #a1a1aa;
-		text-shadow: 0 1px 3px #000;
-		z-index: 2;
 	}
-	.e-url {
-		margin-top: 22px !important;
-		font-size: 36px;
-		font-weight: 700;
-		letter-spacing: -0.02em;
-	}
-	.e-sub {
-		margin-top: 12px !important;
-		font-size: 19px;
-		color: #a1a1aa;
-		max-width: 22em;
-		text-wrap: balance;
+
+	/* ── 16:9: captions in a left column, the map on the right. ── */
+	@media (min-aspect-ratio: 1/1) {
+		.stage {
+			top: 0;
+			left: 36%;
+		}
+		.caps,
+		.counter,
+		.cta {
+			left: 40px;
+			right: auto;
+			width: calc(36% - 64px);
+			top: 50%;
+			transform: translateY(-50%);
+		}
+		.kicker {
+			font-size: 18px;
+		}
+		.punch {
+			font-size: 38px;
+		}
+		.huge {
+			font-size: 46px;
+		}
+		.kicker-big {
+			font-size: 26px;
+		}
+		.small {
+			font-size: 15px;
+		}
+		.cta-big {
+			font-size: 40px;
+		}
 	}
 </style>

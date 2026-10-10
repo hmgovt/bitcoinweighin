@@ -1,6 +1,6 @@
 /**
  * synth.ts — the small synthesiser behind the clips' original scores
- * (score-ride.ts, score-manhattan.ts). Plain TypeScript into a stereo float
+ * (score-ride.ts, score-feed.ts). Plain TypeScript into a stereo float
  * buffer; ffmpeg adds a small room, limits and normalises to -16 LUFS.
  * Everything is ours outright: no samples, no licences.
  */

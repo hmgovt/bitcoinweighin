@@ -444,4 +444,52 @@
 		line-height: 1.5;
 		color: #a1a1aa;
 	}
+
+	/* ── 16:9 (YouTube): captions in a left column, the stage on the right. ── */
+	@media (min-aspect-ratio: 1/1) {
+		.stage {
+			top: 0;
+			left: 36%;
+		}
+		.caps,
+		.counter,
+		.cta {
+			left: 40px;
+			right: auto;
+			width: calc(36% - 64px);
+			top: 50%;
+			transform: translateY(-50%);
+		}
+		.caps.open {
+			top: 50%;
+		}
+		.kicker {
+			font-size: 18px;
+		}
+		.punch {
+			font-size: 40px;
+		}
+		.huge {
+			font-size: 50px;
+		}
+		.kicker-big {
+			font-size: 30px;
+		}
+		.small {
+			font-size: 15px;
+		}
+		.chart {
+			left: calc(36% + 24px);
+			right: 24px;
+			top: 50%;
+			transform: translateY(-50%);
+		}
+		.gauge .stage :global(.oil-gauge) {
+			top: 16px !important;
+			left: 16px !important;
+		}
+		.cta-big {
+			font-size: 40px;
+		}
+	}
 </style>

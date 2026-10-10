@@ -52,7 +52,7 @@ describe('massToColorTemp', () => {
 			expect(massToColorTemp(1600)).toBeCloseTo(0.557, 2);
 		});
 
-		it('at 4.5 kg (280 BTC, Voyager fuel-load) reads "orange-yellow"', () => {
+		it('at 4.5 kg (280 BTC, one Voyager RTG’s fuel) reads "orange-yellow"', () => {
 			expect(massToColorTemp(4500)).toBeCloseTo(0.749, 2);
 		});
 

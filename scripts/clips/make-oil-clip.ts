@@ -1,5 +1,6 @@
 /**
- * make-oil-clip.ts — "What does bitcoin buy in oil?": the long-form vertical
+ * make-oil-clip.ts — captures a /clip page (--clip=oil, the default, or
+ * --clip=pu238) to MP4. The oil one, "What does bitcoin buy in oil?", is the vertical
  * MP4 of /clip/oil (one sat → a car's tank → 1 BTC of drums → supertankers →
  * Prudhoe Bay → crude vs the pump → 1 BTC in barrels since 2013), for
  * TikTok, Reels and Shorts. About 1 min 46 s.
@@ -26,6 +27,7 @@ import { dirname, resolve } from 'node:path';
 const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
 
 const base = arg('base') ?? process.env.SITE_BASE_URL ?? 'http://localhost:4173';
+const clip = arg('clip') ?? 'oil';
 const date = arg('date');
 const fps = Number(arg('fps') ?? 30);
 const width = Number(arg('width') ?? 540);
@@ -37,7 +39,7 @@ const from = Number(arg('from') ?? 0);
 const only = arg('seconds') ? Number(arg('seconds')) : null;
 /** Save one PNG at this clip time instead of a video (e.g. --still=24.5). */
 const still = arg('still') ? Number(arg('still')) : null;
-const out = resolve(arg('out') ?? `output/clips/oil${still !== null ? `-${still}s.png` : '.mp4'}`);
+const out = resolve(arg('out') ?? `output/clips/${clip}${still !== null ? `-${still}s.png` : '.mp4'}`);
 
 async function main() {
 	await mkdir(dirname(out), { recursive: true });
@@ -64,7 +66,7 @@ async function main() {
 			};
 			w.__present = () => new Promise((r) => realRaf(() => r()));
 		});
-		const url = `${base}/clip/oil${date ? `?date=${date}` : ''}`;
+		const url = `${base}/clip/${clip}${date ? `?date=${date}` : ''}`;
 		console.log(`→ ${url}`);
 		await page.goto(url, { waitUntil: 'networkidle' });
 		await page.waitForFunction(() => (window as unknown as { __clipReady?: () => boolean }).__clipReady?.(), null, { timeout: 600_000, polling: 1000 });
