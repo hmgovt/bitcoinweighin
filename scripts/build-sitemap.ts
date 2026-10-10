@@ -53,6 +53,7 @@ const entries: Entry[] = [
 	{ path: '/data', priority: '0.9', changefreq: 'daily' },
 	{ path: '/methodology', priority: '0.7', changefreq: 'weekly' },
 	{ path: '/mining', priority: '0.8', changefreq: 'daily' },
+	{ path: '/videos', priority: '0.7', changefreq: 'weekly' },
 	...launchIds.map((id) => ({
 		path: `/btc/${id}`,
 		priority: '0.8',

@@ -10,7 +10,7 @@
 		tone = 'dark',
 	}: {
 		/** Which section this page is, for aria-current. */
-		current?: 'mining' | 'data' | 'methodology' | null;
+		current?: 'mining' | 'videos' | 'data' | 'methodology' | null;
 		/** The page ground: the visualiser and /mining are dark, the reference pages light. */
 		tone?: 'dark' | 'light';
 	} = $props();
@@ -18,6 +18,7 @@
 	const LINKS = [
 		{ id: 'mining', href: '/mining', label: 'Inside a miner', short: 'Miner' },
 		{ id: 'hashweight', href: '/#hashweight', label: 'Hashweight', short: null },
+		{ id: 'videos', href: '/videos', label: 'Videos', short: 'Videos' },
 		{ id: 'data', href: '/data', label: 'Data', short: 'Data' },
 		{ id: 'methodology', href: '/methodology', label: 'Methodology', short: 'Method' },
 	] as const;
