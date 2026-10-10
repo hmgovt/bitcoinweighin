@@ -71,7 +71,7 @@
 
 <div class="clip">
 	<div class="stage">
-		<OilStage litres={f?.litres ?? 0} rung="tanker" bind:ready />
+		<OilStage litres={f?.litres ?? 0} rung="tanker" zoom={(f?.litres ?? 0) > VLCC_L * 1.001 ? 1 : 1.15} bind:ready />
 	</div>
 
 	{#if f && inputs}
@@ -147,7 +147,7 @@
 		margin: 0;
 	}
 	.q {
-		font-size: 44px;
+		font-size: 39px;
 		font-weight: 900;
 		line-height: 1.02;
 		letter-spacing: -0.02em;
@@ -162,23 +162,23 @@
 		font-weight: 800;
 		color: #d4d4d8;
 	}
-	/* While it fills, the counter sits under the question. */
+	/* While it fills, the counter sits big over the open sky above the ship. */
 	.counter {
-		top: 186px;
+		top: 300px;
 		display: flex;
-		align-items: baseline;
-		gap: 16px;
+		flex-direction: column;
+		gap: 4px;
 		font-family: 'JetBrains Mono', ui-monospace, monospace;
 		font-variant-numeric: tabular-nums;
 	}
 	.c-btc {
-		font-size: 40px;
+		font-size: 64px;
 		font-weight: 700;
 		color: #f7931a;
 		letter-spacing: -0.02em;
 	}
 	.c-fill {
-		font-size: 22px;
+		font-size: 26px;
 		font-weight: 600;
 	}
 	.kicker {
@@ -255,6 +255,9 @@
 			flex-direction: column;
 			align-items: flex-start;
 			gap: 4px;
+		}
+		.c-btc {
+			font-size: 44px;
 		}
 		.lower {
 			top: 50%;

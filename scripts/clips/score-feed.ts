@@ -11,12 +11,14 @@
  *
  *   npx tsx scripts/clips/score-feed.ts --clip=pu238 --out=output/clips/pu238-score.wav
  *   npx tsx scripts/clips/score-feed.ts --clip=manhattan --out=output/clips/manhattan-score.wav
+ *   npx tsx scripts/clips/score-feed.ts --clip=tanker --out=output/clips/tanker-score.wav
  *
  * (The oil clip has its own, scripts/clips/score-oil.ts.)
  */
 import { resolve } from 'node:path';
 import { PU_DURATION, PU_STOPS } from '../../src/lib/clips/puClip.ts';
 import { BEATS as MB } from '../../src/lib/clips/manhattanClip.ts';
+import { TANKER_BEATS as TB } from '../../src/lib/clips/tankerClip.ts';
 import { Mix, pad, tone, boom, sweep, air, sub, pingPong, fadeOut, signature, master, smooth, PLUCK, BELL } from './synth.ts';
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split('=').slice(1).join('=');
@@ -68,6 +70,19 @@ function manhattanPlan(): Plan {
 	};
 }
 
+function tankerPlan(): Plan {
+	return {
+		duration: TB.duration,
+		hookHit: TB.fillFrom,
+		cues: [
+			{ at: TB.answer, kind: 'arrive', from: TB.fillFrom },
+			{ at: TB.twistTo, kind: 'climax', from: TB.twistFrom },
+			{ at: TB.loop, kind: 'end' },
+		],
+		pulse: [[TB.fillFrom, TB.twistUntil]],
+	};
+}
+
 // D minor, opening out as the amounts grow.
 const CHORDS = [
 	[38, 50, 53, 57, 64],
@@ -80,7 +95,7 @@ const CHORDS = [
 
 async function main() {
 	const clip = arg('clip') ?? 'pu238';
-	const P = clip === 'manhattan' ? manhattanPlan() : puPlan();
+	const P = clip === 'manhattan' ? manhattanPlan() : clip === 'tanker' ? tankerPlan() : puPlan();
 	const m = new Mix(P.duration);
 	const beat = 0.5;
 
