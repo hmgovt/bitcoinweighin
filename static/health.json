@@ -1,7 +1,7 @@
 {
-  "lastRun": "2026-10-16T06:33:24.179Z",
+  "lastRun": "2026-10-17T06:22:01.526Z",
   "type": "daily",
-  "date": "2026-10-15",
+  "date": "2026-10-16",
   "sources": {
     "btc": {
       "status": "ok",
@@ -24,75 +24,25 @@
     "oil_brent": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 8,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-10-05&observation_end=2026-10-15&api_key=***&file_type=json",
+      "rowCount": 7,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-10-06&observation_end=2026-10-16&api_key=***&file_type=json",
       "matchedDate": "2026-10-14"
     },
     "gasoline": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 2,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASREGW&observation_start=2026-10-05&observation_end=2026-10-15&api_key=***&file_type=json",
+      "rowCount": 1,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASREGW&observation_start=2026-10-06&observation_end=2026-10-16&api_key=***&file_type=json",
       "matchedDate": "2026-10-12"
     },
     "diesel": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 2,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASDESW&observation_start=2026-10-05&observation_end=2026-10-15&api_key=***&file_type=json",
+      "rowCount": 1,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASDESW&observation_start=2026-10-06&observation_end=2026-10-16&api_key=***&file_type=json",
       "matchedDate": "2026-10-12"
     }
   },
-  "revisions": [
-    {
-      "date": "2026-10-07",
-      "field": "brent",
-      "from": 125.44,
-      "to": 126
-    },
-    {
-      "date": "2026-10-08",
-      "field": "brent",
-      "from": 125.44,
-      "to": 130.18
-    },
-    {
-      "date": "2026-10-09",
-      "field": "brent",
-      "from": 125.44,
-      "to": 130.03
-    },
-    {
-      "date": "2026-10-10",
-      "field": "brent",
-      "from": 125.44,
-      "to": 130.03
-    },
-    {
-      "date": "2026-10-11",
-      "field": "brent",
-      "from": 125.44,
-      "to": 130.03
-    },
-    {
-      "date": "2026-10-12",
-      "field": "brent",
-      "from": 125.44,
-      "to": 129.95
-    },
-    {
-      "date": "2026-10-13",
-      "field": "brent",
-      "from": 125.44,
-      "to": 125.78
-    },
-    {
-      "date": "2026-10-14",
-      "field": "brent",
-      "from": 125.44,
-      "to": 126.55
-    }
-  ],
   "cross_validation": {
     "status": "skipped",
     "threshold_pct": 0.5,
