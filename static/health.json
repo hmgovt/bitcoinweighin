@@ -1,7 +1,7 @@
 {
-  "lastRun": "2026-10-18T06:47:12.815Z",
+  "lastRun": "2026-10-19T07:05:34.206Z",
   "type": "daily",
-  "date": "2026-10-17",
+  "date": "2026-10-18",
   "sources": {
     "btc": {
       "status": "ok",
@@ -10,8 +10,10 @@
       "url": "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=2"
     },
     "gold": {
-      "status": "fallback",
-      "error": "HTTP 429 for coingecko:pax-gold"
+      "status": "ok",
+      "httpStatus": 200,
+      "rowCount": 3,
+      "url": "https://api.coingecko.com/api/v3/coins/pax-gold/market_chart?vs_currency=usd&days=2"
     },
     "silver": {
       "status": "ok",
@@ -22,22 +24,22 @@
     "oil_brent": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 6,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-10-07&observation_end=2026-10-17&api_key=***&file_type=json",
+      "rowCount": 5,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-10-08&observation_end=2026-10-18&api_key=***&file_type=json",
       "matchedDate": "2026-10-14"
     },
     "gasoline": {
       "status": "carry-back",
       "httpStatus": 200,
       "rowCount": 1,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASREGW&observation_start=2026-10-07&observation_end=2026-10-17&api_key=***&file_type=json",
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASREGW&observation_start=2026-10-08&observation_end=2026-10-18&api_key=***&file_type=json",
       "matchedDate": "2026-10-12"
     },
     "diesel": {
       "status": "carry-back",
       "httpStatus": 200,
       "rowCount": 1,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASDESW&observation_start=2026-10-07&observation_end=2026-10-17&api_key=***&file_type=json",
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASDESW&observation_start=2026-10-08&observation_end=2026-10-18&api_key=***&file_type=json",
       "matchedDate": "2026-10-12"
     }
   },
