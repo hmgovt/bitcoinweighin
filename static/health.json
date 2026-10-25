@@ -1,7 +1,7 @@
 {
-  "lastRun": "2026-10-24T06:39:20.806Z",
+  "lastRun": "2026-10-25T07:05:15.318Z",
   "type": "daily",
-  "date": "2026-10-23",
+  "date": "2026-10-24",
   "sources": {
     "btc": {
       "status": "ok",
@@ -24,22 +24,22 @@
     "oil_brent": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 6,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-10-13&observation_end=2026-10-23&api_key=***&file_type=json",
+      "rowCount": 5,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-10-14&observation_end=2026-10-24&api_key=***&file_type=json",
       "matchedDate": "2026-10-20"
     },
     "gasoline": {
       "status": "carry-back",
       "httpStatus": 200,
       "rowCount": 1,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASREGW&observation_start=2026-10-13&observation_end=2026-10-23&api_key=***&file_type=json",
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASREGW&observation_start=2026-10-14&observation_end=2026-10-24&api_key=***&file_type=json",
       "matchedDate": "2026-10-19"
     },
     "diesel": {
       "status": "carry-back",
       "httpStatus": 200,
       "rowCount": 1,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASDESW&observation_start=2026-10-13&observation_end=2026-10-23&api_key=***&file_type=json",
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASDESW&observation_start=2026-10-14&observation_end=2026-10-24&api_key=***&file_type=json",
       "matchedDate": "2026-10-19"
     }
   },
