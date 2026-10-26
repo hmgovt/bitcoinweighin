@@ -28,6 +28,28 @@
 			imagesrcset="%sveltekit.assets%/sprites/references/shiba_inu@1x.webp 1x, %sveltekit.assets%/sprites/references/shiba_inu@2x.webp 2x"
 			fetchpriority="high"
 		/>
+		<!-- If a bundle 404s (this HTML predates the latest deploy, whose new
+		     content hashes replaced the old chunks), reload once for fresh HTML
+		     instead of leaving an unhydrated page. -->
+		<script>
+			(function () {
+				function recover() {
+					try {
+						var last = +sessionStorage.getItem('bwi-chunk-reload') || 0;
+						if (Date.now() - last < 30000) return;
+						sessionStorage.setItem('bwi-chunk-reload', String(Date.now()));
+					} catch (_) {
+						return;
+					}
+					location.reload();
+				}
+				addEventListener('vite:preloadError', recover);
+				addEventListener('unhandledrejection', function (e) {
+					var m = String((e.reason && e.reason.message) || e.reason || '');
+					if (/dynamically imported module|Importing a module script failed/i.test(m)) recover();
+				});
+			})();
+		</script>
 		<!-- Cloudflare Web Analytics -->
 		<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6492f513c7234d84ba5efa3d3e10866e"}'></script>
 		<!-- Umami Analytics -->
