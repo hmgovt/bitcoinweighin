@@ -7,7 +7,9 @@
  * link. A post that matches nothing gets no draft (the radar stays quiet).
  */
 import { L, OZ, f0, loadPrices, presetBtc, sig3 } from '../social/slates/lib.ts';
+import { OIL } from '../../functions/_lib.ts';
 import type { Post } from './api.ts';
+import { BTC_PER_DAY, COCAINE_USD_KG, COCAINE_WORLD_T } from './facts.ts';
 
 export interface Draft { angle: string; text: string }
 
@@ -87,6 +89,25 @@ const RULES: Rule[] = [
 		},
 	},
 	{
+		angle: 'Oil, weighed in bitcoin',
+		when: (t) => has(t, OIL_WORDS),
+		async draft() {
+			const { P, close } = await prices();
+			const px = P[close].btc_usd, brent = (P[close] as typeof P[string] & { brent_usd: number }).brent_usd;
+			const tanker = (OIL.VLCC_BARRELS * brent) / px, daily = (OIL.WORLD_BARRELS_PER_DAY * brent) / px;
+			return `At $${brent.toFixed(2)} a barrel, one supertanker of Brent costs ${f0(tanker)} BTC.\n\nThe world burns about ${f0(daily)} BTC of oil a day, ${sig3(daily / BTC_PER_DAY)}× all the new bitcoin mined in that day.\n${L('btc=1&commodity=oil')}`;
+		},
+	},
+	{
+		angle: 'Cocaine, the whole crop',
+		when: (t) => BTC.test(t) && has(t, /\b(cocaine|drugs?|cartels?|narcos?|criminals?|silk road)\b/i),
+		async draft() {
+			const { P, close } = await prices();
+			const btc = (COCAINE_WORLD_T * 1000 * COCAINE_USD_KG) / P[close].btc_usd;
+			return `The world made ${f0(COCAINE_WORLD_T)} tonnes of cocaine in 2023. At US wholesale, the whole crop comes to about ${sig3(btc / 1e6)} million BTC: ${((btc / 21e6) * 100).toFixed(1)}% of every coin there will ever be.\n${L('btc=1&commodity=cocaine')}`;
+		},
+	},
+	{
 		angle: 'Price milestone: the Moon stack',
 		when: (t) => BTC.test(t) && has(t, /(all[- ]time high|\bath\b|\$\d{2,3}(,\d{3}|k)\b|\b\d{2,3}k\b|new high|breaks? (above|below)|price)/i),
 		async draft(t) {
@@ -101,8 +122,19 @@ const RULES: Rule[] = [
 	},
 ];
 
-/** Worth a reply at all: about bitcoin, or gold from the gold crowd, or anything from the holders (often just a chart or a ₿). */
-export const onTopic = (t: string, group: string) => BTC.test(t) || group === 'holders' || (group === 'gold-macro' && /\bgold\b/i.test(t));
+const OIL_WORDS = /\b(oil|crude|brent|wti|opec|barrels?|supertankers?)\b/i;
+/** Money with no coin in it yet: debt, deficits, the printer. We answer in stacked bills. */
+const PAPER_WORDS = /\b(national debt|debt ceiling|deficits?|money printer|printing money|printer go brr)\b/i;
+
+/**
+ * Worth a reply at all: about bitcoin, or gold from the gold crowd, or
+ * anything from the holders (often just a chart or a ₿). The gold crowd and
+ * the news desks also get oil and debt posts: a barrel or a stack of bills is
+ * something we weigh too.
+ */
+export const onTopic = (t: string, group: string) =>
+	BTC.test(t) || group === 'holders' || (group === 'gold-macro' && /\bgold\b/i.test(t)) ||
+	((group === 'gold-macro' || group === 'news') && (OIL_WORDS.test(t) || PAPER_WORDS.test(t)));
 
 export async function draftReply(p: Post, group: string): Promise<Draft | null> {
 	const t = p.text;

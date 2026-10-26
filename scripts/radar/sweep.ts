@@ -116,7 +116,7 @@ async function main() {
 			id: p.id, url: p.url, author: p.author.userName, followers: p.author.followers, group: meta.group, createdAt: p.createdAt,
 			ageMinutes: Math.round(age(p.createdAt)), text: p.text,
 			likes: p.likeCount, reposts: p.retweetCount, replies: p.replyCount, quotes: p.quoteCount, views: p.viewCount, heat: Number(h.toFixed(2)),
-			facts: [...facts.lines, ...postFacts(p.text), ...(await datedFacts(p.text))], links: facts.links,
+			facts: [...facts.lines, ...postFacts(p.text, facts.brent), ...(await datedFacts(p.text))], links: facts.links,
 			fallback: fallback && { angle: fallback.angle, text: fallback.text },
 		});
 		// Claim it now so a failed alert never sends it twice.
