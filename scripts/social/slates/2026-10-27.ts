@@ -31,7 +31,7 @@ const EIFFEL_T = 10_100;
 const SLATE: Item[] = [
 	{ id: 'pizza-midtown-block', at: '2026-10-27T13:30:00Z', media: () => jpg(get('manhattan_p-pizza-day'), 'pizza-manhattan'),
 		text: `In 2010, Laszlo Hanyecz paid ${f0(pizza)} bitcoin for two pizzas.\n\nSpend those coins on Manhattan land at ${closeWord}’s close.\n\nBigger or smaller than one Midtown block? Guess first.`,
-		reply: `${blocks >= 1 ? 'Bigger' : 'Smaller'}: ${blocks.toFixed(2)} blocks (a block is 200 by 800 feet). Land at its 2014 value, spread evenly, so it’s illustrative. Try any stack:\n` + L('preset=pizza-day&commodity=manhattan') },
+		reply: `${Math.abs(blocks - 1) < 0.02 ? `Almost exactly one: ${blocks.toFixed(3)} blocks` : `${blocks >= 1 ? 'Bigger' : 'Smaller'}: ${blocks.toFixed(2)} blocks`} (a block is 200 by 800 feet). Land at its 2014 value, spread evenly, so it’s illustrative. Try any stack:\n` + L('preset=pizza-day&commodity=manhattan') },
 	{ id: 'silver-2013-vs-now', at: '2026-10-27T17:00:00Z', media: () => jpg(get('silver_b-1'), 'one-coin-silver'),
 		text: `In January 2013, one bitcoin bought ${then.toFixed(2)} oz of silver. Less than half an ounce.\n\nAt ${closeWord}’s close: ${f0(now)} oz. About ${f0(Math.round(now / then / 100) * 100)} times as much.\n\nSilver stackers: was there ever a better trade?`,
 		reply: 'Slide the date back to 2013 yourself:\n' + L('btc=1&commodity=silver') },
