@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Bitcoin Weigh-In Daily Commodity Price Dataset",
-  "version": "1.0.1",
-  "description": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
+  "version": "1.1.0",
+  "description": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, US weekly retail gasoline and diesel prices, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
   "license": "CC-BY-4.0",
   "columns": [
     {
@@ -130,6 +130,34 @@
       "unit": "pipe-delimited column names",
       "source": "internal",
       "notes": "Empty string when no fields were forward-filled, or a pipe-delimited list of column names (e.g. \"brent_usd\") whose source had not published a value for that date: the value is the latest one published, and is revised (and the name dropped) once the source catches up. Tracked from 2026-09-30; earlier rows carry an empty string regardless of their true fill state."
+    },
+    {
+      "name": "gasoline_usd",
+      "type": "number",
+      "unit": "USD per US gallon",
+      "source": "FRED GASREGW weekly",
+      "notes": "US regular gasoline, all formulations, retail price including taxes: the EIA's weekly survey, dated its Monday. Each row carries the latest survey on or before its date, so most rows repeat the week's figure; forward_filled names this column only on rows after the latest published survey. Added in v1.1.0, back-filled to 2013-01-02."
+    },
+    {
+      "name": "diesel_usd",
+      "type": "number",
+      "unit": "USD per US gallon",
+      "source": "FRED GASDESW weekly",
+      "notes": "US No. 2 diesel retail price including taxes: the EIA's weekly survey, dated its Monday. Filled as gasoline_usd. Added in v1.1.0, back-filled to 2013-01-02."
+    },
+    {
+      "name": "gasoline_per_btc",
+      "type": "number",
+      "unit": "US gallons of gasoline per BTC",
+      "source": "Derived (btc_usd / gasoline_usd)",
+      "notes": "How many US gallons of regular gasoline 1 BTC could buy at the pump, at the day's BTC close and the latest weekly price."
+    },
+    {
+      "name": "diesel_per_btc",
+      "type": "number",
+      "unit": "US gallons of diesel per BTC",
+      "source": "Derived (btc_usd / diesel_usd)",
+      "notes": "How many US gallons of diesel 1 BTC could buy at the pump, at the day's BTC close and the latest weekly price."
     }
   ]
 }

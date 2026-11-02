@@ -104,7 +104,35 @@ export const OG_COMMODITIES: Record<string, OgCommodity> = {
 		illustrativePricePerUnit: 1.74e12 / MANHATTAN_DEVELOPABLE_M2,
 		accentColor: '#f7931a',
 	},
+	oil: {
+		id: 'oil',
+		displayName: 'Brent crude',
+		unit: 'barrel',
+		unitLabel: 'barrels',
+		// Brent spot, USD per barrel (FRED DCOILBRENTEU) — the oil tab's default
+		// fuel; links don't carry the tab's diesel/gasoline switch.
+		priceField: 'brent',
+		dataQuality: 'live',
+		accentColor: '#3fb6a8',
+	},
 };
+
+/**
+ * The oil ladder, mirrored from src/lib/oil.ts (guarded by
+ * tests/drift.test.ts): litres per barrel, the containers the stage draws,
+ * and the world's daily use.
+ */
+export const OIL = {
+	LITRES_PER_BARREL: 158.987294928,
+	CAR_TANK_L: 55,
+	DRUM_L: 55 * 3.785411784,
+	VLCC_BARRELS: 2_000_000,
+	PRUDHOE_BARRELS: 13.2e9,
+	WORLD_BARRELS_PER_DAY: 104e6,
+	MAX_CARS: 4,
+	MAX_DRUMS: 20_000,
+	MAX_TANKERS: 10,
+} as const;
 
 /** Area — imperial primary: sq ft, then acres, then sq mi. */
 export function formatAreaImperial(m2: number): string {

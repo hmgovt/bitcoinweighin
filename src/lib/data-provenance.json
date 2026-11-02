@@ -67,6 +67,28 @@
       "notes": "Europe Brent spot price FOB, USD per barrel."
     },
     {
+      "commodity": "Gasoline (US retail)",
+      "ticker": "GASREGW",
+      "field": "gasoline_usd",
+      "originalSource": "U.S. Federal Reserve Economic Data (FRED)",
+      "sourceUrl": "https://fred.stlouisfed.org/series/GASREGW",
+      "dataQuality": "live",
+      "updateCadence": "Weekly (EIA survey, dated Monday)",
+      "licenseOfUnderlyingSource": "Public domain (EIA primary; FRED redistribution)",
+      "notes": "US regular gasoline, all formulations, retail price including taxes, USD per US gallon. Each daily row carries the latest weekly survey on or before its date."
+    },
+    {
+      "commodity": "Diesel (US retail)",
+      "ticker": "GASDESW",
+      "field": "diesel_usd",
+      "originalSource": "U.S. Federal Reserve Economic Data (FRED)",
+      "sourceUrl": "https://fred.stlouisfed.org/series/GASDESW",
+      "dataQuality": "live",
+      "updateCadence": "Weekly (EIA survey, dated Monday)",
+      "licenseOfUnderlyingSource": "Public domain (EIA primary; FRED redistribution)",
+      "notes": "US No. 2 diesel retail price including taxes, USD per US gallon. Each daily row carries the latest weekly survey on or before its date."
+    },
+    {
       "commodity": "Wheat",
       "ticker": "ZW (continuous)",
       "field": "wheat_usd",

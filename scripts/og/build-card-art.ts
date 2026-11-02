@@ -23,6 +23,7 @@ import { mkdir, readFile, writeFile, stat, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { ffmpeg } from '../dive-capture.ts';
 import { USD_PER_M2, DEVELOPABLE_M2 } from '../../src/lib/manhattan.ts';
+import { LITRES_PER_BARREL, PRUDHOE_L } from '../../src/lib/oil.ts';
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split('=').slice(1).join('=');
 const base = arg('base') ?? 'http://localhost:4173';
@@ -35,7 +36,7 @@ const OUT = resolve('static/og/art');
 const OZ = 31.1035;
 const MAX_BTC = 21_000_000;
 
-type Unit = 'g' | 'notes' | 'm2';
+type Unit = 'g' | 'notes' | 'm2' | 'L';
 interface Ladder {
 	commodity: string; unit: Unit; from: number; to: number; step: number; extra?: number[];
 	/** Real ms to let the camera settle; software WebGL runs a few fps, and the eases are per frame. */
@@ -54,12 +55,15 @@ const LADDERS: Ladder[] = [
 	{ commodity: 'cash', unit: 'notes', from: 1, to: 13, step: 1 },
 	// The site frames a doormat with plenty of street around it; a thumbnail wants it closer.
 	{ commodity: 'manhattan', unit: 'm2', from: -2, to: 7, step: 1, extra: [DEVELOPABLE_M2], settle: 12_000, zoom: (q) => (q <= 1 ? 2.5 : q <= 10 ? 1.8 : 1) },
+	// Litres of Brent crude, half-decades: the stage changes form (car, drums, tankers, field).
+	// Plus all of Prudhoe Bay, where the field is fully lit (the whole supply buys about that).
+	{ commodity: 'oil', unit: 'L', from: 1, to: 12.5, step: 0.5, extra: [PRUDHOE_L], settle: 9000 },
 ];
 
 async function lastClose() {
-	const rows = JSON.parse(await readFile('static/data/prices.json', 'utf8')) as Record<string, { btc_usd: number | null; xau_per_btc: number | null; xag_per_btc: number | null }>;
+	const rows = JSON.parse(await readFile('static/data/prices.json', 'utf8')) as Record<string, { btc_usd: number | null; xau_per_btc: number | null; xag_per_btc: number | null; brent_per_btc: number | null }>;
 	const date = Object.keys(rows).sort().filter((d) => rows[d].btc_usd).pop()!;
-	return { date, ...rows[date] } as { date: string; btc_usd: number; xau_per_btc: number; xag_per_btc: number };
+	return { date, ...rows[date] } as { date: string; btc_usd: number; xau_per_btc: number; xag_per_btc: number; brent_per_btc: number };
 }
 
 /** BTC that buys `q` of the commodity at the given close. */
@@ -71,6 +75,7 @@ function btcFor(commodity: string, q: number, p: Awaited<ReturnType<typeof lastC
 		case 'cocaine': return ((q / 1000) * 30000) / p.btc_usd; // US wholesale $/kg, as the site
 		case 'cash': return q / p.btc_usd;
 		case 'manhattan': return (q * USD_PER_M2) / p.btc_usd;
+		case 'oil': return q / LITRES_PER_BARREL / p.brent_per_btc; // litres of Brent crude
 	}
 	throw new Error(commodity);
 }

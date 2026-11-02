@@ -11,7 +11,7 @@
 	 * Switching back to a metal re-mounts LiveStage, which re-hydrates on the
 	 * next interaction/idle.
 	 *
-	 * Tab order is locked: gold, silver, pu238, cocaine, cash.
+	 * Tab order is locked: gold, silver, pu238, cocaine, cash, manhattan, oil.
 	 */
 	import type { Snippet } from 'svelte';
 	import type { Commodity } from '$lib/commodities.js';
@@ -38,6 +38,9 @@
 	import BillReadout from './BillReadout.svelte';
 	import LandStage from '$lib/scene/LandStage.svelte';
 	import LandReadout from './LandReadout.svelte';
+	import OilStage from '$lib/scene/OilStage.svelte';
+	import OilReadout from './OilReadout.svelte';
+	import { FUELS, FUEL_ORDER, usdPerLitre, litresFor, formatVolume, LITRES_PER_BARREL, type Fuel } from '$lib/oil.js';
 	import { computeCubeEdgeMm } from '$lib/volume.js';
 	import { formatArea, formatBtc, formatMass } from '$lib/format.js';
 	import { system } from '$lib/stores/system.js';
@@ -68,6 +71,7 @@
 		dropSignal = 0,
 		grabEnabled = true,
 		ongrab,
+		fuel = $bindable('crude'),
 	}: {
 		/** Hero tabs in locked order: gold, silver, pu238, cocaine. */
 		commodities: Commodity[];
@@ -96,6 +100,8 @@
 		grabEnabled?: boolean;
 		/** Direct manipulation of the cube, forwarded to the page. */
 		ongrab?: (phase: 'start' | 'move' | 'end', ratio: number) => void;
+		/** Oil tab: which fuel — crude (Brent), US diesel or US gasoline. */
+		fuel?: Fuel;
 	} = $props();
 
 	const active = $derived(commodities.find((m) => m.id === selectedId) ?? commodities[0]);
@@ -104,6 +110,14 @@
 	const isCocaine = $derived(active.id === 'cocaine');
 	const isCash = $derived(active.id === 'cash');
 	const isLand = $derived(active.id === 'manhattan');
+	const isOil = $derived(active.id === 'oil');
+
+	// Oil: the day's fuel price (the page's selected date; the live BTC price
+	// already rides in btcUsdPrice) and the litres it buys.
+	const oilDay = $derived(prices?.[selectedDate] ?? null);
+	const oilPerLitre = $derived(usdPerLitre(fuel, oilDay));
+	const oilLitres = $derived(litresFor(btcAmount, btcUsdPrice, oilPerLitre));
+	const oilQuote = $derived(oilDay?.[FUELS[fuel].priceField] ?? null);
 
 	// True when the dog is staged to the foreground — LiveStage binds this and
 	// the readout adds the honesty line. False in poster / fallback / cocaine.
@@ -219,7 +233,8 @@
 
 	const dailyDelta = $derived.by(() => {
 		if (sortedDates.length < 2) return null; // initial SSR: only the latest day is inlined
-		if (!(active.id in deltaObjects.pricing)) return null;
+		// Manhattan and oil compute their own move below, outside the delta table.
+		if (!isLand && !isOil && !(active.id in deltaObjects.pricing)) return null;
 
 		const latest = sortedDates[sortedDates.length - 1];
 		let prevIdx: number;
@@ -255,6 +270,21 @@
 			return {
 				caption: `In Manhattan, 1 BTC buys ${d > 0 ? 'more' : 'less'} land than at ${since} (${d > 0 ? '+' : '−'}${formatArea(Math.abs(d), $system)}).`,
 			};
+		}
+		// Oil is a volume: the move in what 1 BTC fills, in the tab's fuel.
+		if (isOil) {
+			const pPrev = usdPerLitre(fuel, prevDay);
+			const pCurr = usdPerLitre(fuel, currDay);
+			if (!pPrev || !pCurr) return null;
+			const d = currDay.btc / pCurr - prevDay.btc / pPrev;
+			const since = sincePhrase ?? "yesterday's close";
+			const name = fuel === 'crude' ? 'Brent crude' : `US ${fuel}`;
+			if (Math.abs(d) < 0.01) return { caption: `1 BTC buys the same ${name} as at ${since}.` };
+			const fig =
+				fuel === 'crude' && $system === 'imperial'
+					? `${(Math.abs(d) / LITRES_PER_BARREL).toFixed(1)} barrels`
+					: formatVolume(Math.abs(d), $system);
+			return { caption: `1 BTC buys ${d > 0 ? 'more' : 'less'} ${name} than at ${since} (${d > 0 ? '+' : '−'}${fig}).` };
 		}
 		if (!(DELTA_COMMODITIES as string[]).includes(active.id)) return null;
 
@@ -298,6 +328,10 @@
 	let landRendered = $state(false);
 	let landStaged = $state(false);
 	const landReady = $derived(isLand && landRendered);
+	// OilStage: first frame rendered + Sat resolved (or its no-WebGL note).
+	let oilRendered = $state(false);
+	let oilStaged = $state(false);
+	const oilReady = $derived(isOil && oilRendered);
 	const dataCommodity = $derived(
 		isCocaine
 			? brickReady
@@ -311,7 +345,11 @@
 					? landReady
 						? 'manhattan'
 						: ''
-					: selectedId
+					: isOil
+						? oilReady
+							? 'oil'
+							: ''
+						: selectedId
 	);
 
 	// Pu-238 readout extras (mirrors CommoditySection's derivations).
@@ -376,7 +414,21 @@
 				</button>
 			{/each}
 		</div>
-		{#if isCocaine || isLand}
+		{#if isOil}
+			<div class="fuel-slot" role="radiogroup" aria-label="Fuel">
+				{#each FUEL_ORDER as f (f)}
+					<button
+						type="button"
+						role="radio"
+						aria-checked={fuel === f}
+						class="fuel"
+						class:on={fuel === f}
+						style:--accent={accent}
+						onclick={() => (fuel = f)}
+					>{FUELS[f].label}</button>
+				{/each}
+			</div>
+		{:else if isCocaine || isLand}
 			<div class="badge-slot">
 				<QualityBadge quality={active.dataQuality} />
 			</div>
@@ -396,6 +448,10 @@
 		-->
 		<div class="brick-frame">
 			<CocaineStage {massGrams} bind:staged={cokeStaged} bind:ready={cokeRendered} />
+		</div>
+	{:else if isOil}
+		<div class="oil-frame">
+			<OilStage litres={oilLitres} bind:staged={oilStaged} bind:ready={oilRendered} />
 		</div>
 	{:else if isLand}
 		<div class="land-frame">
@@ -437,6 +493,15 @@
 			{#if cokeStaged}
 				<p class="staging-line">Sat is standing nearer the camera — true perspective, not rescaled.</p>
 			{/if}
+		</div>
+	{:else if isOil}
+		<div class="readout-wrap">
+			<OilReadout litres={oilLitres} {fuel} price={oilQuote} {accent} />
+			<p class="delta-line">
+				{#if deltaCaptionParts}
+					{deltaCaptionParts.main}<span class="delta-figure">{deltaCaptionParts.figure}</span>{deltaCaptionParts.tail}
+				{/if}
+			</p>
 		</div>
 	{:else if isLand}
 		<div class="readout-wrap">
@@ -650,6 +715,44 @@
 
 	.land-frame {
 		width: 100%;
+	}
+
+	.oil-frame {
+		width: 100%;
+	}
+
+	/* Oil tab's fuel switch — the tab bar's idiom, smaller. */
+	.fuel-slot {
+		margin-left: auto;
+		display: flex;
+		gap: 2px;
+		background: #111113;
+		padding: 3px;
+		border-radius: 9px;
+		border: 1px solid #27272a;
+	}
+	.fuel {
+		appearance: none;
+		background: transparent;
+		color: #a1a1aa;
+		border: 1px solid transparent;
+		border-radius: 6px;
+		padding: 5px 10px;
+		font: 600 12.5px/1 'Inter Tight', -apple-system, system-ui, sans-serif;
+		cursor: pointer;
+		transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+	}
+	.fuel:hover {
+		color: #e4e4e7;
+	}
+	.fuel.on {
+		color: #f5f0e6;
+		border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+		background: color-mix(in srgb, var(--accent) 11%, #18181b);
+	}
+	.fuel:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 
 	/* Pu-238 brand-voice clarification (mirrors CommoditySection). */

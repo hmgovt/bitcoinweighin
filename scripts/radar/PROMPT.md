@@ -12,7 +12,9 @@ and decides whether to send it; nothing you write is posted automatically.
    company, a person, a sum, a date), then look for the one surprising, physical
    insight the facts allow about that subject. Restating what one bitcoin weighs
    is not an insight; if you can't find one about the subject, skip the post.
-   Otherwise write up to two options that take different angles.
+   Otherwise write up to two options that take different angles and use
+   different measuring sticks (gold, oil, cocaine, paper money, Manhattan, the
+   Moon…). At least one should make a reader laugh: see "Be funny" in the brief.
 4. Write `output/radar/drafts.json` in exactly this shape:
 
 ```json

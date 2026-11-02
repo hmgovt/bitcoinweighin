@@ -42,6 +42,7 @@
 		breadcrumbJsonLd,
 	} from '$lib/seo/jsonld.js';
 	import { HOMEPAGE_FAQS } from '$lib/seo/faqs.js';
+	import { FUELS, LITRES_PER_BARREL, formatVolume as formatFuelVolume, litresFor, usdPerLitre, type Fuel } from '$lib/oil.js';
 
 	let { data } = $props();
 
@@ -414,7 +415,7 @@
 	const konamiTracker = createKonamiTracker();
 	let heroStageEl: HeroStage | undefined = $state();
 
-	// Global keys: g/s/p/c switch hero tabs, t toggles BTC/date mode, space
+	// Global keys: g/s/p/c/o switch hero tabs, t toggles BTC/date mode, space
 	// toggles date playback, and the Konami code triggers the dog's tricks.
 	// Only when nothing focusable owns the keystroke and no ctrl/alt/meta
 	// chord — same guard for all of them.
@@ -438,7 +439,7 @@
 		}
 
 		const key = e.key.toLowerCase();
-		const tabByKey: Record<string, string> = { g: 'gold', s: 'silver', p: 'pu238', c: 'cocaine' };
+		const tabByKey: Record<string, string> = { g: 'gold', s: 'silver', p: 'pu238', c: 'cocaine', o: 'oil' };
 		if (key in tabByKey) {
 			selectedCommodity = tabByKey[key];
 		} else if (key === 't') {
@@ -562,6 +563,8 @@
 	// Active hero tab. Seeded from a ?commodity= deep-link (scrollToCommodity),
 	// default gold; tab clicks update it locally (no URL write — contract intact).
 	let selectedCommodity = $state('gold');
+	// Oil tab's fuel (crude / diesel / gasoline) — owned by the hero, read here for the 1 BTC answer.
+	let selectedFuel = $state<Fuel>('crude');
 	$effect(() => {
 		const c = $scrollToCommodity;
 		if (c && HERO_COMMODITIES.some((m) => m.id === c)) selectedCommodity = c;
@@ -596,6 +599,16 @@
 		} else if (c.unit === 'm2') {
 			big = formatArea(amt, $system);
 			of = 'of Manhattan land';
+		} else if (c.id === 'oil') {
+			const L = litresFor(1, dayPrices.btc, usdPerLitre(selectedFuel, dayPrices));
+			if (!(L > 0)) return null;
+			if (selectedFuel === 'crude') {
+				big = `${formatNum(L / LITRES_PER_BARREL)} bbl`;
+				of = `barrels of Brent crude · ${formatFuelVolume(L, $system)}`;
+			} else {
+				big = formatFuelVolume(L, $system);
+				of = `of US ${FUELS[selectedFuel].label.toLowerCase()} at the pump`;
+			}
 		} else {
 			big = c.id === 'cocaine' ? formatMassConsumer(grams, $system) : formatMass(grams, $system);
 			of = `of ${name}`;
@@ -627,6 +640,8 @@
 			return `${formatted} troy oz`;
 		}
 		if (ogCommodity.unit === 'm2') return formatArea(amt, 'imperial');
+		if (ogCommodity.unit === 'barrel')
+			return `${amt >= 100 ? Math.round(amt).toLocaleString('en-US') : amt.toFixed(2)} barrels`;
 		// Grams-unit commodities use the consumer ladder (kg/tonnes at scale).
 		if (ogCommodity.unit === 'gram' && ogCommodity.unitMassGrams) {
 			// Inline grams formatter — mirrors functions/_lib.ts formatHeadlineAmount
@@ -914,6 +929,7 @@
 			bind:this={heroStageEl}
 			commodities={HERO_COMMODITIES}
 			bind:selectedId={selectedCommodity}
+			bind:fuel={selectedFuel}
 			amounts={heroAmounts}
 			btcAmount={sceneBtc}
 			btcUsdPrice={dayPrices?.btc ?? 0}
@@ -1207,6 +1223,12 @@
 						<a href="/btc/cash" class="seo-card">
 							<span class="seo-card__title">BTC → Cash</span>
 							<span class="seo-card__sub">A literal stack of $1 bills, to true thickness.</span>
+						</a>
+					</li>
+					<li>
+						<a href="/btc/oil" class="seo-card">
+							<span class="seo-card__title">BTC → Oil</span>
+							<span class="seo-card__sub">Crude, diesel or gasoline: a car's tank to an oil field.</span>
 						</a>
 					</li>
 				</ul>

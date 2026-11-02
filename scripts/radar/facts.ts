@@ -7,15 +7,43 @@
  * (validate.ts checks), so a draft can be clever but never make things up.
  */
 import { readFile } from 'node:fs/promises';
+import { worldSpan } from '../../functions/_card.ts';
+import { OG_COMMODITIES, OIL } from '../../functions/_lib.ts';
 import { L, OZ, f0, loadPrices, presetBtc, sig3 } from '../social/slates/lib.ts';
 
-export interface FactSheet { lines: string[]; links: Record<string, string> }
+/** `brent` is the day's Brent price, so post sums can be weighed in oil too. */
+export interface FactSheet { lines: string[]; links: Record<string, string>; brent: number }
 
 const NOTE_M = 0.10922e-3, MOON_KM = 384_400, PEAK = '2024-12-17';
 const GOLD_DENSITY = 19.3;
 const cubeCm = (oz: number) => Math.cbrt((oz * OZ) / GOLD_DENSITY);
 const tonnes = (oz: number) => (oz * OZ) / 1e6;
 const usd = (n: number) => n >= 1e12 ? `$${sig3(n / 1e12)} trillion` : n >= 1e9 ? `$${sig3(n / 1e9)} billion` : n >= 1e6 ? `$${sig3(n / 1e6)} million` : `$${f0(n)}`;
+const count = (n: number) => n >= 1e9 ? `${sig3(n / 1e9)} billion` : n >= 1e6 ? `${sig3(n / 1e6)} million` : f0(Number(n.toPrecision(3)));
+const height = (m: number) => (m >= 1000 ? `${sig3(m / 1000)} km` : `${sig3(m)} m`);
+const mass = (g: number) => (g >= 1e6 ? `${sig3(g / 1e6)} tonnes` : g >= 1000 ? `${sig3(g / 1000)} kg` : `${sig3(g)} g`);
+
+/** US wholesale cocaine, USD per kg: the site's own illustrative price (UNODC/DEA). */
+export const COCAINE_USD_KG = OG_COMMODITIES.cocaine.illustrativePricePerUnit! * 1000;
+/** World cocaine output and seizures in 2023, tonnes (UNODC World Drug Report 2025). */
+export const COCAINE_WORLD_T = 3_708, COCAINE_SEIZED_T = 2_275;
+/** New bitcoin a day: about 144 blocks at 3.125 BTC since the April 2024 halving. */
+export const BTC_PER_DAY = 144 * 3.125;
+
+/**
+ * A dollar sum weighed in the site's other things: Brent barrels and
+ * supertankers, cocaine at wholesale against the world's output, and paper
+ * money by weight and height. So a reply isn't always a gold cube.
+ */
+export function otherWays(v: number, brent: number): string {
+	const bbl = v / brent;
+	const tankers = bbl / OIL.VLCC_BARRELS;
+	const kg = v / COCAINE_USD_KG;
+	const oil = `${count(bbl)} barrels of Brent (${tankers >= 1 ? `${sig3(tankers)} supertanker loads` : `${sig3(tankers * 100)}% of one supertanker`}; the world burns that in ${worldSpan(bbl * OIL.LITRES_PER_BARREL)})`;
+	const coke = `${kg >= 1000 ? `${sig3(kg / 1000)} tonnes` : `${sig3(kg)} kg`} of cocaine at US wholesale${kg >= 10_000 ? ` (${kg / 1000 >= COCAINE_WORLD_T ? `${sig3(kg / 1000 / COCAINE_WORLD_T)} years` : `${sig3((kg / 1000 / COCAINE_WORLD_T) * 100)}%`} of the world's 2023 output)` : kg >= 2 ? ` (about ${f0(kg)} kilo bricks)` : ''}`;
+	const cash = `${mass(v / 100)} of $100 bills, or ${mass(v)} of $1 bills stacked ${height(v * NOTE_M)} high`;
+	return `${oil}; ${coke}; ${cash}`;
+}
 
 let shared: Promise<FactSheet> | null = null;
 
@@ -27,7 +55,8 @@ export function dailyFacts(): Promise<FactSheet> {
 async function build(): Promise<FactSheet> {
 	const { P, close, prev, card } = await loadPrices();
 	// prices.json carries more than lib.ts's Row type names.
-	const day = P[close] as typeof P[string] & { btc_supply: number; brent_usd?: number };
+	const day = P[close] as typeof P[string] & { btc_supply: number; brent_usd: number; gasoline_per_btc?: number; diesel_per_btc?: number };
+	const brent = day.brent_usd;
 	const px = day.btc_usd;
 	const g = day.xau_per_btc;
 	const lines: string[] = [];
@@ -49,7 +78,18 @@ async function build(): Promise<FactSheet> {
 	add('manhattan-1', `1 BTC buys ${card('manhattan', 1).big} sq ft of Manhattan land (Barr, Smith & Kulkarni 2014, illustrative).`);
 	add('cocaine-1', `1 BTC buys ${card('cocaine', 1).big} kg of cocaine at US wholesale prices (UNODC/DEA, illustrative).`);
 	add('pu238-1', `1 BTC buys ${card('pu238', 1).big} g of plutonium-238 (illustrative).`);
-	if (day.brent_per_btc) add('oil-1', `1 BTC buys ${f0(day.brent_per_btc)} barrels of Brent oil.`);
+	if (day.brent_per_btc) {
+		const litres = day.brent_per_btc * OIL.LITRES_PER_BARREL;
+		const pump = day.gasoline_per_btc && day.diesel_per_btc ? ` At US pumps: ${f0(day.gasoline_per_btc)} gallons of regular gas or ${f0(day.diesel_per_btc)} of diesel.` : '';
+		add('oil-1', `1 BTC buys ${f0(day.brent_per_btc)} barrels of Brent oil: ${f0(litres)} litres, ${f0(litres / OIL.CAR_TANK_L)} fills of a 55-litre car tank.${pump}`);
+	}
+
+	// The other things weighed the other way, for posts about oil, drugs or paper money.
+	const tanker = OIL.VLCC_BARRELS * brent, world = OIL.WORLD_BARRELS_PER_DAY * brent;
+	add('oil-flip', `At $${brent.toFixed(2)} a barrel, one supertanker's 2,000,000 barrels of Brent is worth ${usd(tanker)}: ${sig3(tanker / px)} BTC. The world's ~104 million barrels a day cost ${usd(world)}: about ${f0(world / px)} BTC a day, ${sig3(world / px / BTC_PER_DAY)}× the ~${f0(BTC_PER_DAY)} new bitcoin mined each day.`);
+	const cokeWorld = COCAINE_WORLD_T * 1000 * COCAINE_USD_KG, cokeSeized = COCAINE_SEIZED_T * 1000 * COCAINE_USD_KG;
+	add('cocaine-flip', `At US wholesale ($${f0(COCAINE_USD_KG)}/kg, illustrative), one taped kilo brick of cocaine is ${(COCAINE_USD_KG / px).toFixed(3)} BTC. The world made ${f0(COCAINE_WORLD_T)} t in 2023 (UNODC): ${usd(cokeWorld)}, about ${count(cokeWorld / px)} BTC, ${((cokeWorld / px / 21e6) * 100).toFixed(1)}% of all 21,000,000. Seizures worldwide that year: ${f0(COCAINE_SEIZED_T)} t, ${usd(cokeSeized)}.`);
+	add('cash-flip', `A $1 bill and a $100 bill each weigh about 1 g and are 0.10922 mm thick, so $1 million is a tonne of singles (a pallet of 1,000,000 notes, stacked 109 m) but 10 kg of hundreds. 1 BTC in $100 bills: ${f0(px / 100)} notes, ${mass(px / 100)}, a stack ${sig3((px / 100) * NOTE_M * 100)} cm tall.`);
 
 	// The famous stacks.
 	const holders: [string, string][] = [['strategy', 'Strategy'], ['blackrock-ibit', 'BlackRock’s IBIT ETF'], ['us-govt', 'The US government'], ['el-salvador', 'El Salvador'], ['spacex', 'SpaceX'], ['satoshi', 'Satoshi (untouched coins)']];
@@ -58,13 +98,15 @@ async function build(): Promise<FactSheet> {
 		if (!btc) continue;
 		const m = card('manhattan', btc, slug);
 		add(`holder-${slug}`, `${name} holds ${f0(btc)} BTC, worth ${usd(btc * px)}: ${sig3(tonnes(btc * g))} tonnes of gold, or ${m.big}${m.unit} of Manhattan's land (${m.subs[0]?.replace(/\.$/, '')}).`);
+		add(`holder-${slug}-other`, `${name}'s ${f0(btc)} BTC in other things: ${otherWays(btc * px, brent)}.`);
 	}
 
 	// All 21 million.
 	const cap = 21e6 * px;
 	const moonPct = ((cap * NOTE_M) / 1000 / MOON_KM) * 100;
 	add('all-21m', `All 21,000,000 bitcoin at $${f0(px)} are worth ${usd(cap)}: ${sig3(tonnes(21e6 * g))} tonnes of gold, ${((tonnes(21e6 * g) / 216_000) * 100).toFixed(1)}% of all the gold ever mined.`);
-	add('moon', `All 21,000,000 bitcoin stacked as $1 bills reach ${sig3((cap * NOTE_M) / 1000)} km, ${moonPct.toFixed(1)}% of the way to the Moon. They arrive at $${f0((MOON_KM * 1000) / NOTE_M / 21e6)} a coin; every $${f0((MOON_KM * 10) / NOTE_M / 21e6)} on the price adds 1% (${f0(MOON_KM / 100)} km).`);
+	add('all-21m-other', `All 21,000,000 bitcoin in other things: ${otherWays(cap, brent)}.`);
+	add('moon',`All 21,000,000 bitcoin stacked as $1 bills reach ${sig3((cap * NOTE_M) / 1000)} km, ${moonPct.toFixed(1)}% of the way to the Moon. They arrive at $${f0((MOON_KM * 1000) / NOTE_M / 21e6)} a coin; every $${f0((MOON_KM * 10) / NOTE_M / 21e6)} on the price adds 1% (${f0(MOON_KM / 100)} km).`);
 
 	const ref = JSON.parse(await readFile('scripts/radar/reference-facts.json', 'utf8')) as {
 		facts: { id: string; text: string }[];
@@ -103,17 +145,22 @@ async function build(): Promise<FactSheet> {
 		'manhattan-1': L('btc=1&commodity=manhattan'),
 		'cocaine-1': L('btc=1&commodity=cocaine'),
 		'pu238-1': L('btc=1&commodity=pu238'),
+		'oil-1': L('btc=1&commodity=oil'),
 		moon: L('preset=market-cap&commodity=cash&ride=play'),
 		'all-21m-gold': L('preset=market-cap&commodity=gold'),
-		...Object.fromEntries(holders.flatMap(([slug]) => [[`${slug}-gold`, L(`preset=${slug}&commodity=gold`)], [`${slug}-manhattan`, L(`preset=${slug}&commodity=manhattan`)]])),
+		'all-21m-oil': L('preset=market-cap&commodity=oil'),
+		...Object.fromEntries(holders.flatMap(([slug]) => ['gold', 'manhattan', 'oil', 'cocaine', 'cash'].map((c) => [`${slug}-${c}`, L(`preset=${slug}&commodity=${c}`)]))),
 		satoshi: L('preset=satoshi&commodity=cash&ride=play'),
 		'pizza-manhattan': L('preset=pizza-day&commodity=manhattan'),
 	};
-	return { lines, links };
+	return { lines, links, brent };
 }
 
-/** Figures worked out from numbers the post names: a coin price, a dollar sum. */
-export function postFacts(text: string): string[] {
+/**
+ * Figures worked out from numbers the post names: a coin price, a dollar sum
+ * (in bills, and, given the day's Brent price, in oil and cocaine too).
+ */
+export function postFacts(text: string, brent?: number): string[] {
 	const out: string[] = [];
 	const seen = new Set<number>();
 	// Prices said in words: "a million-dollar bitcoin", "seven figures", "$1M".
@@ -130,6 +177,7 @@ export function postFacts(text: string): string[] {
 			out.push(`[post-price-${n}] At $${f0(n)} a coin, all 21,000,000 bitcoin stacked as $1 bills reach ${sig3((n * 21e6 * NOTE_M) / 1000)} km, ${pct < 100 ? `${pct.toFixed(1)}% of the way to the Moon` : `${(pct / 100).toFixed(2)}× the distance to the Moon (there and back ${(pct / 200).toFixed(1)} times)`}.`);
 		}
 		if (n >= 1e6) out.push(`[post-usd-${n}] ${usd(n)} in $1 bills stacks ${km >= 1 ? `${sig3(km)} km` : `${sig3(km * 1000)} m`} high${km > MOON_KM / 10 ? `, ${(km / MOON_KM).toFixed(1)}× the distance to the Moon` : ''}, and weighs ${sig3(n / 1e6)} tonne${n / 1e6 === 1 ? '' : 's'}.`);
+		if (n >= 1e5 && brent) out.push(`[post-usd-${n}-other] ${usd(n)} in other things: ${otherWays(n, brent)}.`);
 	}
 	return out;
 }

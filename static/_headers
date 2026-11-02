@@ -81,25 +81,24 @@
 /prices.json
   Cache-Control: public, max-age=300, stale-while-revalidate=3600
 
-# Prerendered HTML. Default SvelteKit emits max-age=0,must-revalidate which
-# makes Cloudflare flag the response cf-cache-status: DYNAMIC and serve it
-# from origin every time — measurable TTFB regression on the LCP path.
-#
-# The pages are fully static (rebuilt nightly by the price-update workflow,
-# which redeploys and purges the CF cache), so it's safe to cache at the
-# edge for hours. Browsers revalidate on each visit (max-age=60) but the
-# revalidate is a fast 304 against the edge copy, not a fresh origin hit.
+# Prerendered HTML. Must NOT be cached at the edge across deploys: each page
+# references content-hashed bundles under /_app/immutable, and every Pages
+# deploy (several a day from the price/holdings/mining cron) replaces them.
+# An edge copy older than the latest deploy points at chunks that now 404, so
+# the app never hydrates — slider dead, 3D/Hashweight panels blank. That is
+# what s-maxage=86400 + stale-while-revalidate=604800 did here: nothing
+# purges the CF cache after a deploy. Pages already serves these files from
+# its own global asset store, so max-age=0 costs little; src/app.html also
+# reloads once if a bundle still fails to load.
 /
-  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+  Cache-Control: public, max-age=0, must-revalidate
 /data
-  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+  Cache-Control: public, max-age=0, must-revalidate
 /methodology
-  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
-# The dedicated SEO landing pages were the only HTML left on the slow
-# origin path (SEO audit P2) — same daily-rebuild reasoning as above.
+  Cache-Control: public, max-age=0, must-revalidate
 /btc/*
-  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+  Cache-Control: public, max-age=0, must-revalidate
 /snapshot/*
-  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+  Cache-Control: public, max-age=0, must-revalidate
 /snapshot
-  Cache-Control: public, max-age=60, s-maxage=86400, stale-while-revalidate=604800
+  Cache-Control: public, max-age=0, must-revalidate

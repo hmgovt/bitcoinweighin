@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2026-10-07T11:04:19.306Z",
+  "lastUpdated": "2026-11-02T08:36:05.696Z",
   "dateRange": {
     "first": "2013-01-02",
-    "last": "2026-10-06"
+    "last": "2026-11-01"
   },
-  "totalDates": 5021,
-  "fileSizeBytes": 474687,
+  "totalDates": 5047,
+  "fileSizeBytes": 638200,
   "sources": [
     {
       "id": "btc",
@@ -30,6 +30,18 @@
       "type": "fred",
       "symbol": "DCOILBRENTEU",
       "field": "brent"
+    },
+    {
+      "id": "gasoline",
+      "type": "fred",
+      "symbol": "GASREGW",
+      "field": "gasoline"
+    },
+    {
+      "id": "diesel",
+      "type": "fred",
+      "symbol": "GASDESW",
+      "field": "diesel"
     }
   ],
   "fields": [
@@ -38,6 +50,8 @@
     "btc",
     "xau",
     "xag",
-    "brent"
+    "brent",
+    "gasoline",
+    "diesel"
   ]
 }
