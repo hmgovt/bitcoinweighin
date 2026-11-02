@@ -7,7 +7,9 @@
  */
 
 export interface Derived { value: number; expr: string }
-export interface Option { text: string; link?: string; derived?: Derived[] }
+export interface Option { text: string; link?: string; derived?: Derived[]; stick?: string; move?: string }
+/** A reply drafted in the past week, as alert.ts keeps it. */
+export interface Recent { text: string; at: number; author?: string; stick?: string; move?: string }
 
 /** Numbers that need no source: small counts and years. */
 const FREE = (n: number, raw: string) => (Number.isInteger(n) && n >= 0 && n <= 12) || (/^\d{4}$/.test(raw) && n >= 1990 && n <= 2100);
@@ -43,9 +45,9 @@ export function evalExpr(expr: string): number | null {
 export interface Check { ok: boolean; problems: string[] }
 
 /** Fact-sheet lines that only say what one coin is worth today: true under any post. */
-const GENERIC = new Set(['close', 'gold-1', 'silver-1', 'cash-1', 'manhattan-1', 'cocaine-1', 'pu238-1', 'oil-1', 'everyday-wage-week', 'everyday-house', 'everyday-gas', 'everyday-eggs']);
+const GENERIC = new Set(['close', 'gold-1', 'silver-1', 'cash-1', 'manhattan-1', 'cocaine-1', 'pu238-1', 'oil-1', 'oil-flip', 'cocaine-flip', 'cash-flip', 'everyday-wage-week', 'everyday-house', 'everyday-gas', 'everyday-eggs']);
 /** Posts that are about one of those things, where restating it is an answer. */
-const ABOUT_COMMODITY = /\b(gold|silver|dollars?|cash|bills?|banknotes?|manhattan|cocaine|plutonium|oil|brent|wages?|salar(y|ies)|pay|paycheck|incomes?|houses?|homes?|housing|mortgages?|gas|gasoline|eggs|inflation|cpi|cost of living)\b/i;
+const ABOUT_COMMODITY = /\b(gold|silver|dollars?|cash|bills?|banknotes?|manhattan|cocaine|drugs?|cartels?|narcos?|plutonium|oil|crude|brent|opec|barrels?|tankers?|wages?|salar(y|ies)|pay|paycheck|incomes?|houses?|homes?|housing|mortgages?|gas|gasoline|eggs|inflation|cpi|cost of living)\b/i;
 
 /**
  * A reply whose every figure could come from the one-coin lines, under a post
@@ -104,4 +106,43 @@ export function checkOption(opt: Option, sources: string[], allowedLinks: string
 	const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 	if (recent.some((r) => norm(r) === norm(opt.text))) problems.push('repeats a recent reply');
 	return { ok: problems.length === 0, problems };
+}
+
+/** Openers and phrases that became crutches (Oct–Nov 2026 alerts). */
+const CRUTCHES: [RegExp, string][] = [
+	[/\bis the right (word|cadence|unit)\b/i, '"…is the right word/cadence"'],
+	[/^(funny thing about|fun fact|here'?s the thing)\b/i, 'a stock opener'],
+	[/\bmade physical\b/i, '"…, made physical"'],
+	[/\bbut make it\b/i, '"…, but make it …"'],
+];
+
+const words = (t: string) => t.toLowerCase().replace(/https?:\/\/\S+/g, ' ').replace(/[^a-z0-9.,]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+const grams = (t: string, n = 4) => { const w = words(t); return new Set(w.slice(0, Math.max(0, w.length - n + 1)).map((_, i) => w.slice(i, i + n).join(' '))); };
+
+/**
+ * Ways a draft repeats what the radar said in the past week: the same two
+ * figures within three days (the same supertanker count under two Strategy
+ * posts), a recent reply's wording, the same opening words, or a crutch phrase.
+ * Figures the post itself names don't count, nor do small counts and years.
+ */
+export function staleness(text: string, recent: Recent[], post: string, nowSec: number): string[] {
+	const problems: string[] = [];
+	const inPost = numbersIn(post).map((n) => n.value);
+	const distinctive = (t: string) => numbersIn(t).filter((n) => !FREE(n.value, n.raw) && !inPost.some((p) => close(n.value, p, 0.01)));
+	const mine = distinctive(text);
+	const mineGrams = grams(text);
+	const opener = words(text).slice(0, 4).join(' ');
+	for (const r of recent) {
+		const days = (nowSec - r.at) / 86400;
+		if (days > 7) continue;
+		const theirs = distinctive(r.text).map((n) => n.value);
+		const shared = [...new Set(mine.filter((n) => theirs.some((v) => close(n.value, v, 0.01))).map((n) => n.raw))];
+		if (days <= 3 && shared.length >= 2) { problems.push(`reuses figures from a recent reply${r.author ? ` to @${r.author}` : ''} (${shared.join(', ')})`); break; }
+		const g = grams(r.text);
+		const overlap = mineGrams.size ? [...mineGrams].filter((x) => g.has(x)).length / mineGrams.size : 0;
+		if (overlap >= 0.35) { problems.push(`too close to the wording of a recent reply${r.author ? ` to @${r.author}` : ''}`); break; }
+		if (days <= 3 && opener.split(' ').length === 4 && opener === words(r.text).slice(0, 4).join(' ')) { problems.push(`same opening as a recent reply${r.author ? ` to @${r.author}` : ''}`); break; }
+	}
+	for (const [re, name] of CRUTCHES) if (re.test(text)) problems.push(`crutch phrase: ${name}`);
+	return problems;
 }

@@ -67,6 +67,8 @@ interface PricesEntry {
 	wheat?: number;
 	coffee?: number;
 	brent?: number;
+	gasoline?: number;
+	diesel?: number;
 }
 
 interface Row {
@@ -88,6 +90,10 @@ interface Row {
 	wheat_per_btc: number | null;
 	coffee_per_btc: number | null;
 	forward_filled: string;
+	gasoline_usd: number | null;
+	diesel_usd: number | null;
+	gasoline_per_btc: number | null;
+	diesel_per_btc: number | null;
 }
 
 const COLUMN_ORDER: Array<keyof Row> = [
@@ -109,6 +115,11 @@ const COLUMN_ORDER: Array<keyof Row> = [
 	'wheat_per_btc',
 	'coffee_per_btc',
 	'forward_filled',
+	// v1.1.0: appended after forward_filled, so every v1.0.x column keeps its position.
+	'gasoline_usd',
+	'diesel_usd',
+	'gasoline_per_btc',
+	'diesel_per_btc',
 ];
 
 /** prices.ndjson field → dataset column, for the forward_filled list. */
@@ -121,6 +132,8 @@ const FIELD_COLUMN: Record<string, string> = {
 	brent: 'brent_usd',
 	wheat: 'wheat_usd',
 	coffee: 'coffee_usd',
+	gasoline: 'gasoline_usd',
+	diesel: 'diesel_usd',
 };
 
 /** Each date's forward-filled columns, pipe-delimited, from the rows fetch-daily marked. */
@@ -153,6 +166,8 @@ function buildRows(prices: Record<string, PricesEntry>, filled: Map<string, stri
 		const brent_usd = p.brent ?? null;
 		const wheat_usd = p.wheat ?? null;
 		const coffee_usd = p.coffee ?? null;
+		const gasoline_usd = p.gasoline ?? null;
+		const diesel_usd = p.diesel ?? null;
 		return {
 			date,
 			btc_usd,
@@ -172,6 +187,10 @@ function buildRows(prices: Record<string, PricesEntry>, filled: Map<string, stri
 			wheat_per_btc: ratio(btc_usd, wheat_usd),
 			coffee_per_btc: ratio(btc_usd, coffee_usd),
 			forward_filled: filled.get(date) ?? '',
+			gasoline_usd,
+			diesel_usd,
+			gasoline_per_btc: ratio(btc_usd, gasoline_usd),
+			diesel_per_btc: ratio(btc_usd, diesel_usd),
 		};
 	});
 }
@@ -223,6 +242,10 @@ async function writeParquet(rows: Row[], path: string) {
 		wheat_per_btc: { type: 'DOUBLE', optional: true },
 		coffee_per_btc: { type: 'DOUBLE', optional: true },
 		forward_filled: { type: 'UTF8' },
+		gasoline_usd: { type: 'DOUBLE', optional: true },
+		diesel_usd: { type: 'DOUBLE', optional: true },
+		gasoline_per_btc: { type: 'DOUBLE', optional: true },
+		diesel_per_btc: { type: 'DOUBLE', optional: true },
 	});
 	const writer = await parquet.ParquetWriter.openFile(schema, path);
 	for (const row of rows) {
@@ -362,6 +385,34 @@ const SCHEMA_COLUMNS = [
 		unit: 'pipe-delimited column names',
 		source: 'internal',
 		notes: 'Empty string when no fields were forward-filled, or a pipe-delimited list of column names (e.g. "brent_usd") whose source had not published a value for that date: the value is the latest one published, and is revised (and the name dropped) once the source catches up. Tracked from 2026-09-30; earlier rows carry an empty string regardless of their true fill state.',
+	},
+	{
+		name: 'gasoline_usd',
+		type: 'number',
+		unit: 'USD per US gallon',
+		source: 'FRED GASREGW weekly',
+		notes: 'US regular gasoline, all formulations, retail price including taxes: the EIA\'s weekly survey, dated its Monday. Each row carries the latest survey on or before its date, so most rows repeat the week\'s figure; forward_filled names this column only on rows after the latest published survey. Added in v1.1.0, back-filled to 2013-01-02.',
+	},
+	{
+		name: 'diesel_usd',
+		type: 'number',
+		unit: 'USD per US gallon',
+		source: 'FRED GASDESW weekly',
+		notes: 'US No. 2 diesel retail price including taxes: the EIA\'s weekly survey, dated its Monday. Filled as gasoline_usd. Added in v1.1.0, back-filled to 2013-01-02.',
+	},
+	{
+		name: 'gasoline_per_btc',
+		type: 'number',
+		unit: 'US gallons of gasoline per BTC',
+		source: 'Derived (btc_usd / gasoline_usd)',
+		notes: 'How many US gallons of regular gasoline 1 BTC could buy at the pump, at the day\'s BTC close and the latest weekly price.',
+	},
+	{
+		name: 'diesel_per_btc',
+		type: 'number',
+		unit: 'US gallons of diesel per BTC',
+		source: 'Derived (btc_usd / diesel_usd)',
+		notes: 'How many US gallons of diesel 1 BTC could buy at the pump, at the day\'s BTC close and the latest weekly price.',
 	},
 ];
 

@@ -1,0 +1,39 @@
+{
+  "upload_type": "dataset",
+  "title": "Bitcoin Weigh-In Daily Commodity Price Dataset",
+  "version": "1.1.0",
+  "description": "<p>Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, US weekly retail gasoline and diesel prices, plus derived per-BTC values and a deterministically computed BTC circulating supply.</p><p>One row per calendar day from 2013-01-02, updated daily. The data files are in <code>static/data/v1.1.0/</code> of this archive (CSV, JSON, NDJSON and Parquet, with <code>schema.json</code>, <code>CITATION.cff</code>, <code>CHANGELOG.md</code> and <code>SHA256SUMS</code>); the rest of the archive is the code that builds and publishes them. Sources, column definitions and the forward-fill rules are documented at <a href=\"https://bitcoinweighin.com/data\">bitcoinweighin.com/data</a> and <a href=\"https://bitcoinweighin.com/methodology\">bitcoinweighin.com/methodology</a>.</p>",
+  "creators": [
+    {
+      "name": "Bitcoin Weigh-In"
+    }
+  ],
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "language": "eng",
+  "keywords": [
+    "bitcoin",
+    "commodities",
+    "commodity prices",
+    "gold",
+    "silver",
+    "oil",
+    "Brent crude",
+    "gasoline",
+    "diesel",
+    "purchasing power",
+    "time series"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://bitcoinweighin.com/data",
+      "relation": "isDocumentedBy",
+      "resource_type": "other"
+    },
+    {
+      "identifier": "https://github.com/hmgovt/bitcoinweighin",
+      "relation": "isSupplementedBy",
+      "resource_type": "software"
+    }
+  ]
+}

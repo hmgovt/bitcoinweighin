@@ -28,6 +28,11 @@ const SAMPLES: { name: string; commodity: string; btc?: number; preset?: string 
 	{ name: 'manhattan-pizza', commodity: 'manhattan', preset: 'pizza-day' },
 	{ name: 'manhattan-strategy', commodity: 'manhattan', preset: 'strategy' },
 	{ name: 'manhattan-21m', commodity: 'manhattan', preset: 'market-cap' },
+	{ name: 'oil-1', commodity: 'oil', btc: 1 },
+	{ name: 'oil-sats', commodity: 'oil', btc: 0.0003 },
+	{ name: 'oil-el-salvador', commodity: 'oil', preset: 'el-salvador' },
+	{ name: 'oil-strategy', commodity: 'oil', preset: 'strategy' },
+	{ name: 'oil-21m', commodity: 'oil', preset: 'market-cap' },
 ];
 
 async function main() {

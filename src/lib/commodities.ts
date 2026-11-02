@@ -9,6 +9,7 @@
  *   4. cocaine
  *   5. cash
  *   6. manhattan (2026-09-25: land, not a commodity — how much of Manhattan's ground)
+ *   7. oil (2026-10-09: crude, diesel or gasoline — a car's tank up to an oil field)
  *
  * Other commodities (copper, oil_brent, uranium_fuel_pellet, platinum, coffee)
  * remain in this file flagged `mvpLaunch: false`. They re-enter post-launch.
@@ -19,6 +20,7 @@ export type RenderStyle =
 	| 'still_with_readout' // cocaine — inline-SVG brick stack + pricing readout
 	| 'bill_stack' // cash — live WebGL dollar-bill stack + pricing readout
 	| 'land_patch' // manhattan — live WebGL map of Manhattan's lots, the owned land filled in
+	| 'oil_ladder' // oil — live WebGL car tank / drums / supertanker / oil field, by volume
 	| 'progression' // legacy, unused at MVP
 	| 'vessel' // legacy, unused at MVP
 	| 'bulk'; // legacy, unused at MVP
@@ -294,6 +296,25 @@ const manhattan: Commodity = {
 	expectedHeightPx: { mobile: 1010, desktop: 1130 },
 };
 
+// Oil: one tab, three fuels (src/lib/oil.ts). The commodity itself prices
+// Brent crude per barrel — the default fuel, and what /btc/oil and the
+// 1 BTC answer quote; the tab's diesel and gasoline read their own fields.
+const oil: Commodity = {
+	id: 'oil',
+	displayName: 'Oil',
+	mvpLaunch: true,
+	pageOrder: 7,
+	renderStyle: 'oil_ladder',
+	unit: 'barrel',
+	densityGPerCm3: 0.835,
+	sourceId: 'oil_brent',
+	sourceName: 'FRED — Brent spot (DCOILBRENTEU); EIA weekly US retail diesel and gasoline (GASDESW, GASREGW)',
+	dataQuality: 'live',
+	priceField: 'brent',
+	facts: [],
+	expectedHeightPx: { mobile: 1010, desktop: 1130 },
+};
+
 const copper: Commodity = {
 	id: 'copper',
 	displayName: 'Copper',
@@ -447,6 +468,7 @@ export const ALL_COMMODITIES: Commodity[] = [
 	cocaine,
 	cash,
 	manhattan,
+	oil,
 	copper,
 	oil_brent,
 	uranium_fuel_pellet,
@@ -456,7 +478,7 @@ export const ALL_COMMODITIES: Commodity[] = [
 
 /**
  * Launch commodities, sorted by `pageOrder`. Single source of truth for the
- * page render loop: 1=gold, 2=silver, 3=pu238, 4=cocaine, 5=cash, 6=manhattan.
+ * page render loop: 1=gold, 2=silver, 3=pu238, 4=cocaine, 5=cash, 6=manhattan, 7=oil.
  */
 export const LAUNCH_COMMODITIES: Commodity[] = ALL_COMMODITIES.filter(
 	(c) => c.mvpLaunch

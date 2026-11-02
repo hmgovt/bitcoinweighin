@@ -21,6 +21,7 @@ import { dirname } from 'node:path';
 import { draftReply, onTopic } from './angles.ts';
 import { costLine, handlesOf, heat, hm, isOriginal, loadWatchlist, localDay, localMinutes, postsByIds, postsSince, type Post } from './api.ts';
 import { dailyFacts, datedFacts, postFacts } from './facts.ts';
+import type { Recent } from './validate.ts';
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split('=').slice(1).join('=');
 const STATE = arg('state') ?? '.radar-state/state.json';
@@ -32,7 +33,7 @@ export interface State {
 	pending: Record<string, { author: string; group: string; createdAt: string }>;
 	alerted: Record<string, number>;
 	days: Record<string, { count: number; accounts: string[] }>;
-	recentReplies: { text: string; at: number }[];
+	recentReplies: Recent[];
 }
 export interface Candidate {
 	id: string; url: string; author: string; followers: number; group: string; createdAt: string; ageMinutes: number;
@@ -80,13 +81,16 @@ async function main() {
 	const fresh = fx
 		? fx.filter((p) => { const t = Date.parse(p.createdAt) / 1000; return t >= since && t <= nowSec; })
 		: lm <= to ? await postsSince(handles.map((x) => x.h), since, nowSec) : [];
-	let added = 0;
+	let added = 0, political = 0;
+	const skipTopics = wl.skipTopics ? new RegExp(wl.skipTopics.pattern, 'i') : null;
 	for (const p of fresh.filter(isOriginal)) {
 		const author = p.author.userName.toLowerCase();
 		const group = groupOf.get(author);
 		if (!group || state.pending[p.id] || state.alerted[p.id]) continue;
 		const plm = localMinutes(new Date(p.createdAt), tz);
 		if (plm < from || plm > to || !onTopic(p.text, group)) continue;
+		// Politics and war: a numbers reply under them invites mutes, whatever it says.
+		if (skipTopics?.test(p.text)) { political++; continue; }
 		state.pending[p.id] = { author, group, createdAt: p.createdAt };
 		added++;
 	}
@@ -116,7 +120,7 @@ async function main() {
 			id: p.id, url: p.url, author: p.author.userName, followers: p.author.followers, group: meta.group, createdAt: p.createdAt,
 			ageMinutes: Math.round(age(p.createdAt)), text: p.text,
 			likes: p.likeCount, reposts: p.retweetCount, replies: p.replyCount, quotes: p.quoteCount, views: p.viewCount, heat: Number(h.toFixed(2)),
-			facts: [...facts.lines, ...postFacts(p.text), ...(await datedFacts(p.text))], links: facts.links,
+			facts: [...facts.lines, ...postFacts(p.text, facts.brent), ...(await datedFacts(p.text))], links: facts.links,
 			fallback: fallback && { angle: fallback.angle, text: fallback.text },
 		});
 		// Claim it now so a failed alert never sends it twice.
@@ -132,9 +136,12 @@ async function main() {
 	state.recentReplies = state.recentReplies.filter((r) => nowSec - r.at < 7 * 86400);
 
 	saveState(state);
-	writeFileSync(`${OUT}/candidates.json`, JSON.stringify({ generatedAt: new Date(now).toISOString(), candidates }, null, '\t'));
+	// What the radar drafted in the past week, newest first, so Claude can tell a new story.
+	const ukWhen = (sec: number) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(sec * 1000));
+	const recent = [...state.recentReplies].sort((a, b) => b.at - a.at).slice(0, 40).map((r) => ({ when: ukWhen(r.at), to: r.author ?? '', stick: r.stick ?? '', move: r.move ?? '', text: r.text }));
+	writeFileSync(`${OUT}/candidates.json`, JSON.stringify({ generatedAt: new Date(now).toISOString(), recent, candidates }, null, '\t'));
 	output('candidates', candidates.length);
-	console.log(`${fresh.length} new posts, ${added} on topic; ${due.length} weighed, ${hot.length} hot, ${candidates.length} to draft. ${Object.keys(state.pending).length} still pending. Today: ${day.count}/${wl.limits.perDay}.`);
+	console.log(`${fresh.length} new posts, ${added} on topic${political ? ` (${political} political, dropped)` : ''}; ${due.length} weighed, ${hot.length} hot, ${candidates.length} to draft. ${Object.keys(state.pending).length} still pending. Today: ${day.count}/${wl.limits.perDay}.`);
 	if (!fx) console.log(costLine());
 }
 

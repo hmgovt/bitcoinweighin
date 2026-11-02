@@ -1,13 +1,13 @@
 {
-  "version": "1.0.1",
-  "last_updated": "2026-10-07T11:04:20.151Z",
+  "version": "1.1.0",
+  "last_updated": "2026-11-02T08:36:06.617Z",
   "coverage": {
     "first_date": "2013-01-02",
-    "last_date": "2026-10-06"
+    "last_date": "2026-11-01"
   },
-  "row_count": 5021,
+  "row_count": 5047,
   "title": "Bitcoin Weigh-In Daily Commodity Price Dataset",
-  "abstract": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
+  "abstract": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, US weekly retail gasoline and diesel prices, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
   "homepage": "https://bitcoinweighin.com/data",
   "license": "CC-BY-4.0",
   "doi": null,
@@ -36,6 +36,18 @@
       "type": "fred",
       "symbol": "DCOILBRENTEU",
       "field": "brent"
+    },
+    {
+      "id": "gasoline",
+      "type": "fred",
+      "symbol": "GASREGW",
+      "field": "gasoline"
+    },
+    {
+      "id": "diesel",
+      "type": "fred",
+      "symbol": "GASDESW",
+      "field": "diesel"
     }
   ],
   "provenance": [
@@ -106,6 +118,28 @@
       "notes": "Europe Brent spot price FOB, USD per barrel."
     },
     {
+      "commodity": "Gasoline (US retail)",
+      "ticker": "GASREGW",
+      "field": "gasoline_usd",
+      "originalSource": "U.S. Federal Reserve Economic Data (FRED)",
+      "sourceUrl": "https://fred.stlouisfed.org/series/GASREGW",
+      "dataQuality": "live",
+      "updateCadence": "Weekly (EIA survey, dated Monday)",
+      "licenseOfUnderlyingSource": "Public domain (EIA primary; FRED redistribution)",
+      "notes": "US regular gasoline, all formulations, retail price including taxes, USD per US gallon. Each daily row carries the latest weekly survey on or before its date."
+    },
+    {
+      "commodity": "Diesel (US retail)",
+      "ticker": "GASDESW",
+      "field": "diesel_usd",
+      "originalSource": "U.S. Federal Reserve Economic Data (FRED)",
+      "sourceUrl": "https://fred.stlouisfed.org/series/GASDESW",
+      "dataQuality": "live",
+      "updateCadence": "Weekly (EIA survey, dated Monday)",
+      "licenseOfUnderlyingSource": "Public domain (EIA primary; FRED redistribution)",
+      "notes": "US No. 2 diesel retail price including taxes, USD per US gallon. Each daily row carries the latest weekly survey on or before its date."
+    },
+    {
       "commodity": "Wheat",
       "ticker": "ZW (continuous)",
       "field": "wheat_usd",
@@ -166,13 +200,13 @@
     "daily_run_health": "/health.json"
   },
   "checksums": {
-    "CHANGELOG.md": "6c671871d131011a84874899a25a19acf7eb3d6d03f42a71eefdff6556f4985f",
-    "CITATION.cff": "6dd9dfe21b4393e35a673e034e574b7d9e18330c8da84c780ecb80d34c753ad7",
+    "CHANGELOG.md": "5befac0f04e28e2e5da4354bed2471597d7e18f49f1aaa23a4143c38a057a400",
+    "CITATION.cff": "7549d1456e668e9d0f9d85d487e8b0fdcbc7d16b7b8a00506e863f9f2d06a682",
     "LICENSE.txt": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
-    "prices.csv": "cf6c3afa410be178f7bf1925b30dd654774d9470b5d2996945a90a44d7dfea2e",
-    "prices.json": "1f2ae42850f9b223012ba95c6b97a4071468cd2eadc8ec380cb4b95fd85dd5f0",
-    "prices.ndjson": "e581eb691c5c5655c0e93ac078c97893039bdb0dd4a852735f43e6b91f5c6a77",
-    "prices.parquet": "4cf3506da6f2e63718b4a33c8357e1c1b9de5cf26402349425a5359993cfd639",
-    "schema.json": "507a072720399680df4c64a756919123fe98ea59bbe323dc978358b9acb730ba"
+    "prices.csv": "d2324c34b032b7d545b20a04b3fed51f364a321b5beccc2200aefac20d6750a3",
+    "prices.json": "a4202bbe793f13573dbb983de5965cd580aea036fa7f8f014f9301599a7090a6",
+    "prices.ndjson": "2b1d738c077f3ddc82c24da7949aeaec270c7b8e3c8ad7b48dfb46c1fd0f2f4a",
+    "prices.parquet": "e69c2f65f3ec95b3aa54296c0f10dc3596bd64d30cd21073a50848b7e40b2977",
+    "schema.json": "0dc2ab5954df6178adcf0dc4ebf72e11c824e299f51055a147e10a6b63bc77a1"
   }
 }
