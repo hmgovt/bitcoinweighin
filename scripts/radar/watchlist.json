@@ -10,6 +10,10 @@
 		"minLikes": 20,
 		"maxDraftsPerRun": 5
 	},
+	"skipTopics": {
+		"_doc": "Posts matching this pattern (case-insensitive) are dropped before drafting: politicians, parties, elections, wars. A numbers reply under them invites mutes and blocks, which cost reach. This also drops bitcoin news that names a politician (\"Trump signs…\"); remove a name to allow it.",
+		"pattern": "\\b(trump|biden|harris|vance|rubio|obama|putin|zelensky[iy]?|netanyahu|xi jinping|democrats?|republicans?|gop|maga|elections?|ballots?|senators?|congress(wo)?man|civil war|world war|military|missiles?|air ?strikes?|troops|invasion|ceasefire|iran|israel|gaza|hamas|hezbollah|ukraine|terror(ist|ism)?s?|immigra(nt|nts|tion)|deport(ed|ation|ations)?)\\b"
+	},
 	"groups": {
 		"holders": { "angle": "How much of Manhattan, or how much gold, their stack buys", "accounts": ["saylor", "Strategy", "nayibbukele", "BTCtreasuries"] },
 		"etf": { "angle": "BlackRock's ETF coins in gold or Manhattan; flows in physical terms", "accounts": ["JSeyff"] },
