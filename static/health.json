@@ -1,7 +1,7 @@
 {
-  "lastRun": "2026-11-03T08:48:20.003Z",
+  "lastRun": "2026-11-04T08:16:47.213Z",
   "type": "daily",
-  "date": "2026-11-02",
+  "date": "2026-11-03",
   "sources": {
     "btc": {
       "status": "ok",
@@ -24,25 +24,39 @@
     "oil_brent": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 3,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-10-23&observation_end=2026-11-02&api_key=***&file_type=json",
+      "rowCount": 2,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=DCOILBRENTEU&observation_start=2026-10-24&observation_end=2026-11-03&api_key=***&file_type=json",
       "matchedDate": "2026-10-27"
     },
     "gasoline": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 1,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASREGW&observation_start=2026-10-23&observation_end=2026-11-02&api_key=***&file_type=json",
-      "matchedDate": "2026-10-26"
+      "rowCount": 2,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASREGW&observation_start=2026-10-24&observation_end=2026-11-03&api_key=***&file_type=json",
+      "matchedDate": "2026-11-02"
     },
     "diesel": {
       "status": "carry-back",
       "httpStatus": 200,
-      "rowCount": 1,
-      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASDESW&observation_start=2026-10-23&observation_end=2026-11-02&api_key=***&file_type=json",
-      "matchedDate": "2026-10-26"
+      "rowCount": 2,
+      "url": "https://api.stlouisfed.org/fred/series/observations?series_id=GASDESW&observation_start=2026-10-24&observation_end=2026-11-03&api_key=***&file_type=json",
+      "matchedDate": "2026-11-02"
     }
   },
+  "revisions": [
+    {
+      "date": "2026-11-02",
+      "field": "gasoline",
+      "from": 4.269,
+      "to": 4.153
+    },
+    {
+      "date": "2026-11-02",
+      "field": "diesel",
+      "from": 6.352,
+      "to": 6.292
+    }
+  ],
   "cross_validation": {
     "status": "skipped",
     "threshold_pct": 0.5,
