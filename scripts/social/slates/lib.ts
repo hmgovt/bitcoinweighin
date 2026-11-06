@@ -42,6 +42,12 @@ export interface Item {
 	reply: string;
 	/** Makes the image or video and returns its path; run only when posting or with --build. */
 	media?: () => string;
+	/**
+	 * An X Article rather than a post: `text` is the body (Markdown-ish, any length) and `title`
+	 * its headline. It skips the 280-character check and goes to Discord split into messages, to
+	 * paste into X's Article editor by hand.
+	 */
+	article?: { title: string };
 }
 
 export async function loadPrices() {
@@ -102,6 +108,7 @@ export async function toDiscord(it: Item, n: number, of: number, file: string | 
 	const url = process.env.DISCORD_WEBHOOK_URL;
 	if (!url) throw new Error('DISCORD_WEBHOOK_URL is not set');
 	const fits = file && existsSync(file) && statSync(file).size < 24 * 1024 * 1024;
+	if (it.article) return articleToDiscord(url, it, n, of, file, note);
 	const lines = [
 		`**Post ${n} of ${of} · ${ukTime(it.at)} UK**`,
 		plain(it.text),
@@ -117,6 +124,29 @@ export async function toDiscord(it: Item, n: number, of: number, file: string | 
 	if (!r.ok) throw new Error(`Discord ${r.status} for ${it.id}`);
 }
 
+/** An Article goes as several messages (Discord caps one at 2,000 characters), split between paragraphs. */
+async function articleToDiscord(url: string, it: Item, n: number, of: number, file: string | undefined, note?: string) {
+	const head = [`**Post ${n} of ${of} · ${ukTime(it.at)} UK · X Article**`, note ? `-# ${note}` : '', `**Title:** ${plain(it.article!.title)}`].filter(Boolean).join('\n');
+	const chunks: string[] = [];
+	let cur = '';
+	for (const para of it.text.split(/\n{2,}/)) {
+		if (cur && (cur + '\n\n' + para).length > 1900) { chunks.push(cur); cur = ''; }
+		cur = cur ? `${cur}\n\n${para}` : para;
+	}
+	if (cur) chunks.push(cur);
+	if (it.reply) chunks.push(`↳ **Share it with:** ${plain(it.reply)}`);
+	const fits = file && existsSync(file) && statSync(file).size < 24 * 1024 * 1024;
+	const msgs = [head, ...chunks.map((c, i) => (i < chunks.length - (it.reply ? 1 : 0) ? '```\n' + c + '\n```' : c))];
+	for (const [i, content] of msgs.entries()) {
+		const form = new FormData();
+		form.append('payload_json', JSON.stringify({ username: 'Bitcoin Weigh-In posts', content: content.slice(0, 2000), flags: 4, allowed_mentions: { parse: [] } }));
+		if (i === 0 && fits) form.append('files[0]', await openAsBlob(file!), basename(file!));
+		const r = await fetch(url, { method: 'POST', body: form });
+		if (!r.ok) throw new Error(`Discord ${r.status} for ${it.id} (part ${i + 1})`);
+		await new Promise((res) => setTimeout(res, 600));
+	}
+}
+
 /** Print, build, schedule or send a slate to Discord, per the command-line flags. */
 export async function run(slate: Item[], out: string, header: string) {
 	const dry = process.argv.includes('--dry');
@@ -128,14 +158,15 @@ export async function run(slate: Item[], out: string, header: string) {
 	const preview: string[] = [];
 	const items = [...slate].sort((a, b) => a.at.localeCompare(b.at)).filter((it) => !only || only.includes(it.id));
 	for (const [i, it] of items.entries()) {
-		for (const [n, t] of [['text', it.text], ['reply', it.reply]] as const) if (t.length > 280) throw new Error(`${it.id} ${n} is ${t.length} chars`);
-		preview.push(`## ${it.at.slice(5, 16).replace('T', ' ')} UTC · ${it.id}${it.media ? ' · image' : ''}\n${it.text}\n↳ ${it.reply || '(no reply)'}\n`);
+		for (const [n, t] of [['text', it.article ? '' : it.text], ['reply', it.reply]] as const) if (t.length > 280) throw new Error(`${it.id} ${n} is ${t.length} chars`);
+		preview.push(`## ${it.at.slice(5, 16).replace('T', ' ')} UTC · ${it.id}${it.article ? ` · ARTICLE: ${it.article.title}` : ''}${it.media ? ' · image' : ''}\n${it.text}\n↳ ${it.reply || '(no reply)'}\n`);
 		if (build) { if (it.media) console.log('built', it.media()); continue; }
 		if (discord) {
 			await toDiscord(it, i + 1, items.length, it.media?.(), note);
 			console.log(`sent ${it.id} to Discord`);
 		}
 		if (dry) continue;
+		if (it.article) { console.log(`skip ${it.id} (an Article: post it by hand)`); continue; }
 		if (Date.parse(it.at) - Date.now() < 3 * 60_000) { console.log(`skip ${it.id} (time passed)`); continue; }
 		const file = it.media?.();
 		if (file && !existsSync(file)) throw new Error(`no media for ${it.id}`);
