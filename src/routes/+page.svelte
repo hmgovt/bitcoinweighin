@@ -1186,7 +1186,9 @@
 					NDJSON and Parquet — useful if you're doing your own bitcoin-vs-commodities analysis.
 					The <a href="/methodology" class="seo-link">methodology page</a> documents every
 					source, every forward-fill rule, and the cross-validation pipeline that flags
-					provider disagreements above 0.5%.
+					provider disagreements above 0.5%. For a longer view, the
+					<a href="/power-law" class="seo-link">power-law chart</a> fits BTC against two
+					power-law trend lines and runs them out to 2100.
 				</p>
 
 				<h2 class="seo-section__h2">Per-commodity deep-dives</h2>
