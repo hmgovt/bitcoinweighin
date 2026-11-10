@@ -18,7 +18,7 @@ import {
 } from '../src/lib/power-law.js';
 import prices from '../static/prices.json';
 
-const CUTOFF = '2026-08-24';
+const CUTOFF = '2026-08-23';
 const all = prices as unknown as Record<string, { btc: number }>;
 const series: PricePoint[] = Object.keys(all)
 	.filter((d) => d <= CUTOFF)
