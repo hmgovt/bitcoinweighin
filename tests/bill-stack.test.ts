@@ -200,3 +200,35 @@ describe('nearestHeightComparison', () => {
 		expect(c.text).toBe('about 2.5x the distance to the Moon');
 	});
 });
+
+import { cashParts, cashPartsTotal, STRAY_MAX } from '../src/lib/billStack.js';
+
+describe('cashParts — exact accounting', () => {
+	it('always adds back up to the whole note count', () => {
+		for (const n of [1, 9, 10, 84, 99, 100, 845, 999, 1000, 84_550, 99_999, 100_000, 845_500, 9_999_999, 10_000_000, 42_275_000, 1.7755e12]) {
+			expect(cashPartsTotal(cashParts(n))).toBe(Math.floor(n));
+		}
+		// Fractional counts are floored to whole notes.
+		expect(cashPartsTotal(cashParts(845.9))).toBe(845);
+	});
+
+	it('scatters strays only from the count, and only while notes are resolvable', () => {
+		expect(cashParts(5).strays).toBe(0);
+		expect(cashParts(84).strays).toBe(8 > STRAY_MAX ? STRAY_MAX : 8);
+		expect(cashParts(84_550).strays).toBe(STRAY_MAX);
+		expect(cashParts(845_500).strays).toBe(0);
+	});
+
+	it('never breaks open a whole strap or bundle for strays', () => {
+		expect(cashParts(100)).toMatchObject({ straps: 1, loose: 0, strays: 0 });
+		expect(cashParts(103)).toMatchObject({ straps: 1, loose: 0, strays: 3 });
+		expect(cashParts(2000)).toMatchObject({ bundles: 2, partialNotes: 0, strays: 0 });
+		expect(cashParts(2004)).toMatchObject({ bundles: 2, partialNotes: 0, strays: 4 });
+	});
+
+	it('bands 100s into straps, 1,000s into bundles, a million to a pallet', () => {
+		expect(cashParts(845)).toMatchObject({ straps: 8, loose: 38, strays: 7 });
+		expect(cashParts(84_550)).toMatchObject({ bundles: 84, partialNotes: 543 });
+		expect(cashParts(42_275_000)).toMatchObject({ pallets: 42, partialNotes: 275_000 });
+	});
+});

@@ -1,11 +1,11 @@
 {
   "version": "1.0.1",
-  "last_updated": "2026-08-24T02:54:38.902Z",
+  "last_updated": "2026-10-09T08:08:28.884Z",
   "coverage": {
     "first_date": "2013-01-02",
-    "last_date": "2026-08-23"
+    "last_date": "2026-10-08"
   },
-  "row_count": 4977,
+  "row_count": 5023,
   "title": "Bitcoin Weigh-In Daily Commodity Price Dataset",
   "abstract": "Daily commodity prices denominated in Bitcoin, 2013-present. Raw USD closes for BTC, gold, silver, platinum, copper, Brent crude, wheat, and coffee, plus derived per-BTC values and a deterministically computed BTC circulating supply.",
   "homepage": "https://bitcoinweighin.com/data",
@@ -162,17 +162,17 @@
     }
   ],
   "forward_fill_provenance": {
-    "note": "Per-row forward-fill provenance is not tracked in v1.0; the forward_filled column is empty for all rows. Prospective tracking begins in v1.1.",
+    "note": "From 2026-09-30, forward_filled names each column whose source had not yet published for that date (the value is the latest published, revised once the source catches up). Earlier rows carry an empty string: their fill state is not reconstructable.",
     "daily_run_health": "/health.json"
   },
   "checksums": {
     "CHANGELOG.md": "6c671871d131011a84874899a25a19acf7eb3d6d03f42a71eefdff6556f4985f",
-    "CITATION.cff": "39879eb2f0ffa7dae74a269d18e891730a120ec208af4f5726a42016e8f2d0cf",
+    "CITATION.cff": "5b6f8ddc818fb7013d2d56813d8e1874c3f425b7440baa8f2c1879ee59282d2f",
     "LICENSE.txt": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
-    "prices.csv": "b7e2d6c5293942f2638b2b5824dd2579349b1c9ed9bad244c430ea0f32a3274f",
-    "prices.json": "5f4b5a6dfb25c382a2d42d0b081ecb025964493a92fa5ea1f65a6d60d0a8cb98",
-    "prices.ndjson": "64ed4cb9aa7b3dc4e6a395c4437f513c0e9b1d78ab365af3ac02560129ec346b",
-    "prices.parquet": "e6789aa5f73be144b28270e138ff50d2debd36cce808cbe5b5af8cb06eb35eaf",
-    "schema.json": "0ae7badd92d0e984eb6fe8bb2f37512b4cf210aae485d2db6e639f9ca9724ac2"
+    "prices.csv": "dfea43127593357577854733163559bdb2e63e7b9ccc7a4af8b79c37b42e2058",
+    "prices.json": "8cb845402d724fdc50720960ef4539d3d5ef0789c21082e574d41c3487849a24",
+    "prices.ndjson": "75c25222892172f950272561e92fb77e3f6f752d7c3550629d90a653841caa09",
+    "prices.parquet": "7096cfcecfb6b8b5a4b6b0150f0c58b931339a61ef2d44499010599eed6e0e7c",
+    "schema.json": "507a072720399680df4c64a756919123fe98ea59bbe323dc978358b9acb730ba"
   }
 }

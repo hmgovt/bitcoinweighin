@@ -5,7 +5,8 @@ import type { Commodity } from '../src/lib/commodities.js';
 
 /**
  * Integration test: mount HeroStage with the cocaine tab active and assert the
- * relocated cocaine readout landed — the brick-stack SVG in the stage frame,
+ * relocated cocaine readout landed — the cocaine stage (its own WebGL scene,
+ * hydrated client-side; server-side it renders its frame and captions),
  * the "You could buy" mass readout, the three-tier pricing grid, and the
  * source provenance. (The standalone CommoditySection still-panel was retired
  * when cocaine became the 4th hero tab; its readout moved to CocaineReadout,
@@ -41,10 +42,11 @@ function renderCocaine(amount: number, btcAmount: number) {
 }
 
 describe('HeroStage: cocaine tab dispatch', () => {
-	it('renders the brick-stack SVG in the stage frame, not the WebGL stage', () => {
+	it('renders the cocaine stage in the stage frame, not the metal stage', () => {
 		const out = renderCocaine(1000, 1); // 1 kg → bricks tier
-		expect(out.body).toContain('brick-stack');
-		// The live WebGL stage is unmounted on the cocaine tab.
+		expect(out.body).toContain('coke-stage');
+		expect(out.body).toContain('one-kilo bricks');
+		// The metal LiveStage is unmounted on the cocaine tab.
 		expect(out.body).not.toContain('live-stage');
 	});
 

@@ -206,5 +206,5 @@ export async function fetchFRED(
 	}
 
 	console.log(`  → ${data.size} rows for ${source.symbol}`);
-	return { data, httpStatus: res.status, rowCount: data.size, url };
+	return { data, httpStatus: res.status, rowCount: data.size, url: redactUrl(url) };
 }

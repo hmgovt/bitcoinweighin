@@ -17,6 +17,7 @@ import { promises as fs } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderCard, renderHashweightCard } from './make-card.ts';
+import { miningShortFacts, renderMiningShort } from './make-mining-short.ts';
 import { postTweet, replyToTweet, postThread } from './post.ts';
 import { computeDelta, gramsPerBtc, type DeltaObjectsFile } from '../../src/lib/deltas.ts';
 import { fetchHashrateEH, computeNetworkWeight, EIFFEL_TOWER_TONNES, STATUE_OF_LIBERTY_TONNES } from '../../src/lib/network-weight.ts';
@@ -32,8 +33,8 @@ const CARD_OUT = join(PROJECT_ROOT, 'output', 'cards');
 type CommodityId = 'gold' | 'silver' | 'cocaine' | 'pu238' | 'cash';
 interface Slot {
 	id: string;
-	commodity: CommodityId | 'hashweight' | 'thread';
-	format: 'absolute' | 'delta' | 'hashweight' | 'thread';
+	commodity: CommodityId | 'hashweight' | 'thread' | 'mining';
+	format: 'absolute' | 'delta' | 'hashweight' | 'thread' | 'mining';
 	btc: number;
 	weekday?: number; // 0-6 (UTC); if set, slot only fires on this day even in "*" rotation mode
 }
@@ -100,7 +101,7 @@ function pickTemplate<T>(pool: T[], seed: string): T {
 interface Content {
 	caption: string;
 	btc: number;
-	commodity: CommodityId | 'hashweight' | 'thread';
+	commodity: CommodityId | 'hashweight' | 'thread' | 'mining';
 }
 
 function buildAbsolute(slot: Slot, cfg: Config, objs: DeltaObjectsFile, day: DayPrices, today: string): Content {
@@ -187,6 +188,18 @@ function buildHashweight(eh: number, today: string): Content {
 	], today + 'hashweight');
 
 	return { caption, btc: 0, commodity: 'hashweight' };
+}
+
+/** Weekly /mining video: the block the page replays, and the chip that found it. */
+function buildMining(today: string): Content {
+	const f = miningShortFacts();
+	const h = f.height.toLocaleString('en-US');
+	const caption = pickTemplate([
+		`Bitcoin block ${h} was found ${f.ago} by one lucky guess. This is the kind of chip that makes those guesses, about a trillion a second, taken apart down to the silicon.`,
+		`Every Bitcoin block comes down to a single guess. Block ${h}'s winner was nonce ${f.nonce}, and its hash starts with ${f.zeros} zero bits. Here's the hardware that guesses.`,
+		`Inside a Bitcoin miner: a hashboard, a flip-chip package, a die full of identical SHA-256 cores. A core like these found block ${h} ${f.ago}.`,
+	], today + 'mining');
+	return { caption, btc: 0, commodity: 'mining' };
 }
 
 /**
@@ -296,6 +309,7 @@ async function sendNotification(cfg: Config, tweetId: string, caption: string, s
 /** Deep link back to the exact view the card is showing. */
 function buildLink(cfg: Config, content: Content, dateStr: string): string {
 	if (content.commodity === 'hashweight') return `${cfg.siteBase}/#hashweight`;
+	if (content.commodity === 'mining') return `${cfg.siteBase}/mining`;
 	return `${cfg.siteBase}/?btc=${content.btc}&commodity=${content.commodity}&date=${dateStr}`;
 }
 
@@ -454,12 +468,16 @@ async function main() {
 		return;
 	}
 
-	// ── Standard post (image + caption, then first-reply with link) ─
-	const out = join(CARD_OUT, `${slot.id}-${today}.png`);
+	// ── Standard post (image or video + caption, then first-reply with link) ─
+	const out = join(CARD_OUT, `${slot.id}-${today}.${slot.format === 'mining' ? 'mp4' : 'png'}`);
 
 	let content: Content;
 	let renderImage: () => Promise<string>;
-	if (slot.format === 'hashweight') {
+	if (slot.format === 'mining') {
+		content = buildMining(today);
+		// Captured from the live site, so the video always matches what the link opens.
+		renderImage = () => renderMiningShort({ out, base: process.env.SITE_BASE_URL ?? cfg.siteBase });
+	} else if (slot.format === 'hashweight') {
 		const eh = (await fetchHashrateEH()) ?? HASHRATE_FALLBACK_EH;
 		content = buildHashweight(eh, today);
 		renderImage = () => renderHashweightCard({ out });
@@ -476,7 +494,10 @@ async function main() {
 	const dateStr = dates[dates.length - 1];
 	const siteLink = buildLink(cfg, content, dateStr);
 	const utmLink = siteLink + (siteLink.includes('?') ? '&' : '?') + 'utm_source=x&utm_medium=first_reply&utm_campaign=bot';
-	const replyText = `Explore the live interactive weigh-in → ${utmLink}`;
+	const replyText =
+		content.commodity === 'mining'
+			? `Take the chip apart and replay the block yourself → ${utmLink}`
+			: `Explore the live interactive weigh-in → ${utmLink}`;
 
 	console.log('─'.repeat(60));
 	console.log('MAIN TWEET:');

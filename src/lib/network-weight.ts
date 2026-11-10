@@ -74,7 +74,15 @@ export function computeNetworkWeight(hashrateEH: number): NetworkWeightEstimate 
  * Fetch the current network hashrate from mempool.space.
  * Returns hashrate in EH/s, or null on failure.
  */
-export async function fetchHashrateEH(): Promise<number | null> {
+// The homepage asks twice (the /mining strip and the Hashweight panel); both share one request.
+let hashrateRequest: Promise<number | null> | null = null;
+
+export function fetchHashrateEH(): Promise<number | null> {
+	hashrateRequest ??= requestHashrateEH();
+	return hashrateRequest;
+}
+
+async function requestHashrateEH(): Promise<number | null> {
 	try {
 		const res = await fetch('https://mempool.space/api/v1/mining/hashrate/1w');
 		if (!res.ok) return null;
@@ -86,5 +94,31 @@ export async function fetchHashrateEH(): Promise<number | null> {
 		return h / 1e18;
 	} catch {
 		return null;
+	}
+}
+
+/**
+ * The network's whole hashrate history from mempool.space
+ * (`/api/v1/mining/hashrate/all`), as { ts (ms), eh (EH/s) } from 2014 on.
+ * One request per page. Empty on failure.
+ */
+let historyRequest: Promise<{ ts: number; eh: number }[]> | null = null;
+
+export function fetchHashrateHistory(): Promise<{ ts: number; eh: number }[]> {
+	historyRequest ??= requestHashrateHistory();
+	return historyRequest;
+}
+
+async function requestHashrateHistory(): Promise<{ ts: number; eh: number }[]> {
+	try {
+		const res = await fetch('https://mempool.space/api/v1/mining/hashrate/all');
+		if (!res.ok) return [];
+		const json = await res.json();
+		const START = Date.UTC(2014, 0, 1) / 1000;
+		return ((json?.hashrates ?? []) as { timestamp: number; avgHashrate: number }[])
+			.filter((d) => d.timestamp >= START && d.avgHashrate > 0)
+			.map((d) => ({ ts: d.timestamp * 1000, eh: d.avgHashrate / 1e18 }));
+	} catch {
+		return [];
 	}
 }

@@ -1,7 +1,9 @@
 /**
  * Daily fetch: appends close prices for all commodities + BTC to prices.ndjson.
  * Catches up on any dates missed since the last successful run, so a transient
- * upstream outage never creates a permanent gap in the dataset.
+ * upstream outage never creates a permanent gap in the dataset. Then re-picks
+ * the last few weeks of FRED rows, since FRED publishes Brent about a week late
+ * (see revise.ts).
  *
  * Designed to be run by GitHub Actions cron at 02:00 UTC.
  *
@@ -21,6 +23,7 @@ import {
 	parseDate,
 } from './sources.js';
 import { fetchFRED, fetchCoinGecko, fetchGoldApi, type FetchResult } from './fetchers.js';
+import { latestOnOrBefore, reviseRows, setFilled, type NdjsonRow, type Revision } from './revise.js';
 import {
 	fetchMassiveQuote,
 	MASSIVE_CROSS_VALIDATED,
@@ -31,6 +34,9 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
 const NDJSON_PATH = join(ROOT, 'data', 'prices.ndjson');
 const HEALTH_PATH = join(ROOT, 'static', 'health.json');
+
+/** Days of rows whose FRED values are re-picked on every run: the lag is about a week, sometimes two. */
+const REVISE_DAYS = 21;
 
 type HealthMap = Record<
 	string,
@@ -45,35 +51,17 @@ type HealthMap = Record<
 >;
 
 /**
- * Pick the value for an exact date, or — if that date has no bar (weekend,
- * holiday, publication lag) — the most recent bar on or before it. ISO date
- * strings sort lexicographically, so string comparison is safe here.
- */
-function latestOnOrBefore(
-	data: Map<string, number>,
-	dateStr: string
-): { value?: number; matchedDate?: string } {
-	const exact = data.get(dateStr);
-	if (exact !== undefined) return { value: exact, matchedDate: dateStr };
-
-	let best: string | undefined;
-	for (const d of data.keys()) {
-		if (d <= dateStr && (best === undefined || d > best)) best = d;
-	}
-	return best !== undefined ? { value: data.get(best), matchedDate: best } : {};
-}
-
-/**
  * Fetch all sources for a single date and return the assembled row, health map,
  * and whether every source returned zero rows (indicator of an upstream issue).
  * Forward-fills from the current last line of prices.ndjson when a source has
- * no data for the requested date.
+ * no data for the requested date. Any field not taken from that date's own bar
+ * is listed in the row's forward_filled.
  */
 async function fetchSourcesForDate(
 	dateStr: string
-): Promise<{ row: Record<string, unknown>; health: HealthMap; allZeroRows: boolean }> {
+): Promise<{ row: NdjsonRow; health: HealthMap; allZeroRows: boolean }> {
 	const targetDate = parseDate(dateStr);
-	const row: Record<string, unknown> = { date: dateStr, btc_supply: btcCirculatingSupply(dateStr) };
+	const row: NdjsonRow = { date: dateStr, btc_supply: btcCirculatingSupply(dateStr) };
 	const health: HealthMap = {};
 
 	for (const source of SOURCES) {
@@ -95,6 +83,7 @@ async function fetchSourcesForDate(
 			const { value, matchedDate } = latestOnOrBefore(result.data, dateStr);
 			if (value !== undefined) {
 				row[source.field] = value;
+				setFilled(row, source.field, matchedDate !== dateStr);
 				health[source.id] = {
 					// A bar carried back from an earlier trading day is still real
 					// market data, not a stale repeat — distinguish it from 'ok'.
@@ -112,6 +101,7 @@ async function fetchSourcesForDate(
 					const lastRow = JSON.parse(lines[lines.length - 1]);
 					if (lastRow[source.field] !== undefined) {
 						row[source.field] = lastRow[source.field];
+						setFilled(row, source.field, true);
 						health[source.id] = {
 							status: 'forward-filled',
 							httpStatus: result.httpStatus,
@@ -129,6 +119,7 @@ async function fetchSourcesForDate(
 				const lastRow = JSON.parse(lines[lines.length - 1]);
 				if (lastRow[source.field] !== undefined) {
 					row[source.field] = lastRow[source.field];
+					setFilled(row, source.field, true);
 					health[source.id] = { status: 'fallback', error: message };
 				}
 			}
@@ -142,6 +133,40 @@ async function fetchSourcesForDate(
 	);
 
 	return { row, health, allZeroRows };
+}
+
+/**
+ * Re-pick every FRED field in the last REVISE_DAYS rows from a fresh fetch, so
+ * a row written while FRED was behind gets the real close once FRED publishes
+ * it, and rewrite those rows in prices.ndjson. Fails soft: a FRED outage leaves
+ * the rows as they were.
+ */
+async function reviseRecent(primaryDateStr: string): Promise<Revision[]> {
+	if (!existsSync(NDJSON_PATH)) return [];
+	const lines = readFileSync(NDJSON_PATH, 'utf-8').trim().split('\n');
+	const sinceDate = parseDate(primaryDateStr);
+	sinceDate.setDate(sinceDate.getDate() - REVISE_DAYS);
+	const since = formatDateISO(sinceDate);
+	let start = lines.length;
+	while (start > 0 && (JSON.parse(lines[start - 1]) as NdjsonRow).date >= since) start--;
+	if (start === lines.length) return [];
+	const rows = lines.slice(start).map((l) => JSON.parse(l) as NdjsonRow);
+
+	const changes: Revision[] = [];
+	for (const source of SOURCES.filter((s) => s.type === 'fred')) {
+		console.log(`Revising ${source.id} since ${since}...`);
+		const fredStart = parseDate(since);
+		fredStart.setDate(fredStart.getDate() - 10);
+		try {
+			const result = await fetchFRED(source, fredStart, parseDate(primaryDateStr));
+			changes.push(...reviseRows(rows, source.field, result.data, since));
+		} catch (err: unknown) {
+			console.error(`  ${source.id} revision skipped: ${err instanceof Error ? err.message : String(err)}`);
+		}
+	}
+	for (const c of changes) console.log(`  ${c.field} ${c.date}: ${c.from} → ${c.to}`);
+	writeFileSync(NDJSON_PATH, [...lines.slice(0, start), ...rows.map((r) => JSON.stringify(r))].join('\n') + '\n');
+	return changes;
 }
 
 async function main() {
@@ -158,7 +183,8 @@ async function main() {
 			const lastRow = JSON.parse(lines[lines.length - 1]);
 			lastDateStr = lastRow.date as string;
 			if (lastDateStr === primaryDateStr) {
-				console.log(`Already up to date (${primaryDateStr}). Skipping.`);
+				console.log(`Already up to date (${primaryDateStr}). Revising recent rows only.\n`);
+				await reviseRecent(primaryDateStr);
 				return;
 			}
 		}
@@ -222,6 +248,9 @@ async function main() {
 		appendFileSync(NDJSON_PATH, JSON.stringify(row) + '\n');
 		console.log(`Appended row for ${dateStr}`);
 	}
+
+	console.log('');
+	const revisions = await reviseRecent(primaryDateStr);
 
 	// === Massive secondary-source cross-validation (primary date only) ===
 	// Quality signal only — fails soft, never blocks the build.
@@ -312,6 +341,7 @@ async function main() {
 				date: primaryDateStr,
 				catchUpDates: catchUpCount > 0 ? datesToProcess.slice(0, -1) : undefined,
 				sources: primaryHealth,
+				revisions: revisions.length ? revisions : undefined,
 				cross_validation: crossValidation,
 				cross_validation_flags,
 			},

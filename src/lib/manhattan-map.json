@@ -1,0 +1,1160 @@
+{
+	"generated": "2026-09-25",
+	"attribution": "NYC Open Data: DOF Digital Tax Map, DCP PLUTO and Borough Boundaries, OTI Building Footprints",
+	"projection": {
+		"lat0": 40.7831,
+		"lon0": -73.9712,
+		"gridDeg": 29,
+		"centreX": 1002.7083960608534,
+		"centreY": -191.96200301300814,
+		"metresPerUnit": 0.5
+	},
+	"bytes": 3593636,
+	"sections": {
+		"outline.polyStart": {
+			"offset": 0,
+			"length": 37,
+			"type": "u32"
+		},
+		"outline.ringStart": {
+			"offset": 148,
+			"length": 38,
+			"type": "u32"
+		},
+		"outline.coords": {
+			"offset": 300,
+			"length": 4866,
+			"type": "i16"
+		},
+		"parks.polyStart": {
+			"offset": 10032,
+			"length": 614,
+			"type": "u32"
+		},
+		"parks.ringStart": {
+			"offset": 12488,
+			"length": 618,
+			"type": "u32"
+		},
+		"parks.coords": {
+			"offset": 14960,
+			"length": 11228,
+			"type": "i16"
+		},
+		"lots.polyStart": {
+			"offset": 37416,
+			"length": 41561,
+			"type": "u32"
+		},
+		"lots.ringStart": {
+			"offset": 203660,
+			"length": 41591,
+			"type": "u32"
+		},
+		"lots.coords": {
+			"offset": 370024,
+			"length": 392972,
+			"type": "i16"
+		},
+		"lots.area": {
+			"offset": 1155968,
+			"length": 41560,
+			"type": "f32"
+		},
+		"buildings.polyStart": {
+			"offset": 1322208,
+			"length": 45114,
+			"type": "u32"
+		},
+		"buildings.ringStart": {
+			"offset": 1502664,
+			"length": 46162,
+			"type": "u32"
+		},
+		"buildings.coords": {
+			"offset": 1687312,
+			"length": 817822,
+			"type": "i16"
+		},
+		"buildings.height": {
+			"offset": 3322956,
+			"length": 45113,
+			"type": "u16"
+		},
+		"buildings.lot": {
+			"offset": 3413184,
+			"length": 45113,
+			"type": "i32"
+		}
+	},
+	"counts": {
+		"lots": 41560,
+		"parks": 613,
+		"buildings": 45113,
+		"outline": 36
+	},
+	"developableM2": 32413413,
+	"mainIslandM2": 30327016,
+	"mainIslandLots": 41287,
+	"unclippedM2": 42334430,
+	"parksM2": 9785007,
+	"fillStartY": -9554,
+	"patch": {
+		"lot": 0,
+		"x": 249.5,
+		"y": -9560.7,
+		"clearanceM": 17.7
+	},
+	"streets": [
+		{
+			"name": "Wall Street",
+			"y": -8830,
+			"areaM2": 327033
+		},
+		{
+			"name": "Fulton Street",
+			"y": -8404,
+			"areaM2": 739840
+		},
+		{
+			"name": "Chambers Street",
+			"y": -7915,
+			"areaM2": 1405631
+		},
+		{
+			"name": "Canal Street",
+			"y": -7257,
+			"areaM2": 2389315
+		},
+		{
+			"name": "Houston Street",
+			"y": -6396,
+			"areaM2": 4170298
+		},
+		{
+			"name": "1st Street",
+			"y": -6304,
+			"areaM2": 4336076
+		},
+		{
+			"name": "2nd Street",
+			"y": -6258,
+			"areaM2": 4423999
+		},
+		{
+			"name": "3rd Street",
+			"y": -6136,
+			"areaM2": 4651069
+		},
+		{
+			"name": "4th Street",
+			"y": -6047,
+			"areaM2": 4899521
+		},
+		{
+			"name": "5th Street",
+			"y": -5981,
+			"areaM2": 5039298
+		},
+		{
+			"name": "6th Street",
+			"y": -5905,
+			"areaM2": 5166023
+		},
+		{
+			"name": "7th Street",
+			"y": -5867,
+			"areaM2": 5270178
+		},
+		{
+			"name": "8th Street",
+			"y": -5756,
+			"areaM2": 5475703
+		},
+		{
+			"name": "9th Street",
+			"y": -5685,
+			"areaM2": 5636166
+		},
+		{
+			"name": "10th Street",
+			"y": -5648,
+			"areaM2": 5744487
+		},
+		{
+			"name": "11th Street",
+			"y": -5572,
+			"areaM2": 5911229
+		},
+		{
+			"name": "12th Street",
+			"y": -5492,
+			"areaM2": 6139920
+		},
+		{
+			"name": "13th Street",
+			"y": -5406,
+			"areaM2": 6344226
+		},
+		{
+			"name": "14th Street",
+			"y": -5329,
+			"areaM2": 6543755
+		},
+		{
+			"name": "15th Street",
+			"y": -5233,
+			"areaM2": 6720681
+		},
+		{
+			"name": "16th Street",
+			"y": -5110,
+			"areaM2": 6898255
+		},
+		{
+			"name": "17th Street",
+			"y": -5041,
+			"areaM2": 7281643
+		},
+		{
+			"name": "18th Street",
+			"y": -4965,
+			"areaM2": 7417660
+		},
+		{
+			"name": "19th Street",
+			"y": -4888,
+			"areaM2": 7573766
+		},
+		{
+			"name": "20th Street",
+			"y": -4854,
+			"areaM2": 7694383
+		},
+		{
+			"name": "21st Street",
+			"y": -4735,
+			"areaM2": 7856132
+		},
+		{
+			"name": "22nd Street",
+			"y": -4700,
+			"areaM2": 8065895
+		},
+		{
+			"name": "23rd Street",
+			"y": -4625,
+			"areaM2": 8210277
+		},
+		{
+			"name": "24th Street",
+			"y": -4488,
+			"areaM2": 8400901
+		},
+		{
+			"name": "25th Street",
+			"y": -4456,
+			"areaM2": 8543944
+		},
+		{
+			"name": "26th Street",
+			"y": -4331,
+			"areaM2": 8717909
+		},
+		{
+			"name": "27th Street",
+			"y": -4292,
+			"areaM2": 8876065
+		},
+		{
+			"name": "28th Street",
+			"y": -4174,
+			"areaM2": 9129821
+		},
+		{
+			"name": "29th Street",
+			"y": -4095,
+			"areaM2": 9314186
+		},
+		{
+			"name": "30th Street",
+			"y": -4064,
+			"areaM2": 9426554
+		},
+		{
+			"name": "31st Street",
+			"y": -3980,
+			"areaM2": 9605206
+		},
+		{
+			"name": "32nd Street",
+			"y": -3907,
+			"areaM2": 9740620
+		},
+		{
+			"name": "33rd Street",
+			"y": -3782,
+			"areaM2": 10025418
+		},
+		{
+			"name": "34th Street",
+			"y": -3750,
+			"areaM2": 10165805
+		},
+		{
+			"name": "35th Street",
+			"y": -3613,
+			"areaM2": 10341229
+		},
+		{
+			"name": "36th Street",
+			"y": -3574,
+			"areaM2": 10468490
+		},
+		{
+			"name": "37th Street",
+			"y": -3458,
+			"areaM2": 10748510
+		},
+		{
+			"name": "38th Street",
+			"y": -3413,
+			"areaM2": 10892674
+		},
+		{
+			"name": "39th Street",
+			"y": -3333,
+			"areaM2": 11041576
+		},
+		{
+			"name": "40th Street",
+			"y": -3267,
+			"areaM2": 11218566
+		},
+		{
+			"name": "41st Street",
+			"y": -3187,
+			"areaM2": 11361526
+		},
+		{
+			"name": "42nd Street",
+			"y": -3056,
+			"areaM2": 11552044
+		},
+		{
+			"name": "43rd Street",
+			"y": -2971,
+			"areaM2": 11733044
+		},
+		{
+			"name": "44th Street",
+			"y": -2931,
+			"areaM2": 11877703
+		},
+		{
+			"name": "45th Street",
+			"y": -2812,
+			"areaM2": 12143616
+		},
+		{
+			"name": "46th Street",
+			"y": -2780,
+			"areaM2": 12277387
+		},
+		{
+			"name": "47th Street",
+			"y": -2656,
+			"areaM2": 12449899
+		},
+		{
+			"name": "48th Street",
+			"y": -2574,
+			"areaM2": 12618972
+		},
+		{
+			"name": "49th Street",
+			"y": -2542,
+			"areaM2": 12761882
+		},
+		{
+			"name": "50th Street",
+			"y": -2440,
+			"areaM2": 12956221
+		},
+		{
+			"name": "51st Street",
+			"y": -2336,
+			"areaM2": 13137783
+		},
+		{
+			"name": "52nd Street",
+			"y": -2301,
+			"areaM2": 13296328
+		},
+		{
+			"name": "53rd Street",
+			"y": -2186,
+			"areaM2": 13476159
+		},
+		{
+			"name": "54th Street",
+			"y": -2097,
+			"areaM2": 13681714
+		},
+		{
+			"name": "55th Street",
+			"y": -2061,
+			"areaM2": 13834133
+		},
+		{
+			"name": "56th Street",
+			"y": -1985,
+			"areaM2": 14005450
+		},
+		{
+			"name": "57th Street",
+			"y": -1853,
+			"areaM2": 14203213
+		},
+		{
+			"name": "58th Street",
+			"y": -1814,
+			"areaM2": 14373098
+		},
+		{
+			"name": "59th Street",
+			"y": -1718,
+			"areaM2": 14548338
+		},
+		{
+			"name": "60th Street",
+			"y": -1608,
+			"areaM2": 14711676
+		},
+		{
+			"name": "61st Street",
+			"y": -1528,
+			"areaM2": 14866997
+		},
+		{
+			"name": "62nd Street",
+			"y": -1454,
+			"areaM2": 14974156
+		},
+		{
+			"name": "63rd Street",
+			"y": -1369,
+			"areaM2": 15124581
+		},
+		{
+			"name": "64th Street",
+			"y": -1335,
+			"areaM2": 15199785
+		},
+		{
+			"name": "65th Street",
+			"y": -1257,
+			"areaM2": 15348278
+		},
+		{
+			"name": "66th Street",
+			"y": -1179,
+			"areaM2": 15453780
+		},
+		{
+			"name": "67th Street",
+			"y": -1051,
+			"areaM2": 15679961
+		},
+		{
+			"name": "68th Street",
+			"y": -1019,
+			"areaM2": 15776854
+		},
+		{
+			"name": "69th Street",
+			"y": -893,
+			"areaM2": 15951342
+		},
+		{
+			"name": "70th Street",
+			"y": -813,
+			"areaM2": 16089412
+		},
+		{
+			"name": "71st Street",
+			"y": -780,
+			"areaM2": 16216413
+		},
+		{
+			"name": "72nd Street",
+			"y": -697,
+			"areaM2": 16369385
+		},
+		{
+			"name": "73rd Street",
+			"y": -608,
+			"areaM2": 16490115
+		},
+		{
+			"name": "74th Street",
+			"y": -524,
+			"areaM2": 16633489
+		},
+		{
+			"name": "75th Street",
+			"y": -444,
+			"areaM2": 16769508
+		},
+		{
+			"name": "76th Street",
+			"y": -321,
+			"areaM2": 16925318
+		},
+		{
+			"name": "77th Street",
+			"y": -280,
+			"areaM2": 17049759
+		},
+		{
+			"name": "78th Street",
+			"y": -160,
+			"areaM2": 17170319
+		},
+		{
+			"name": "79th Street",
+			"y": -124,
+			"areaM2": 17283280
+		},
+		{
+			"name": "80th Street",
+			"y": 13,
+			"areaM2": 17482719
+		},
+		{
+			"name": "81st Street",
+			"y": 52,
+			"areaM2": 17592683
+		},
+		{
+			"name": "82nd Street",
+			"y": 175,
+			"areaM2": 17741602
+		},
+		{
+			"name": "83rd Street",
+			"y": 210,
+			"areaM2": 17856704
+		},
+		{
+			"name": "84th Street",
+			"y": 338,
+			"areaM2": 18035212
+		},
+		{
+			"name": "85th Street",
+			"y": 419,
+			"areaM2": 18173924
+		},
+		{
+			"name": "86th Street",
+			"y": 504,
+			"areaM2": 18303690
+		},
+		{
+			"name": "87th Street",
+			"y": 588,
+			"areaM2": 18445215
+		},
+		{
+			"name": "88th Street",
+			"y": 671,
+			"areaM2": 18618356
+		},
+		{
+			"name": "89th Street",
+			"y": 704,
+			"areaM2": 18742254
+		},
+		{
+			"name": "90th Street",
+			"y": 830,
+			"areaM2": 18885954
+		},
+		{
+			"name": "91st Street",
+			"y": 863,
+			"areaM2": 18991597
+		},
+		{
+			"name": "92nd Street",
+			"y": 984,
+			"areaM2": 19143838
+		},
+		{
+			"name": "93rd Street",
+			"y": 1065,
+			"areaM2": 19266627
+		},
+		{
+			"name": "94th Street",
+			"y": 1149,
+			"areaM2": 19403408
+		},
+		{
+			"name": "95th Street",
+			"y": 1182,
+			"areaM2": 19496805
+		},
+		{
+			"name": "96th Street",
+			"y": 1262,
+			"areaM2": 19605695
+		},
+		{
+			"name": "97th Street",
+			"y": 1401,
+			"areaM2": 19734383
+		},
+		{
+			"name": "98th Street",
+			"y": 1433,
+			"areaM2": 19773853
+		},
+		{
+			"name": "99th Street",
+			"y": 1561,
+			"areaM2": 19981604
+		},
+		{
+			"name": "100th Street",
+			"y": 1640,
+			"areaM2": 20073137
+		},
+		{
+			"name": "101st Street",
+			"y": 1673,
+			"areaM2": 20195617
+		},
+		{
+			"name": "102nd Street",
+			"y": 1799,
+			"areaM2": 20362259
+		},
+		{
+			"name": "103rd Street",
+			"y": 1879,
+			"areaM2": 20467118
+		},
+		{
+			"name": "104th Street",
+			"y": 1952,
+			"areaM2": 20576914
+		},
+		{
+			"name": "105th Street",
+			"y": 1996,
+			"areaM2": 20668261
+		},
+		{
+			"name": "106th Street",
+			"y": 2131,
+			"areaM2": 20804645
+		},
+		{
+			"name": "107th Street",
+			"y": 2211,
+			"areaM2": 20946329
+		},
+		{
+			"name": "108th Street",
+			"y": 2246,
+			"areaM2": 21021672
+		},
+		{
+			"name": "109th Street",
+			"y": 2323,
+			"areaM2": 21170988
+		},
+		{
+			"name": "110th Street",
+			"y": 2450,
+			"areaM2": 21524606
+		},
+		{
+			"name": "111th Street",
+			"y": 2525,
+			"areaM2": 21651025
+		},
+		{
+			"name": "112th Street",
+			"y": 2562,
+			"areaM2": 21798162
+		},
+		{
+			"name": "113th Street",
+			"y": 2690,
+			"areaM2": 21972182
+		},
+		{
+			"name": "114th Street",
+			"y": 2722,
+			"areaM2": 22189172
+		},
+		{
+			"name": "115th Street",
+			"y": 2849,
+			"areaM2": 22363823
+		},
+		{
+			"name": "116th Street",
+			"y": 2884,
+			"areaM2": 22490821
+		},
+		{
+			"name": "117th Street",
+			"y": 3015,
+			"areaM2": 22657830
+		},
+		{
+			"name": "118th Street",
+			"y": 3101,
+			"areaM2": 22913626
+		},
+		{
+			"name": "119th Street",
+			"y": 3133,
+			"areaM2": 23025492
+		},
+		{
+			"name": "120th Street",
+			"y": 3213,
+			"areaM2": 23176034
+		},
+		{
+			"name": "121st Street",
+			"y": 3329,
+			"areaM2": 23327244
+		},
+		{
+			"name": "122nd Street",
+			"y": 3420,
+			"areaM2": 23503198
+		},
+		{
+			"name": "123rd Street",
+			"y": 3452,
+			"areaM2": 23623588
+		},
+		{
+			"name": "124th Street",
+			"y": 3532,
+			"areaM2": 23739320
+		},
+		{
+			"name": "125th Street",
+			"y": 3671,
+			"areaM2": 23947939
+		},
+		{
+			"name": "126th Street",
+			"y": 3751,
+			"areaM2": 24121277
+		},
+		{
+			"name": "127th Street",
+			"y": 3782,
+			"areaM2": 24208031
+		},
+		{
+			"name": "128th Street",
+			"y": 3897,
+			"areaM2": 24397704
+		},
+		{
+			"name": "129th Street",
+			"y": 3988,
+			"areaM2": 24504163
+		},
+		{
+			"name": "130th Street",
+			"y": 4020,
+			"areaM2": 24594984
+		},
+		{
+			"name": "131st Street",
+			"y": 4147,
+			"areaM2": 24776722
+		},
+		{
+			"name": "132nd Street",
+			"y": 4178,
+			"areaM2": 24849422
+		},
+		{
+			"name": "133rd Street",
+			"y": 4258,
+			"areaM2": 24998167
+		},
+		{
+			"name": "134th Street",
+			"y": 4384,
+			"areaM2": 25178646
+		},
+		{
+			"name": "135th Street",
+			"y": 4476,
+			"areaM2": 25256676
+		},
+		{
+			"name": "136th Street",
+			"y": 4519,
+			"areaM2": 25333390
+		},
+		{
+			"name": "137th Street",
+			"y": 4634,
+			"areaM2": 25470331
+		},
+		{
+			"name": "138th Street",
+			"y": 4714,
+			"areaM2": 25592168
+		},
+		{
+			"name": "139th Street",
+			"y": 4745,
+			"areaM2": 25661816
+		},
+		{
+			"name": "140th Street",
+			"y": 4829,
+			"areaM2": 25747386
+		},
+		{
+			"name": "141st Street",
+			"y": 4951,
+			"areaM2": 25993148
+		},
+		{
+			"name": "142nd Street",
+			"y": 5023,
+			"areaM2": 26143037
+		},
+		{
+			"name": "143rd Street",
+			"y": 5109,
+			"areaM2": 26241964
+		},
+		{
+			"name": "144th Street",
+			"y": 5189,
+			"areaM2": 26335241
+		},
+		{
+			"name": "145th Street",
+			"y": 5264,
+			"areaM2": 26392752
+		},
+		{
+			"name": "146th Street",
+			"y": 5348,
+			"areaM2": 26465415
+		},
+		{
+			"name": "147th Street",
+			"y": 5436,
+			"areaM2": 26571458
+		},
+		{
+			"name": "148th Street",
+			"y": 5518,
+			"areaM2": 26670100
+		},
+		{
+			"name": "149th Street",
+			"y": 5550,
+			"areaM2": 26717971
+		},
+		{
+			"name": "150th Street",
+			"y": 5629,
+			"areaM2": 26880033
+		},
+		{
+			"name": "151st Street",
+			"y": 5715,
+			"areaM2": 26952791
+		},
+		{
+			"name": "152nd Street",
+			"y": 5833,
+			"areaM2": 27036168
+		},
+		{
+			"name": "153rd Street",
+			"y": 5867,
+			"areaM2": 27078217
+		},
+		{
+			"name": "154th Street",
+			"y": 5948,
+			"areaM2": 27114403
+		},
+		{
+			"name": "155th Street",
+			"y": 6085,
+			"areaM2": 27168929
+		},
+		{
+			"name": "156th Street",
+			"y": 6117,
+			"areaM2": 27196104
+		},
+		{
+			"name": "157th Street",
+			"y": 6196,
+			"areaM2": 27262908
+		},
+		{
+			"name": "158th Street",
+			"y": 6313,
+			"areaM2": 27371238
+		},
+		{
+			"name": "159th Street",
+			"y": 6402,
+			"areaM2": 27438844
+		},
+		{
+			"name": "160th Street",
+			"y": 6436,
+			"areaM2": 27462106
+		},
+		{
+			"name": "161st Street",
+			"y": 6560,
+			"areaM2": 27558593
+		},
+		{
+			"name": "162nd Street",
+			"y": 6621,
+			"areaM2": 27597977
+		},
+		{
+			"name": "163rd Street",
+			"y": 6671,
+			"areaM2": 27632948
+		},
+		{
+			"name": "164th Street",
+			"y": 6799,
+			"areaM2": 27679289
+		},
+		{
+			"name": "165th Street",
+			"y": 6844,
+			"areaM2": 27723920
+		},
+		{
+			"name": "166th Street",
+			"y": 6935,
+			"areaM2": 27748440
+		},
+		{
+			"name": "167th Street",
+			"y": 7020,
+			"areaM2": 27846916
+		},
+		{
+			"name": "168th Street",
+			"y": 7084,
+			"areaM2": 27872578
+		},
+		{
+			"name": "169th Street",
+			"y": 7207,
+			"areaM2": 27929478
+		},
+		{
+			"name": "170th Street",
+			"y": 7241,
+			"areaM2": 27958749
+		},
+		{
+			"name": "171st Street",
+			"y": 7331,
+			"areaM2": 27993423
+		},
+		{
+			"name": "172nd Street",
+			"y": 7405,
+			"areaM2": 28034393
+		},
+		{
+			"name": "173rd Street",
+			"y": 7480,
+			"areaM2": 28071449
+		},
+		{
+			"name": "174th Street",
+			"y": 7595,
+			"areaM2": 28104078
+		},
+		{
+			"name": "175th Street",
+			"y": 7640,
+			"areaM2": 28130568
+		},
+		{
+			"name": "176th Street",
+			"y": 7727,
+			"areaM2": 28175202
+		},
+		{
+			"name": "177th Street",
+			"y": 7828,
+			"areaM2": 28224682
+		},
+		{
+			"name": "178th Street",
+			"y": 7881,
+			"areaM2": 28264139
+		},
+		{
+			"name": "179th Street",
+			"y": 8014,
+			"areaM2": 28338235
+		},
+		{
+			"name": "180th Street",
+			"y": 8045,
+			"areaM2": 28358386
+		},
+		{
+			"name": "181st Street",
+			"y": 8128,
+			"areaM2": 28417076
+		},
+		{
+			"name": "182nd Street",
+			"y": 8252,
+			"areaM2": 28480607
+		},
+		{
+			"name": "183rd Street",
+			"y": 8300,
+			"areaM2": 28534792
+		},
+		{
+			"name": "184th Street",
+			"y": 8407,
+			"areaM2": 28600796
+		},
+		{
+			"name": "185th Street",
+			"y": 8480,
+			"areaM2": 28656650
+		},
+		{
+			"name": "186th Street",
+			"y": 8572,
+			"areaM2": 28721385
+		},
+		{
+			"name": "187th Street",
+			"y": 8659,
+			"areaM2": 28781118
+		},
+		{
+			"name": "188th Street",
+			"y": 8689,
+			"areaM2": 28811395
+		},
+		{
+			"name": "189th Street",
+			"y": 8775,
+			"areaM2": 28867690
+		},
+		{
+			"name": "190th Street",
+			"y": 8888,
+			"areaM2": 28973048
+		},
+		{
+			"name": "191st Street",
+			"y": 8934,
+			"areaM2": 28998398
+		},
+		{
+			"name": "192nd Street",
+			"y": 9006,
+			"areaM2": 29055355
+		},
+		{
+			"name": "193rd Street",
+			"y": 9098,
+			"areaM2": 29083652
+		},
+		{
+			"name": "201st Street",
+			"y": 9754,
+			"areaM2": 29386582
+		},
+		{
+			"name": "202nd Street",
+			"y": 9873,
+			"areaM2": 29509545
+		},
+		{
+			"name": "203rd Street",
+			"y": 9937,
+			"areaM2": 29542579
+		},
+		{
+			"name": "204th Street",
+			"y": 10135,
+			"areaM2": 29702666
+		},
+		{
+			"name": "207th Street",
+			"y": 10377,
+			"areaM2": 29858110
+		},
+		{
+			"name": "211th Street",
+			"y": 10540,
+			"areaM2": 29921723
+		},
+		{
+			"name": "212th Street",
+			"y": 10662,
+			"areaM2": 30131356
+		},
+		{
+			"name": "213th Street",
+			"y": 10693,
+			"areaM2": 30135711
+		},
+		{
+			"name": "215th Street",
+			"y": 10940,
+			"areaM2": 30197364
+		},
+		{
+			"name": "217th Street",
+			"y": 11029,
+			"areaM2": 30234579
+		},
+		{
+			"name": "218th Street",
+			"y": 11060,
+			"areaM2": 30264267
+		},
+		{
+			"name": "219th Street",
+			"y": 11144,
+			"areaM2": 30279670
+		}
+	]
+}

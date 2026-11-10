@@ -65,3 +65,32 @@ describe('src/lib/delta-objects.json pricing vs src/lib/illustrative-prices.json
 		if (rule.kind === 'fixed') expect(rule.usdPerGram).toBe(illustrativePrices.pu238.pricePerUnit);
 	});
 });
+
+import { USD_PER_M2, DEVELOPABLE_M2 } from '../src/lib/manhattan.js';
+import { MANHATTAN_DEVELOPABLE_M2 } from '../functions/_lib.js';
+
+describe('functions/_lib.ts Manhattan land vs src/lib/manhattan.ts', () => {
+	it('prices a square metre the same on the share card as on the site', () => {
+		expect(MANHATTAN_DEVELOPABLE_M2).toBe(DEVELOPABLE_M2);
+		expect(OG_COMMODITIES.manhattan.illustrativePricePerUnit).toBeCloseTo(USD_PER_M2, 6);
+	});
+});
+
+import * as siteOil from '../src/lib/oil.js';
+import { OIL } from '../functions/_lib.js';
+
+describe('functions/_lib.ts oil ladder vs src/lib/oil.ts', () => {
+	it('uses the same units, containers and world use as the stage', () => {
+		expect(OIL.LITRES_PER_BARREL).toBe(siteOil.LITRES_PER_BARREL);
+		expect(OIL.CAR_TANK_L).toBe(siteOil.CAR_TANK_L);
+		expect(OIL.DRUM_L).toBe(siteOil.DRUM_L);
+		expect(OIL.VLCC_BARRELS).toBe(siteOil.VLCC_BARRELS);
+		expect(OIL.PRUDHOE_BARRELS).toBe(siteOil.PRUDHOE_BARRELS);
+		expect(OIL.WORLD_BARRELS_PER_DAY).toBe(siteOil.WORLD_BARRELS_PER_DAY);
+		expect([OIL.MAX_CARS, OIL.MAX_DRUMS, OIL.MAX_TANKERS]).toEqual([siteOil.MAX_CARS, siteOil.MAX_DRUMS, siteOil.MAX_TANKERS]);
+	});
+
+	it('prices oil from the same field as the site', () => {
+		expect(OG_COMMODITIES.oil.priceField).toBe(getCommodity('oil')!.priceField);
+	});
+});

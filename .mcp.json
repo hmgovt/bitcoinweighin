@@ -1,0 +1,9 @@
+{
+	"mcpServers": {
+		"opentweet": {
+			"command": "npx",
+			"args": ["-y", "@opentweet/mcp-server@1.6.0"],
+			"env": { "OPENTWEET_API_KEY": "${OPENTWEET_API_KEY}" }
+		}
+	}
+}

@@ -22,12 +22,18 @@ will be archived to Zenodo automatically.
 ## Per-release process
 
 The release tag should be `dataset-vX.Y` where `X.Y` matches
-`dataset-config.json`'s `version` field. Example: `dataset-v1.0`.
+`dataset-config.json`'s `version` field. Example: `dataset-v1.1.0`.
 
 1. **Bump the version.** Edit `dataset-config.json`:
    ```json
    { "version": "1.1", ... }
    ```
+   and make the same change in `.zenodo.json` (its `version`, and the
+   `static/data/vX.Y/` path in its `description`). `.zenodo.json` is the
+   metadata Zenodo files with the release: without it Zenodo would
+   archive the release as *software*, titled after the repository and
+   credited to the GitHub account. `tests/zenodo.test.ts` fails if the
+   two files disagree on title, version, abstract, authors or licence.
    Commit with a message like `chore(data): bump dataset version to 1.1`.
    The next daily cron run will rebuild artifacts under
    `static/data/v1.1/` automatically; you can also run

@@ -74,6 +74,8 @@ interface SyncOutcome {
 	from?: number;
 	to?: number;
 	reason?: string;
+	/** Unchanged, but its asOf moved to today. */
+	checked?: boolean;
 }
 
 async function syncOne(target: SyncTarget, entity: Entity, force: boolean): Promise<SyncOutcome> {
@@ -90,7 +92,12 @@ async function syncOne(target: SyncTarget, entity: Entity, force: boolean): Prom
 	const next = fetched.btc;
 
 	if (next === prev) {
-		return { slug: target.slug, status: 'unchanged', from: prev, to: next };
+		// The figure was checked today, so its date and source move on even though it didn't change.
+		const checked = entity.asOf !== todayUtc() || entity.source !== fetched.sourceUrl;
+		entity.asOf = todayUtc();
+		entity.source = fetched.sourceUrl;
+		entity.sourceName = target.sourceName;
+		return { slug: target.slug, status: 'unchanged', from: prev, to: next, checked };
 	}
 
 	// Sanity guard — refuse implausibly large single-day moves unless
@@ -167,9 +174,10 @@ async function main() {
 		`\nSummary: ${updated} updated · ${outcomes.length - updated - failed - skipped} unchanged · ${skipped} skipped · ${failed} failed`
 	);
 
-	if (updated > 0) {
+	const checked = outcomes.filter((o) => o.checked).length;
+	if (updated > 0 || checked > 0) {
 		saveHoldings(data);
-		console.log(`Wrote ${updated} change(s) to entity-holdings.json`);
+		console.log(`Wrote ${updated} change(s) and ${checked} re-dated figure(s) to entity-holdings.json`);
 	}
 
 	// Fail only when every target failed — partial success is still

@@ -1,0 +1,168 @@
+{
+ "_doc": "Offline radar test: yesterday's posts with counts typical of ~10-30 minutes in, timed for --now=2026-10-02T21:00:00Z. Includes an off-topic post and a reply, which the sweep must drop.",
+ "now": "2026-10-02T21:00:00Z",
+ "posts": [
+  {
+   "type": "tweet",
+   "id": "2106006490457026813",
+   "url": "https://x.com/BTCtreasuries/status/2106006490457026813",
+   "text": "JUST IN: Strategy's Stretch $STRC just surged to $99.70 for the first time in over 140 days. Now only 30 cents away from restarting the #Bitcoin printer. 🔥🚀",
+   "createdAt": "Fri Oct 02 20:38:00 +0000 2026",
+   "likeCount": 140,
+   "retweetCount": 30,
+   "replyCount": 12,
+   "quoteCount": 4,
+   "viewCount": 8400,
+   "isReply": false,
+   "author": {
+    "userName": "BTCtreasuries",
+    "name": "BTCtreasuries",
+    "followers": 41000
+   }
+  },
+  {
+   "type": "tweet",
+   "id": "2106098943134490814",
+   "url": "https://x.com/Strategy/status/2106098943134490814",
+   "text": "Digital Credit is an alloy of capital and currency. $STRC",
+   "createdAt": "Fri Oct 02 20:42:00 +0000 2026",
+   "likeCount": 420,
+   "retweetCount": 60,
+   "replyCount": 45,
+   "quoteCount": 8,
+   "viewCount": 25200,
+   "isReply": false,
+   "author": {
+    "userName": "Strategy",
+    "name": "Strategy",
+    "followers": 175000
+   }
+  },
+  {
+   "type": "tweet",
+   "id": "2106048625029890162",
+   "url": "https://x.com/AdamBLiv/status/2106048625029890162",
+   "text": "BTC/Gold ratio has ripped +69% off its March bottom. 12.2 → 20.6 ounces of gold per bitcoin. Still only ~44% of the drop from last October's peak (31.4) retraced. Still around half the round trip to go... ...and then some.",
+   "createdAt": "Fri Oct 02 20:35:00 +0000 2026",
+   "likeCount": 120,
+   "retweetCount": 25,
+   "replyCount": 14,
+   "quoteCount": 3,
+   "viewCount": 7200,
+   "isReply": false,
+   "author": {
+    "userName": "AdamBLiv",
+    "name": "AdamBLiv",
+    "followers": 89000
+   }
+  },
+  {
+   "type": "tweet",
+   "id": "2106118311251767572",
+   "url": "https://x.com/GoldTelegraph/status/2106118311251767572",
+   "text": "America has $40 trillion in national debt. The President recently suggested that a certain level of inflation could reduce that burden faster. Of course it can. Inflation reduces the real value of debt. But it also reduces the real value of your savings. That's the part nobody likes to say out loud. Gold has been saying it for years.",
+   "createdAt": "Fri Oct 02 20:45:00 +0000 2026",
+   "likeCount": 380,
+   "retweetCount": 70,
+   "replyCount": 40,
+   "quoteCount": 6,
+   "viewCount": 22800,
+   "isReply": false,
+   "author": {
+    "userName": "GoldTelegraph",
+    "name": "GoldTelegraph",
+    "followers": 447000
+   }
+  },
+  {
+   "type": "tweet",
+   "id": "2105995008109109423",
+   "url": "https://x.com/saylor/status/2105995008109109423",
+   "text": "Still living comfortably. $STRC",
+   "createdAt": "Fri Oct 02 20:30:00 +0000 2026",
+   "likeCount": 2100,
+   "retweetCount": 180,
+   "replyCount": 260,
+   "quoteCount": 20,
+   "viewCount": 126000,
+   "isReply": false,
+   "author": {
+    "userName": "saylor",
+    "name": "saylor",
+    "followers": 5215000
+   }
+  },
+  {
+   "type": "tweet",
+   "id": "2106076494002786464",
+   "url": "https://x.com/BitcoinArchive/status/2106076494002786464",
+   "text": "Bitcoin whale buyer at $84,900 pulled out, triggering panic selling. Bright side: zero large sellers between $85k and $87.6k! Bullish! 🚀",
+   "createdAt": "Fri Oct 02 20:40:00 +0000 2026",
+   "likeCount": 260,
+   "retweetCount": 30,
+   "replyCount": 25,
+   "quoteCount": 2,
+   "viewCount": 15600,
+   "isReply": false,
+   "author": {
+    "userName": "BitcoinArchive",
+    "name": "BitcoinArchive",
+    "followers": 1804000
+   }
+  },
+  {
+   "type": "tweet",
+   "id": "2105999254267285952",
+   "url": "https://x.com/BitcoinMagazine/status/2105999254267285952",
+   "text": "JUST IN: Bitcoin jumps to $87,000 as U.S. Unemployment Rate comes in at 4.2%, higher than expectations 🇺🇸",
+   "createdAt": "Fri Oct 02 20:48:00 +0000 2026",
+   "likeCount": 1500,
+   "retweetCount": 200,
+   "replyCount": 90,
+   "quoteCount": 25,
+   "viewCount": 90000,
+   "isReply": false,
+   "author": {
+    "userName": "BitcoinMagazine",
+    "name": "BitcoinMagazine",
+    "followers": 4509000
+   }
+  },
+  {
+   "type": "tweet",
+   "id": "2106000000000000001",
+   "url": "https://x.com/PeterSchiff/status/2106000000000000001",
+   "text": "The Yankees bullpen is a disaster again tonight.",
+   "createdAt": "Fri Oct 02 20:44:00 +0000 2026",
+   "likeCount": 900,
+   "retweetCount": 40,
+   "replyCount": 300,
+   "quoteCount": 10,
+   "viewCount": 54000,
+   "isReply": false,
+   "author": {
+    "userName": "PeterSchiff",
+    "name": "PeterSchiff",
+    "followers": 1757000
+   }
+  },
+  {
+   "type": "tweet",
+   "id": "2106000000000000002",
+   "url": "https://x.com/APompliano/status/2106000000000000002",
+   "text": "@someone bitcoin is the hardest asset ever created",
+   "createdAt": "Fri Oct 02 20:46:00 +0000 2026",
+   "likeCount": 800,
+   "retweetCount": 50,
+   "replyCount": 60,
+   "quoteCount": 5,
+   "viewCount": 48000,
+   "isReply": true,
+   "author": {
+    "userName": "APompliano",
+    "name": "APompliano",
+    "followers": 2423000
+   }
+  }
+ ]
+}

@@ -131,76 +131,56 @@ export const SOLO_DEVICE_COUNT = 60_000; // Bitaxe + home ASICs
 export const SOLO_AVG_WEIGHT_KG = 0.18; // Bitaxe ≈ 0.12 kg; S9 ≈ 4 kg; blended
 
 /**
- * Seeded pseudo-random solo miner dots for globe rendering.
- * Concentrated in regions with high residential electricity + Bitcoin culture:
- * North America, Western Europe, Oceania, Japan, South Korea.
+ * Where solo/home miners cluster, for the globe's dot field
+ * (src/lib/mining-dots.ts scatters dots around these, on land).
+ * Concentrated in regions with Bitcoin culture and home-hardware
+ * availability: North America, Western Europe, Oceania, Japan, Korea.
+ * `weight` is a relative share of the home fleet; `spread` is the
+ * Gaussian sigma in degrees.
  */
-export interface SoloDot {
+export interface SoloRegion {
+	name: string;
 	lat: number;
 	lng: number;
+	spread: number;
+	weight: number;
 }
 
-function seededRandom(seed: number): () => number {
-	let s = seed;
-	return () => {
-		s = (s * 1664525 + 1013904223) & 0xffffffff;
-		return (s >>> 0) / 0xffffffff;
-	};
-}
-
-function generateSoloDots(): SoloDot[] {
-	const rng = seededRandom(0xb17c01);
-	const dots: SoloDot[] = [];
-
-	// Region definitions: [lat_centre, lng_centre, lat_spread, lng_spread, count]
-	const regions: [number, number, number, number, number][] = [
-		// USA (high Bitaxe concentration)
-		[38, -96, 12, 30, 120],
-		// Western Europe
-		[51, 10, 8, 22, 80],
-		// UK / Ireland
-		[53, -3, 4, 8, 30],
-		// Scandinavia
-		[62, 14, 5, 12, 25],
-		// Australia
-		[-27, 134, 8, 18, 40],
-		// Japan
-		[37, 138, 4, 8, 35],
-		// South Korea
-		[37, 127, 2, 4, 20],
-		// Canada
-		[52, -95, 8, 30, 40],
-		// South America
-		[-15, -55, 18, 30, 25],
-		// Eastern Europe / Baltics
-		[52, 22, 6, 18, 20],
-	];
-
-	const rngActual = seededRandom(181701);
-	for (const [latC, lngC, latS, lngS, count] of regions) {
-		for (let i = 0; i < count; i++) {
-			const u1 = rngActual();
-			const u2 = rngActual();
-			// Box-Muller for Gaussian distribution around centre
-			const z0 = Math.sqrt(-2 * Math.log(Math.max(u1, 1e-10))) * Math.cos(2 * Math.PI * u2);
-			const z1 = Math.sqrt(-2 * Math.log(Math.max(u1, 1e-10))) * Math.sin(2 * Math.PI * u2);
-			dots.push({
-				lat: Math.max(-85, Math.min(85, latC + z0 * latS * 0.5)),
-				lng: lngC + z1 * lngS * 0.5,
-			});
-		}
-	}
-
-	return dots;
-}
-
-export const SOLO_DOTS: SoloDot[] = generateSoloDots();
+export const SOLO_REGIONS: SoloRegion[] = [
+	{ name: 'US Northeast', lat: 40.5, lng: -76, spread: 3, weight: 50 },
+	{ name: 'US Southeast', lat: 33.5, lng: -84, spread: 3.5, weight: 35 },
+	{ name: 'US Midwest', lat: 41.5, lng: -88, spread: 4, weight: 35 },
+	{ name: 'Texas', lat: 31, lng: -97, spread: 3, weight: 30 },
+	{ name: 'US West Coast', lat: 37, lng: -121, spread: 3.5, weight: 40 },
+	{ name: 'US Mountain', lat: 40, lng: -108, spread: 4, weight: 14 },
+	{ name: 'Canada', lat: 45.5, lng: -77, spread: 4, weight: 22 },
+	{ name: 'Western Canada', lat: 51, lng: -116, spread: 3.5, weight: 10 },
+	{ name: 'UK / Ireland', lat: 52.8, lng: -2, spread: 2, weight: 26 },
+	{ name: 'Benelux / Germany', lat: 51, lng: 8, spread: 2.5, weight: 40 },
+	{ name: 'France', lat: 47, lng: 2.5, spread: 2.5, weight: 18 },
+	{ name: 'Iberia', lat: 40, lng: -4, spread: 2.5, weight: 14 },
+	{ name: 'Italy', lat: 43.5, lng: 11.5, spread: 2.2, weight: 12 },
+	{ name: 'Central Europe', lat: 48.5, lng: 16.5, spread: 2.5, weight: 18 },
+	{ name: 'Scandinavia', lat: 60, lng: 15, spread: 3, weight: 14 },
+	{ name: 'Poland / Baltics', lat: 53, lng: 22, spread: 3, weight: 14 },
+	{ name: 'Eastern Europe', lat: 48, lng: 29, spread: 3.5, weight: 10 },
+	{ name: 'Japan', lat: 36, lng: 138.5, spread: 2.2, weight: 24 },
+	{ name: 'South Korea', lat: 36.5, lng: 127.5, spread: 1.2, weight: 12 },
+	{ name: 'Australia east', lat: -32, lng: 150, spread: 3, weight: 20 },
+	{ name: 'Australia south/west', lat: -34, lng: 125, spread: 9, weight: 8 },
+	{ name: 'New Zealand', lat: -40, lng: 174, spread: 2, weight: 5 },
+	{ name: 'Brazil', lat: -22, lng: -46, spread: 4, weight: 12 },
+	{ name: 'Argentina', lat: -34, lng: -60, spread: 3, weight: 8 },
+	{ name: 'Mexico', lat: 20, lng: -100, spread: 3, weight: 7 },
+	{ name: 'South Africa', lat: -27, lng: 27, spread: 3, weight: 6 },
+	{ name: 'El Salvador', lat: 13.7, lng: -89, spread: 0.6, weight: 3 },
+];
 
 /** Colour for each mining type — used by globe and legend. */
 export const CLUSTER_COLORS: Record<MiningType, string> = {
 	industrial: '#f59e0b', // amber-500
 	flare:      '#ef4444', // red-500
-	hydro:      '#38bdf8', // sky-400
+	hydro:      '#2dd4bf', // teal-400 (sky is the solo-miner colour)
 	geothermal: '#a78bfa', // violet-400
 	nuclear:    '#4ade80', // green-400
 };

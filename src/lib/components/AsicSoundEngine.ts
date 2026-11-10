@@ -99,66 +99,14 @@ export class AsicSoundEngine {
 		const ctx = this.audioContext;
 		if (!ctx) return;
 
-		// ── Noise source (2-second looping white noise buffer) ──────────────
-		const bufLen = 2 * ctx.sampleRate;
-		const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-		const data = buf.getChannelData(0);
-		for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
-
-		this.noiseSource = ctx.createBufferSource();
-		this.noiseSource.buffer = buf;
-		this.noiseSource.loop = true;
-
-		// ── Spectral shaping ─────────────────────────────────────────────────
-		// Fan blade-pass frequency peak (~723 Hz for industrial ASIC).
-		const bpf1 = ctx.createBiquadFilter();
-		bpf1.type = 'bandpass';
-		bpf1.frequency.value = 723;
-		bpf1.Q.value = 3;
-
-		// Second harmonic (~1 450 Hz).
-		const bpf2 = ctx.createBiquadFilter();
-		bpf2.type = 'bandpass';
-		bpf2.frequency.value = 1450;
-		bpf2.Q.value = 2;
-
-		// Motor rotation rumble (~100 Hz fundamental).
-		const lowShelf = ctx.createBiquadFilter();
-		lowShelf.type = 'lowshelf';
-		lowShelf.frequency.value = 200;
-		lowShelf.gain.value = 8;
-
-		// Cut harsh content above 8 kHz.
-		const highShelf = ctx.createBiquadFilter();
-		highShelf.type = 'highshelf';
-		highShelf.frequency.value = 8000;
-		highShelf.gain.value = -14;
-
-		// ── Mix: tonal (BPF) + broadband paths ──────────────────────────────
-		const tonalGain = ctx.createGain();
-		tonalGain.gain.value = 0.45;
-
-		const broadGain = ctx.createGain();
-		broadGain.gain.value = 0.55;
+		const voice = createAsicFanVoice(ctx);
+		this.noiseSource = voice.source;
 
 		this.masterGain = ctx.createGain();
 		this.masterGain.gain.value = 0; // start silent, ramp in below
-
-		// Tonal path
-		this.noiseSource.connect(bpf1);
-		bpf1.connect(tonalGain);
-		this.noiseSource.connect(bpf2);
-		bpf2.connect(tonalGain);
-		tonalGain.connect(this.masterGain);
-
-		// Broadband path
-		this.noiseSource.connect(lowShelf);
-		lowShelf.connect(highShelf);
-		highShelf.connect(broadGain);
-		broadGain.connect(this.masterGain);
+		voice.output.connect(this.masterGain);
 
 		this.masterGain.connect(ctx.destination);
-		this.noiseSource.start();
 		this.isRunning = true;
 
 		// Fade in over 600 ms.
@@ -214,4 +162,77 @@ export class AsicSoundEngine {
 			default:        return 0;
 		}
 	}
+}
+
+export interface AsicFanVoice {
+	/** Looping noise source — already started. Stop it to silence the voice. */
+	source: AudioBufferSourceNode;
+	/** Unity-gain output; connect it wherever the voice should play. */
+	output: GainNode;
+}
+
+/**
+ * The acoustic model of an Antminer-class ASIC's fans, as a reusable graph
+ * (also used by the /mining page's dive). Not connected to any destination.
+ */
+export function createAsicFanVoice(ctx: BaseAudioContext): AsicFanVoice {
+	// ── Noise source (2-second looping white noise buffer) ──────────────
+	const bufLen = 2 * ctx.sampleRate;
+	const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+	const data = buf.getChannelData(0);
+	for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
+
+	const source = ctx.createBufferSource();
+	source.buffer = buf;
+	source.loop = true;
+
+	// ── Spectral shaping ─────────────────────────────────────────────────
+	// Fan blade-pass frequency peak (~723 Hz for industrial ASIC).
+	const bpf1 = ctx.createBiquadFilter();
+	bpf1.type = 'bandpass';
+	bpf1.frequency.value = 723;
+	bpf1.Q.value = 3;
+
+	// Second harmonic (~1 450 Hz).
+	const bpf2 = ctx.createBiquadFilter();
+	bpf2.type = 'bandpass';
+	bpf2.frequency.value = 1450;
+	bpf2.Q.value = 2;
+
+	// Motor rotation rumble (~100 Hz fundamental).
+	const lowShelf = ctx.createBiquadFilter();
+	lowShelf.type = 'lowshelf';
+	lowShelf.frequency.value = 200;
+	lowShelf.gain.value = 8;
+
+	// Cut harsh content above 8 kHz.
+	const highShelf = ctx.createBiquadFilter();
+	highShelf.type = 'highshelf';
+	highShelf.frequency.value = 8000;
+	highShelf.gain.value = -14;
+
+	// ── Mix: tonal (BPF) + broadband paths ──────────────────────────────
+	const tonalGain = ctx.createGain();
+	tonalGain.gain.value = 0.45;
+
+	const broadGain = ctx.createGain();
+	broadGain.gain.value = 0.55;
+
+	const output = ctx.createGain();
+
+	// Tonal path
+	source.connect(bpf1);
+	bpf1.connect(tonalGain);
+	source.connect(bpf2);
+	bpf2.connect(tonalGain);
+	tonalGain.connect(output);
+
+	// Broadband path
+	source.connect(lowShelf);
+	lowShelf.connect(highShelf);
+	highShelf.connect(broadGain);
+	broadGain.connect(output);
+
+	source.start();
+	return { source, output };
 }

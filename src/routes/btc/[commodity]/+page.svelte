@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SiteHeader from '$lib/components/brand/SiteHeader.svelte';
 	import {
 		breadcrumbJsonLd,
 		faqJsonLd,
@@ -50,6 +51,7 @@
 
 <div class="commodity-page">
 	<main class="mx-auto max-w-3xl px-4 py-8 text-zinc-800">
+		<div class="mb-6 -mt-4"><SiteHeader tone="light" /></div>
 		<nav aria-label="Breadcrumb" class="mb-4 text-xs text-zinc-500">
 			<a href="/" class="hover:text-zinc-800 hover:underline">Home</a>
 			<span class="mx-1">›</span>
@@ -104,9 +106,20 @@
 					<strong>See it at scale.</strong>
 					<a href={deeplinkHref} class="underline hover:no-underline"
 						>Open the live visualisation</a
-					> — the panel renders {data.displayName.toLowerCase()} at true relative
-					scale next to a constant 9-kg Shiba Inu, with a slider scrubbing
-					through BTC amounts from 1 sat to 21 M BTC.
+					>{#if data.renderStyle === 'oil_ladder'}
+						— switch between Brent crude, US diesel and US gasoline and see the
+						volume at true size: a car's fuel tank, a yard of 55-gallon drums, a
+						supertanker's hold, then a field of pump jacks, with a slider scrubbing
+						from 1 sat to 21 M BTC.
+					{:else if data.renderStyle === 'land_patch'}
+						— a 3-D map of every lot and building in Manhattan, with the land a
+						bitcoin amount buys filled in orange from the Battery northward, and a
+						slider scrubbing from 1 sat to 21 M BTC.
+					{:else}
+						— the panel renders {data.displayName.toLowerCase()} at true relative
+						scale next to a constant 9-kg Shiba Inu, with a slider scrubbing
+						through BTC amounts from 1 sat to 21 M BTC.
+					{/if}
 				</p>
 			</div>
 		{/if}

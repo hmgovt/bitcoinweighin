@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SiteHeader from '$lib/components/brand/SiteHeader.svelte';
 	import {
 		datasetJsonLd,
 		breadcrumbJsonLd,
@@ -53,11 +54,14 @@
 	// analysts actually cite — and it used to link nowhere but /methodology.
 	// Every column and provenance row that has a commodity page now points at
 	// it, so the equity flows down. Dataset columns with no page (platinum,
-	// copper, brent, wheat, coffee, btc_supply) stay plain text: do not link
+	// copper, wheat, coffee, btc_supply) stay plain text: do not link
 	// them until those pages exist, or /data starts advertising 404s.
 	const COMMODITY_PAGE_BY_PREFIX: Record<string, string> = {
 		xau: '/btc/gold',
 		xag: '/btc/silver',
+		brent: '/btc/oil',
+		gasoline: '/btc/oil',
+		diesel: '/btc/oil',
 	};
 
 	function pageForColumn(name: string): string | null {
@@ -72,6 +76,9 @@
 		Silver: '/btc/silver',
 		'Plutonium-238': '/btc/pu238',
 		Cocaine: '/btc/cocaine',
+		'Brent crude': '/btc/oil',
+		'Gasoline (US retail)': '/btc/oil',
+		'Diesel (US retail)': '/btc/oil',
 	};
 
 	const apiExamples = {
@@ -88,7 +95,7 @@ const prices = await res.json();`,
 	<title>Bitcoin-Denominated Commodity Price Dataset (CC-BY-4.0) · Bitcoin Weigh-In</title>
 	<meta
 		name="description"
-		content="Daily commodity prices denominated in Bitcoin, 2013-present. Gold, silver, platinum, copper, oil, wheat, coffee. CSV, JSON, NDJSON, Parquet. CC-BY-4.0, updated daily at 02:00 UTC."
+		content="Daily commodity prices denominated in Bitcoin, 2013-present. Gold, silver, platinum, copper, oil, gasoline, diesel, wheat, coffee. CSV, JSON, NDJSON, Parquet. CC-BY-4.0, updated daily at 02:00 UTC."
 	/>
 	<link rel="canonical" href="https://bitcoinweighin.com/data" />
 	<!-- OG/Twitter: the most linkable page on the site; without these it
@@ -149,6 +156,7 @@ const prices = await res.json();`,
 
 <div class="dataset-page">
 	<main class="mx-auto max-w-5xl px-4 py-8 text-zinc-800">
+		<div class="mb-6 -mt-4"><SiteHeader tone="light" current="data" /></div>
 		<header class="mb-8 border-b border-zinc-200 pb-6">
 			<h1 class="text-2xl font-semibold tracking-tight">Bitcoin Weigh-In Dataset</h1>
 			<p class="mt-2 text-sm text-zinc-600">
@@ -481,11 +489,18 @@ const prices = await res.json();`,
 			<div class="space-y-3 text-sm text-zinc-700">
 				<p>
 					Commodity values are forward-filled on market-closed days (weekends,
-					public holidays, and source outages). v1.0 ships a <code
-						class="font-mono text-xs">forward_filled</code
-					> column populated as empty string for every row because per-row fill provenance is not
-					reconstructable from the existing historical data; prospective per-row tracking begins
-					in v1.1.
+					public holidays, and source outages). The <code class="font-mono text-xs"
+						>forward_filled</code
+					> column names, from 2026-09-30, each column whose source had not yet published for that
+					date; earlier rows carry an empty string, because their fill state is not reconstructable
+					from the historical data.
+				</p>
+				<p>
+					<code class="font-mono text-xs">gasoline_usd</code> and
+					<code class="font-mono text-xs">diesel_usd</code> (added in v1.1.0) are the EIA's
+					<em>weekly</em> US retail surveys, taxes included. Each daily row carries the latest
+					survey on or before its date, so most rows repeat the week's figure. They are pump
+					prices, not wholesale ones like <code class="font-mono text-xs">brent_usd</code>.
 				</p>
 				<p>
 					Pricing for

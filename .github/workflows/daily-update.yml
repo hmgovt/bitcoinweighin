@@ -45,6 +45,10 @@ jobs:
       - name: Validate entity holdings
         run: npm run holdings:check
 
+      - name: Fetch latest blocks for /mining
+        run: npm run fetch-blocks
+        continue-on-error: true # a mempool.space outage keeps yesterday's verified blocks
+
       - name: Commit and push
         run: |
           set -e
@@ -55,6 +59,8 @@ jobs:
           git diff --cached --quiet || git commit -m "chore: daily price update $DATE"
           git add src/lib/entity-holdings.json
           git diff --cached --quiet || git commit -m "chore(holdings): daily sync $DATE"
+          git add src/lib/mining/blocks-latest.json
+          git diff --cached --quiet || git commit -m "chore(mining): latest blocks $DATE"
           # Push with rebase-and-retry. Concurrent pushes (manual SEO commits,
           # the bot workflow) can race this job; without retry the runner's
           # work is discarded and the day is silently dropped. The bot only

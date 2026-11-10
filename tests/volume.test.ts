@@ -72,9 +72,10 @@ describe('computeIntrinsicVolumeCm3', () => {
 
 	it('works for all volume-computable commodities without throwing', () => {
 		for (const c of ALL_COMMODITIES) {
-			// still_with_readout (cocaine) and bill_stack (cash) render without a
-			// cube/volume readout and intentionally carry no density data.
-			if (c.renderStyle === 'still_with_readout' || c.renderStyle === 'bill_stack') continue;
+			// still_with_readout (cocaine), bill_stack (cash) and land_patch
+			// (Manhattan, an area) render without a cube/volume readout and
+			// intentionally carry no density data.
+			if (['still_with_readout', 'bill_stack', 'land_patch'].includes(c.renderStyle)) continue;
 			expect(() => computeIntrinsicVolumeCm3(1, c)).not.toThrow();
 		}
 	});

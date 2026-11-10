@@ -1,5 +1,7 @@
 <script lang="ts">
+	import SiteHeader from '$lib/components/brand/SiteHeader.svelte';
 	import { breadcrumbJsonLd, webPageJsonLd } from '$lib/seo/jsonld.js';
+	import { MACHINES, machineKg, LIFETIME_YEARS, SMOOTH_DAYS } from '$lib/hashweight/fleet.js';
 	const sections = [
 		{ id: 'what-this-is', title: 'What this is' },
 		{ id: 'data-sources', title: 'Data sources' },
@@ -37,6 +39,7 @@
 
 <div class="methodology-page">
 	<main class="mx-auto max-w-3xl px-4 py-8 text-zinc-800">
+		<div class="mb-6 -mt-4"><SiteHeader tone="light" current="methodology" /></div>
 		<header class="mb-8 border-b border-zinc-200 pb-6">
 			<h1 class="text-2xl font-semibold tracking-tight">Methodology</h1>
 			<p class="mt-2 text-sm text-zinc-600">
@@ -106,6 +109,15 @@
 				EIA spot price daily, typically with a one business-day lag. The daily job retries
 				transient HTTP errors on a backoff and forward-fills if the value never arrives.
 			</p>
+			<p>
+				FRED is also the source for the Oil tab's two road fuels: the EIA's weekly US retail
+				averages for regular gasoline (<code>GASREGW</code>) and No.&nbsp;2 diesel
+				(<code>GASDESW</code>), in USD per US gallon with taxes included. Each survey is dated
+				its Monday; a day takes the latest survey on or before it, so six days in seven repeat
+				the week's figure. They sit in <code>prices.json</code> as <code>gasoline</code> and
+				<code>diesel</code>, and since dataset v1.1.0 in the citable dataset as
+				<code>gasoline_usd</code> and <code>diesel_usd</code> (with per-BTC columns), back to 2013.
+			</p>
 			<h3>Stooq (retired)</h3>
 				<p>
 					Stooq was the original source for BTC, gold, silver, and several deferred commodities
@@ -135,6 +147,106 @@
 				size was adopted in 1929. These live in <code>src/lib/billStack.ts</code> and are
 				cross-checked in that file's tests against the Bureau's own public trivia that a
 				banded strap of 100 notes runs about 0.43&nbsp;inches thick.
+			</p>
+			<h3>The cash stage</h3>
+			<p>
+				The Cash tab draws every note at that true size, in the units cash is actually
+				handled in (<code>cashParts</code> in <code>src/lib/billStack.ts</code>): a loose
+				stack under 100 notes; from 100, <strong>straps</strong> of 100 under the blue
+				$100 band (the American Bankers Association colour for a strap of $1s), in piles of six;
+				from 1,000, <strong>bundles</strong> of ten straps, stacked roughly as a cube; from ten
+				million, <strong>pallets</strong> of 1,000 bundles (10 × 10 × 10, 0.66 × 1.56 × 1.09&nbsp;m
+				and one tonne of paper, on a 14&nbsp;cm wooden pallet under shrink-wrap). Past 60 pallets
+				they stand as one block faced with its pallets. The count is exact: a remainder is a
+				shorter last bundle or a part-loaded last pallet, never rounded up to a whole one, and
+				the few notes lying loose on the floor (up to seven, curled, folded or face down) come
+				out of that remainder — never an extra, and never by breaking open a whole strap or
+				bundle. The note art is printed at runtime and is deliberately not a reproduction of
+				genuine Federal Reserve Note artwork: Sat takes the portrait, the serials are invented,
+				and the note is "weighed, not signed". The bundle and pallet arrangement is set
+				dressing; the sizes, counts and mass are not.
+			</p>
+			<h3>The Moon ride</h3>
+			<p>
+				Once the notes would stack taller than a doorway, the Cash stage offers to restack them
+				as one column of notes laid flat, 0.10922&nbsp;mm each (1 BTC at $84,550 is 9.2&nbsp;m),
+				and to ride up it (<code>src/lib/moonRide.ts</code>). The climb is logarithmic in
+				altitude, every factor of ten taking the same time, because the tallest stack spans nine
+				orders of magnitude. It passes real heights: the Statue of Liberty (93&nbsp;m), the
+				Eiffel Tower (330&nbsp;m) and the Burj Khalifa (828&nbsp;m), drawn as true-scale
+				silhouettes around the column, then Mount Everest (8,849&nbsp;m), airliners' cruising
+				height (about 11&nbsp;km), the edge of space (the Kármán line, 100&nbsp;km), the
+				International Space Station (about 408&nbsp;km), the GPS satellites (20,200&nbsp;km) and
+				geostationary orbit (35,786&nbsp;km). The Moon is at its average distance,
+				384,400&nbsp;km, the same figure the readout's "of the way to the Moon" has always used,
+				drawn with its near side there. The Earth is painted from the site's own world map, with
+				the column standing at New York. In the closing side view the stack is drawn as a line
+				once its true width falls under a couple of pixels, and the Earth and the Moon, drawn at
+				true size, are ringed, because at that scale they are a few pixels across. The closing
+				card gives the whole 21-million supply's height at today's price, and the price at which
+				it reaches the Moon: about $167,595 per BTC. That figure doesn't move with the market,
+				since one note is one dollar (384,400&nbsp;km ÷ 0.10922&nbsp;mm ÷ 21,000,000).
+			</p>
+			<h3 id="oil">Oil: crude, diesel or gasoline</h3>
+			<p>
+				The <a href="/btc/oil" class="underline hover:no-underline">Oil</a> tab converts a sum
+				into litres of one of three fuels (<code>src/lib/oil.ts</code>): Brent crude at its daily
+				spot price per barrel (42 US gallons, 158.987&nbsp;L), or US diesel or gasoline at the
+				weekly pump price per gallon (3.785&nbsp;L). Crude is a wholesale price before refining,
+				freight and tax, so a dollar buys roughly three times the volume of crude as of
+				gasoline; the readout says which kind of price it is. Weights use typical densities:
+				0.835&nbsp;kg/L for Brent, 0.84 for diesel, 0.745 for gasoline.
+			</p>
+			<p>
+				The stage draws the volume at true size in the container that suits it. Up to four
+				full tanks, mid-size sedans (4.73&nbsp;m, 2.75&nbsp;m wheelbase) drawn see-through, with
+				the 55-litre moulded tank (0.46 × 0.80 × 0.15&nbsp;m) in place under the rear bench, its
+				filler neck running to the fuel door, and its fuel at the true level. Up to 20,000 drums,
+				55-US-gallon steel drums (208&nbsp;L, 572&nbsp;mm across, 851&nbsp;mm tall), four to a
+				pallet, drawn see-through with the last one filled to its true level. Note the drum is not the barrel: the 42-gallon oil barrel is a unit of
+				account. Up to ten tankers, VLCC supertankers (330 × 60&nbsp;m, 2&nbsp;million barrels of
+				cargo — the EIA gives 1.9–2.2&nbsp;million), with the deck cut away and the cargo tanks
+				drawn as one open hold 225 × 54&nbsp;m, so the oil stands at its true depth: a full load is
+				26&nbsp;m deep. Beyond that, an oil field: a 40 × 40 grid of pump jacks standing for
+				everything Prudhoe Bay, North America's largest field, has produced — about
+				13.2&nbsp;billion barrels from 1977 to the end of 2024 (BP Prudhoe Bay Royalty Trust,
+				annual report for 2024) — so each jack is 1/1,600 of it, about 8.25&nbsp;million barrels,
+				and the last one is lit in proportion. The jacks are symbolic of volume, not a map of the
+				field's real wells. Whatever the fuel, what you bought is drawn in bitcoin orange at every
+				scale, and a gauge on the stage reads how full the last container is: a fuel dial for the
+				car, a bar for the drum, the hold and the field. The readout adds how long the world takes to use that much oil, at
+				the IEA's 2025 figure of about 104&nbsp;million barrels a day.
+			</p>
+			<h3 id="manhattan">Manhattan (land, not a commodity)</h3>
+			<p>
+				The Manhattan tab shows how much of Manhattan's ground a sum of bitcoin buys
+				(<code>src/lib/manhattan.ts</code>). The price is the ground itself, from the most
+				thorough estimate of the island's land value: Jason Barr, Fred Smith and Sayali Kulkarni,
+				"What's Manhattan worth? A land values index from 1950 to 2014" (<em>Regional Science
+				and Urban Economics</em>, 2018), which valued all of Manhattan's developable land at about
+				$1.74&nbsp;trillion in 2014 (range $1.54–1.95&nbsp;trillion), from some 3,600 sales of
+				vacant lots. That total is spread evenly over the developable land as drawn, so the share
+				of the island a sum buys is simply its value over $1.74&nbsp;trillion, whatever the exact
+				area. Land, not apartment prices: an apartment's price per square foot is for floor
+				space stacked many storeys up, while an area on a map is ground. It is a 2014 figure, the
+				latest rigorous total, so the tab is marked illustrative, like cocaine. All 21 million
+				bitcoin buy the whole island's developable land once one bitcoin is worth about $82,900.
+			</p>
+			<p>
+				The map is New York City's own open data, built once by
+				<code>scripts/build-manhattan.ts</code> into a 3.6&nbsp;MB file the page loads: the
+				Department of Finance's digital tax map (every tax lot), the Department of City Planning's
+				PLUTO land use and shoreline-clipped borough boundary, and building footprints with
+				measured roof heights (Office of Technology and Innovation). Tax-lot outlines run out over
+				the rivers in places, so every lot is clipped to the shoreline first: 42.3&nbsp;km² of
+				lot outlines become 32.4&nbsp;km² of dry land, once parks and open space (PLUTO land use
+				9) are left out as the land-value study did — about 55% of the borough's 59&nbsp;km², close
+				to the study's 60%. Your land fills lot by lot in order up the island from the Battery,
+				whole lots at a time with their buildings, and the last lot part-owned as a slice from its
+				southern edge; then the outer islands. A sum smaller than a lot is a true-size square on
+				the most open ground of the first lot (the build finds the spot farthest from any wall).
+				The cross street named in the readout is the northernmost whose land to the south the sum
+				covers.
 			</p>
 		</section>
 
@@ -258,6 +370,21 @@
 				how other commodities are priced (standardised purity, kilogram-scale transactions).
 				As-of date: 2024-12-31.
 			</p>
+			<h3>The cocaine stage</h3>
+			<p>
+				The Cocaine tab draws the bought mass at true scale beside Sat, in the units it would
+				actually come in (<code>src/lib/cocaine-scene.ts</code>): under a gram, <strong>lines</strong>
+				of 30 mg chopped out on a mirror, each ~6 cm × 4.5 mm and, at a loose-powder bulk density
+				of 0.5 g/cm³, under half a millimetre tall, with a 43 × 22 mm razor blade alongside; from
+				1 g, <strong>1 g zip-lock baggies</strong> (5 × 6 cm) heaped where they fall; from 1 kg,
+				<strong>pressed, taped 1 kg bricks</strong> (21 × 14 × 3.8 cm, about a hardback book,
+				~0.9 g/cm³ as wrapped), in a row and then stacked five by seven, a pallet's layer; from
+				1 t, <strong>shrink-wrapped pallets</strong> (1.2 × 1.0 m) of 1,000 bricks, 29 courses
+				high. Past 120 pallets they stand as one warehouse block at the true pallet count. A
+				trailing part-unit is drawn (a short line, a half-filled bag, a cut brick, a part-load)
+				once it reaches 15% of a unit; the count above the stage carries the exact figure. The
+				tape colours and the ink stamp are set dressing; sizes, counts and masses are not.
+			</p>
 			<h3>Impossibility lines</h3>
 			<p>
 				Past a certain quantity, comparing to a real-world object stops being honest — there is no
@@ -339,6 +466,97 @@
 				foreground. Nothing on screen is ever resized by feel; the apparent sizes always follow
 				from the one declared camera geometry.
 			</p>
+			<h3>The drop</h3>
+			<p>
+				While you hold the slider, or drag the cube itself, the camera stays where it is and the
+				cube grows or shrinks in place — it is allowed to outgrow the shot rather than being
+				quietly re-framed. When you let go, the camera steps back to its proper framing and the
+				cube is dropped <em>from its own height</em> (its underside one edge-length above the
+				floor) under standard gravity, 9.80665 m/s², in real time. Nothing about the fall is
+				slowed down or sped up, which makes the fall time a scale cue in its own right: a speck
+				lands in milliseconds, the whole supply of gold takes more than a second. The readout
+				states the fall time and the impact energy, <em>m·g·h</em>; where that exceeds a gram of
+				TNT it also gives the TNT equivalent, using the standard convention of 4.184 GJ per tonne.
+				The camera shake, the dust and Sat's reaction are all driven by that one impact-energy
+				figure; none of them is tuned per amount.
+			</p>
+			<p>
+				The same line gives the cube's resting bearing pressure — its weight over its own
+				footprint, which for a cube reduces to <em>density × g × edge</em> — and compares it
+				with the presumptive load-bearing values in the International Building Code (Table
+				1806.2): 1,500 psf for clay, 2,000 for sand, 3,000 for gravel, 4,000 for sedimentary
+				rock and 12,000 for crystalline bedrock. Past the bedrock value the floor is drawn
+				cracked. These are <em>allowable</em> pressures, which include the code's safety margin,
+				so exceeding one means a structural engineer would not sign it off, not that the ground
+				would necessarily give way. A gold cube reaches the bedrock value at about 3.03 m on a
+				side, whatever the gold price.
+			</p>
+			<h3>The sound</h3>
+			<p>
+				With the sound on, you hear the landing, and a block landing flat on a concrete floor is
+				heard mostly through the floor. The blow is modelled as a mass on a spring: the cube's
+				mass against the stiffness of its flat face pressed into the concrete (a flat punch on
+				an elastic half-space, in series with the cube's own stiffness). So it lasts
+				<em>τ = π√(m/k)</em> and delivers the cube's momentum, <em>m·v·(1 + e)</em>. The
+				concrete follows ACI 318: <em>E = 4,700√f′c</em> MPa at f′c = 30 MPa, about 25.7 GPa,
+				with Poisson's ratio 0.2 (Eurocode 2). Mass grows with the cube of the size and stiffness
+				only in proportion to it, so the blow lengthens in step with the edge: about 0.09 ms for 1
+				BTC of gold, 0.7 ms for 500 BTC, 26 ms for the whole supply. That is why small cubes tick
+				and big ones thud. The peak force is startling: about a tonne for 1 BTC dropped 3 cm, and
+				about 190 tonnes for 500 BTC.
+			</p>
+			<p>
+				What you hear is that force pulse radiated by the floor slab, taken as 15 cm of concrete.
+				A point force on a plate, below the plate's coincidence frequency, radiates a pressure
+				that follows the force itself (Cremer, Heckl &amp; Petersson, <em>Structure-Borne
+				Sound</em>). On top of that comes a sharper crack from the cube itself stopping dead,
+				which dominates for small cubes. Past the building code's bedrock allowance, where the
+				floor is drawn cracked, a burst of fracture clicks is added; their timing and texture
+				are illustrative, and only whether the floor cracks is computed. The whole thing plays in
+				a stated room: a large, hard-floored studio with a 1.4-second reverberation time.
+			</p>
+			<p>
+				The cube's own ring is left out on purpose. We computed its free-vibration modes with the
+				Rayleigh–Ritz method used in resonant ultrasound spectroscopy (Visscher et al.,
+				<em>J. Acoust. Soc. Am.</em> 90, 1991), checked against beam theory and against Lamé's
+				exact solution for a cube. Its loudest note is the shear wave speed divided by (√2 ×
+				edge): 27 kHz for 1 BTC of gold. But even undamped, the ring carries under a
+				three-hundredth of the thud's acoustic energy for a 500 BTC cube, and a block pressed flat
+				on concrete loses it into the floor within a few cycles. The wave speeds used are 3,240
+				and 1,200 m/s for gold and 3,650 and 1,610 m/s for silver (CRC Handbook of Chemistry and
+				Physics); for plutonium dioxide they come from the measured shear modulus of 89 GPa and
+				Poisson's ratio of 0.32 (Kato &amp; Matsumoto, IAEA INIS). That abstract's own Young's
+				modulus, 219 GPa, is 7% lower than those two imply, which would change the blow by less
+				than half a percent.
+			</p>
+			<p>
+				Loudness is compressed from the impact energy. A real whole-supply landing would be
+				deafening, and most of its energy is too low for a phone speaker to play; you would feel
+				it more than hear it. Sound is off unless you switch it on; the clip recorder always
+				includes it.
+			</p>
+			<h3>Camera optics</h3>
+			<p>
+				The stage camera is modelled as a real one: a full-frame sensor (24 mm tall) with the
+				focal length its 35° field of view implies (about 38 mm), at f/2.8, focused on the cube.
+				Every pixel is blurred by that lens's thin-lens circle of confusion for its distance,
+				<em>c = A·f·|d − S| / (d·(S − f))</em>. That is why small amounts come out looking like
+				macro photographs, with Sat's paws soft behind a sharp speck of metal, and large amounts
+				come out sharp from front to back: a real camera at 20 cm and at 25 m behaves exactly that
+				way, and it is the same cue that makes tilt-shift photos of cities look like toys. The
+				blur is capped at 5% of the frame height for legibility, so it is only ever understated;
+				at the closest framings a real lens would blur the background more. No atmospheric haze
+				is added: over the distances in the scene (under about 100 m) real air adds none.
+			</p>
+			<h3>The magnifier</h3>
+			<p>
+				Below about eight pixels on screen the cube cannot be resolved at all, so a circular
+				magnifier appears. It re-renders the scene from the same camera position through a
+				narrower field of view — a true optical magnification, like a loupe or a telephoto lens —
+				and states its power, chosen from a fixed ladder (×2, ×5, ×10 … ×10,000) so that the
+				magnified cube reads at a legible size. One satoshi of gold, about 68 µm on a side,
+				appears at ×200 on a typical screen.
+			</p>
 		</section>
 
 		<section id="hashweight" class="prose-section">
@@ -349,39 +567,93 @@
 				having roughly ±30% uncertainty — derived from three independently sourced inputs:
 				live network hashrate, published ASIC specifications, and publicly disclosed node counts.
 			</p>
+			<p>
+				To see what one of those machines does inside, the
+				<a href="/mining" class="underline hover:no-underline">Inside a Bitcoin miner</a> page takes a mining
+				chip apart and simulates a single SHA-256 hash core on real block headers.
+			</p>
 			<h3>Live hashrate</h3>
 			<p>
 				Current network hashrate is fetched at page load from the
 				<a href="https://mempool.space/api/v1/mining/hashrate/1w" class="underline hover:no-underline">mempool.space
 				mining API</a> (<code>/api/v1/mining/hashrate/1w</code>), which returns a 7-day
-				rolling average in H/s. The historical sparkline uses
+				rolling average in H/s. The fleet model and its timeline use
 				<code>/api/v1/mining/hashrate/all</code>, which provides weekly averages back to
-				Bitcoin's origin. If the API is unreachable, the panel falls back to a recent
-				known-good value (800 EH/s).
+				Bitcoin's origin (the panel starts in 2014). If the history is unreachable, the panel
+				shows today only, from the fixed fleet average described at the end of this section;
+				if the live figure is unreachable too, it falls back to 800 EH/s.
 			</p>
 			<h3>ASIC fleet model</h3>
 			<p>
-				The installed ASIC fleet is modelled with two blended constants:
+				Hashrate alone doesn't give a weight: one exahash per second took about 870,000
+				machines in 2015 and about 3,700 in 2026. So the panel models the fleet in cohorts
+				(<code>src/lib/hashweight/fleet.ts</code>):
 			</p>
-			<ul class="my-3 list-disc pl-6 text-sm">
+			<ol class="my-3 list-decimal pl-6 text-sm">
 				<li>
-					<strong>150 TH/s per machine</strong> — a blend of S19-era hardware
-					(Antminer S19 Pro: 110 TH/s, S19 XP: 140 TH/s) and S21-era hardware
-					(Antminer S21: 200 TH/s, S21 Pro: 234 TH/s). Older S9-class machines
-					(~100 TH/s) and early retirements pull the average down; cutting-edge
-					deployments push it up.
+					<strong>Capacity.</strong> Installed capacity is the running maximum of the
+					{SMOOTH_DAYS}-day mean hashrate. Machines switched off during a dip still exist and
+					still weigh: when the 2021 China ban halved the hashrate for months, the machines were
+					in transit, not destroyed.
 				</li>
 				<li>
-					<strong>13.5 kg per machine</strong> — S19-class units average ~13.2–14.3 kg;
-					S21-class units average ~14.2–14.9 kg; older hardware is lighter (~4.3 kg for
-					S9). The blended fleet average lies between those bounds.
+					<strong>Arrivals.</strong> Every rise in capacity is built from the most efficient
+					machine on sale at the time (the frontier, below).
 				</li>
-			</ul>
+				<li>
+					<strong>Retirement.</strong> Each cohort runs for {LIFETIME_YEARS} years, then is
+					replaced, like for like in hashrate, by that day's frontier machine.
+				</li>
+			</ol>
 			<p>
-				ASIC count = hashrate (TH/s) ÷ 150. ASIC mass = ASIC count × 13.5 kg.
-				At ~950 EH/s this yields ~6.3 million machines weighing ~85,000 metric tonnes.
-				The model over-counts recently retired machines still in transit and under-counts
-				very new hardware not yet fully deployed; ±30% is a reasonable uncertainty band.
+				The frontier is Bitmain's Antminer line, the most-deployed family. Weights include the
+				separate power supply the S5–S9 generation needed; later models have it built in.
+			</p>
+			<div class="my-3 overflow-x-auto">
+				<table class="w-full text-left text-xs">
+					<thead>
+						<tr class="border-b border-zinc-300">
+							<th class="py-1 pr-3">Machine</th>
+							<th class="py-1 pr-3">From</th>
+							<th class="py-1 pr-3">TH/s</th>
+							<th class="py-1 pr-3">kg (with supply)</th>
+							<th class="py-1">Source</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each MACHINES as m (m.id)}
+							<tr class="border-b border-zinc-100 align-top">
+								<td class="py-1 pr-3 whitespace-nowrap">{m.name}</td>
+								<td class="py-1 pr-3 whitespace-nowrap">{m.from}</td>
+								<td class="py-1 pr-3">{m.ths}</td>
+								<td class="py-1 pr-3">{machineKg(m).toFixed(1)}</td>
+								<td class="py-1 text-zinc-600">{m.source}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+			<p>
+				Before the S5 shipped (December 2014) the model still uses it, though earlier ASICs
+				were heavier per TH/s, so figures for 2014 are a lower bound. Other makers (MicroBT,
+				Canaan), fleets that lag the frontier and slower retirements all move the answer, so
+				treat every figure as ±30%. In September 2026 the model gives roughly 5–6 million
+				machines and 80,000–90,000 tonnes.
+			</p>
+			<h3>The pile</h3>
+			<p>
+				The scene stacks every machine case edge to edge (plus the S5–S9 era's separate supplies)
+				into one cube and draws it in true-scale side elevation beside a 1.75 m person, a 40-ft
+				ISO shipping container (12.19 × 2.59 m) and RMS Titanic, keel to funnel tops (269 m long,
+				53 m tall, out of the water). Close up, the cube's face shows the front of one machine
+				per cell. "Per bitcoin in existence" divides the fleet's mass by the supply at that
+				date, interpolated between halvings.
+			</p>
+			<h3>Without the history</h3>
+			<p>
+				If the history can't be fetched, today's figure falls back to two blended constants:
+				150 TH/s and 13.5 kg per machine (an S19/S21 mix). That is within the ±30% band of the
+				cohort model.
 			</p>
 			<h3>Node mass</h3>
 			<p>

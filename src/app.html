@@ -2,7 +2,10 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" type="image/png" sizes="32x32" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+		<meta name="theme-color" content="#0e0e10" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link
 			rel="preload"
@@ -25,10 +28,43 @@
 			imagesrcset="%sveltekit.assets%/sprites/references/shiba_inu@1x.webp 1x, %sveltekit.assets%/sprites/references/shiba_inu@2x.webp 2x"
 			fetchpriority="high"
 		/>
+		<!-- If a bundle 404s (this HTML predates the latest deploy, whose new
+		     content hashes replaced the old chunks), reload once for fresh HTML
+		     instead of leaving an unhydrated page. -->
+		<script>
+			(function () {
+				function recover() {
+					try {
+						var last = +sessionStorage.getItem('bwi-chunk-reload') || 0;
+						if (Date.now() - last < 30000) return;
+						sessionStorage.setItem('bwi-chunk-reload', String(Date.now()));
+					} catch (_) {
+						return;
+					}
+					location.reload();
+				}
+				addEventListener('vite:preloadError', recover);
+				addEventListener('unhandledrejection', function (e) {
+					var m = String((e.reason && e.reason.message) || e.reason || '');
+					if (/dynamically imported module|Importing a module script failed/i.test(m)) recover();
+				});
+			})();
+		</script>
+		<!-- Mirror guard: scraped copies of this site (e.g. nk1.live, Oct 2026) have
+		     been used as landing pages for paid-ad fraud. Any copy served from a
+		     host we don't own sends the visitor to the real page. Preview and
+		     local hosts, Google Translate and the Wayback Machine are allowed. -->
+		<script>
+			(function (h) {
+				var ok = /(^|\.)bitcoinweighin\.com$|(^|\.)bitcoinweighin\.pages\.dev$|\.translate\.goog$|^web\.archive\.org$|^localhost$|^127\.0\.0\.1$|^\[::1\]$/;
+				if (!h || ok.test(h)) return;
+				location.replace('https://' + ['bitcoinweighin', 'com'].join('.') + location.pathname + location.search + location.hash);
+			})(location.hostname);
+		</script>
 		<!-- Cloudflare Web Analytics -->
 		<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6492f513c7234d84ba5efa3d3e10866e"}'></script>
 		<!-- Umami Analytics -->
-		<script defer src="https://cloud.umami.is/script.js" data-website-id="c671238d-abbb-43fd-b6ab-1415ad5d7a25"></script>
+		<script defer src="https://cloud.umami.is/script.js" data-website-id="c671238d-abbb-43fd-b6ab-1415ad5d7a25" data-domains="bitcoinweighin.com,www.bitcoinweighin.com"></script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

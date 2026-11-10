@@ -6,18 +6,24 @@
 	 * The three cube metals share one live `LiveStage` (WebGL cube + Shiba,
 	 * poster-first). Cocaine and Cash are custom tabs: selecting either unmounts
 	 * LiveStage (tearing down the single WebGL context — we never run two) and
-	 * renders a bespoke visual (`CocaineBrickStack` SVG, or `BillStage`'s own
+	 * renders a bespoke visual (`CocaineStage`'s or `BillStage`'s own
 	 * WebGL scene) in the same frame, with a matching custom readout below.
 	 * Switching back to a metal re-mounts LiveStage, which re-hydrates on the
 	 * next interaction/idle.
 	 *
-	 * Tab order is locked: gold, silver, pu238, cocaine, cash.
+	 * Tab order is locked: gold, silver, pu238, cocaine, cash, manhattan, oil.
 	 */
 	import type { Snippet } from 'svelte';
 	import type { Commodity } from '$lib/commodities.js';
 	import type { PriceData } from '$lib/prices.js';
 	import { computeMassGrams } from '$lib/volume.js';
-	import { computeDelta, type CommodityId as DeltaCommodityId, type DeltaObjectsFile } from '$lib/deltas.js';
+	import {
+		computeDelta,
+		COMMODITIES as DELTA_COMMODITIES,
+		type CommodityId as DeltaCommodityId,
+		type DeltaObjectsFile,
+	} from '$lib/deltas.js';
+	import { USD_PER_M2 as MANHATTAN_USD_PER_M2 } from '$lib/manhattan.js';
 	import deltaObjectsJson from '$lib/delta-objects.json';
 	import LiveStage from '$lib/scene/LiveStage.svelte';
 	import ReadoutStrip from './ReadoutStrip.svelte';
@@ -25,11 +31,30 @@
 	import Pu238FactCard from './Pu238FactCard.svelte';
 	import GeigerCrackle from './GeigerCrackle.svelte';
 	import ShareButton from './ShareButton.svelte';
-	import CocaineBrickStack from './CocaineBrickStack.svelte';
+	import CocaineStage from '$lib/scene/CocaineStage.svelte';
 	import CocaineReadout from './CocaineReadout.svelte';
 	import QualityBadge from './QualityBadge.svelte';
 	import BillStage from '$lib/scene/BillStage.svelte';
 	import BillReadout from './BillReadout.svelte';
+	import LandStage from '$lib/scene/LandStage.svelte';
+	import LandReadout from './LandReadout.svelte';
+	import OilStage from '$lib/scene/OilStage.svelte';
+	import OilReadout from './OilReadout.svelte';
+	import { FUELS, FUEL_ORDER, usdPerLitre, litresFor, formatVolume, LITRES_PER_BARREL, type Fuel } from '$lib/oil.js';
+	import { computeCubeEdgeMm } from '$lib/volume.js';
+	import { formatArea, formatBtc, formatMass } from '$lib/format.js';
+	import { system } from '$lib/stores/system.js';
+	import { commodityAccent } from '$lib/accents.js';
+	import {
+		dropHeightM,
+		fallTimeS,
+		impactEnergyJ,
+		formatDropLine,
+		formatDuration,
+		formatEnergy,
+	} from '$lib/scene/drop.js';
+	import type { ClipInfo } from '$lib/scene/clip.js';
+	import { isSoundingMaterial, blowSentence, contactTimeS, peakForceN, formatForce } from '$lib/scene/impact-sound.js';
 
 	const deltaObjects = deltaObjectsJson as unknown as DeltaObjectsFile;
 
@@ -42,6 +67,11 @@
 		prices,
 		selectedDate = '',
 		controls,
+		held = false,
+		dropSignal = 0,
+		grabEnabled = true,
+		ongrab,
+		fuel = $bindable('crude'),
 	}: {
 		/** Hero tabs in locked order: gold, silver, pu238, cocaine. */
 		commodities: Commodity[];
@@ -62,6 +92,16 @@
 		/** Slider/controls, rendered between the stage and the readout. The page
 		 *  owns the slider (URL sync + preset tween); the hero owns its position. */
 		controls?: Snippet;
+		/** The page is holding the cube (slider drag / preset tween) — see LiveStage. */
+		held?: boolean;
+		/** Increment to drop the cube (typed amount, key jumps) — see LiveStage. */
+		dropSignal?: number;
+		/** Whether a cube drag resizes it (BTC mode only). */
+		grabEnabled?: boolean;
+		/** Direct manipulation of the cube, forwarded to the page. */
+		ongrab?: (phase: 'start' | 'move' | 'end', ratio: number) => void;
+		/** Oil tab: which fuel — crude (Brent), US diesel or US gasoline. */
+		fuel?: Fuel;
 	} = $props();
 
 	const active = $derived(commodities.find((m) => m.id === selectedId) ?? commodities[0]);
@@ -69,6 +109,15 @@
 
 	const isCocaine = $derived(active.id === 'cocaine');
 	const isCash = $derived(active.id === 'cash');
+	const isLand = $derived(active.id === 'manhattan');
+	const isOil = $derived(active.id === 'oil');
+
+	// Oil: the day's fuel price (the page's selected date; the live BTC price
+	// already rides in btcUsdPrice) and the litres it buys.
+	const oilDay = $derived(prices?.[selectedDate] ?? null);
+	const oilPerLitre = $derived(usdPerLitre(fuel, oilDay));
+	const oilLitres = $derived(litresFor(btcAmount, btcUsdPrice, oilPerLitre));
+	const oilQuote = $derived(oilDay?.[FUELS[fuel].priceField] ?? null);
 
 	// True when the dog is staged to the foreground — LiveStage binds this and
 	// the readout adds the honesty line. False in poster / fallback / cocaine.
@@ -91,22 +140,6 @@
 	}
 
 	const accent = $derived(commodityAccent(active.id));
-	function commodityAccent(id: string): string {
-		switch (id) {
-			case 'gold':
-				return '#d4a14a';
-			case 'silver':
-				return '#c5cdd6';
-			case 'pu238':
-				return '#7ed4ff';
-			case 'cocaine':
-				return '#e8e0d2';
-			case 'cash':
-				return '#85bb65';
-			default:
-				return '#d4a14a';
-		}
-	}
 
 	const isPu = $derived(active.glowScales === true);
 	const showGeiger = $derived(active.geigerCrackle === true);
@@ -114,6 +147,74 @@
 
 	const massGrams = $derived(amount > 0 ? (computeMassGrams(amount, active) ?? 0) : 0);
 	const massKg = $derived(massGrams / 1000);
+
+	// ── The Drop — its line under the readout, and the clip's captions ────
+	// Every figure comes from drop.ts (fall time, impact energy, bearing
+	// pressure vs IBC Table 1806.2) on the live cube edge and mass.
+	const isCube = $derived(active.renderStyle === 'cube' && !!active.densityGPerCm3);
+	const edgeM = $derived(isCube && amount > 0 ? computeCubeEdgeMm(amount, active) / 1000 : 0);
+	// …and the blow the floor takes: its duration and peak force (impact-sound.ts).
+	const sounding = $derived(isCube && edgeM > 0 && isSoundingMaterial(active.id));
+	const dropLine = $derived(
+		isCube && edgeM > 0
+			? formatDropLine({
+					edge: edgeM,
+					massGrams,
+					densityGPerCm3: active.densityGPerCm3!,
+					unit: $system,
+				}) +
+				(sounding && isSoundingMaterial(active.id)
+					? ' ' + blowSentence(active.id, edgeM, active.densityGPerCm3!, $system)
+					: '')
+			: ''
+	);
+
+	function formatUsdShort(v: number): string {
+		if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+		if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+		if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
+		if (v >= 1) return `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+		if (v > 0) return `$${v.toFixed(v >= 0.01 ? 2 : 6)}`;
+		return '$0';
+	}
+
+	function formatDateLong(d: string): string {
+		if (!d) return '';
+		return new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			timeZone: 'UTC',
+		});
+	}
+
+	const clipInfo = $derived.by((): ClipInfo | null => {
+		if (!isCube || !(massGrams > 0) || !(edgeM > 0)) return null;
+		const other = $system === 'imperial' ? 'metric' : 'imperial';
+		const h = dropHeightM(edgeM);
+		const name = active.displayName.toLowerCase();
+		const params = new URLSearchParams();
+		params.set('btc', String(btcAmount));
+		if (selectedDate) params.set('date', selectedDate);
+		params.set('commodity', active.id);
+		const btcSlug = formatBtc(btcAmount).replace(/[^0-9a-z.]+/gi, '').toLowerCase();
+		return {
+			headline: `${formatBtc(btcAmount)} of ${name}`,
+			massPrimary: formatMass(massGrams, $system),
+			massSecondary: formatMass(massGrams, other),
+			valueLine: [btcUsdPrice > 0 ? formatUsdShort(btcAmount * btcUsdPrice) : '', formatDateLong(selectedDate)]
+				.filter(Boolean)
+				.join(' · '),
+			dropLine:
+				`Falls ${formatDuration(fallTimeS(h))} · hits with ${formatEnergy(impactEnergyJ(massKg, h))}` +
+				(isSoundingMaterial(active.id)
+					? ` · peaks at ${formatForce(peakForceN(active.id, edgeM, active.densityGPerCm3!), $system)} for ${formatDuration(contactTimeS(active.id, edgeM, active.densityGPerCm3!))}`
+					: ''),
+			shareUrl: `https://bitcoinweighin.com/?${params.toString()}`,
+			fileStem: `bitcoinweighin-${btcSlug}-${active.id}${selectedDate ? '-' + selectedDate : ''}`,
+			accent,
+		};
+	});
 
 	// ── "1 sat. Also: one Sat." (brief §2.1) ──────────────────────
 	// The dog is named Sat. At exactly one satoshi the readout gets one quiet
@@ -132,7 +233,8 @@
 
 	const dailyDelta = $derived.by(() => {
 		if (sortedDates.length < 2) return null; // initial SSR: only the latest day is inlined
-		if (!(active.id in deltaObjects.pricing)) return null;
+		// Manhattan and oil compute their own move below, outside the delta table.
+		if (!isLand && !isOil && !(active.id in deltaObjects.pricing)) return null;
 
 		const latest = sortedDates[sortedDates.length - 1];
 		let prevIdx: number;
@@ -160,6 +262,32 @@
 		const currDay = prices?.[currDate];
 		if (!prevDay || !currDay) return null;
 
+		// Manhattan is land, not a weight: the move in square metres 1 BTC buys.
+		if (isLand) {
+			const d = (currDay.btc - prevDay.btc) / MANHATTAN_USD_PER_M2;
+			const since = sincePhrase ?? "yesterday's close";
+			if (Math.abs(d) < 1e-4) return { caption: `In Manhattan, 1 BTC buys the same land as at ${since}.` };
+			return {
+				caption: `In Manhattan, 1 BTC buys ${d > 0 ? 'more' : 'less'} land than at ${since} (${d > 0 ? '+' : '−'}${formatArea(Math.abs(d), $system)}).`,
+			};
+		}
+		// Oil is a volume: the move in what 1 BTC fills, in the tab's fuel.
+		if (isOil) {
+			const pPrev = usdPerLitre(fuel, prevDay);
+			const pCurr = usdPerLitre(fuel, currDay);
+			if (!pPrev || !pCurr) return null;
+			const d = currDay.btc / pCurr - prevDay.btc / pPrev;
+			const since = sincePhrase ?? "yesterday's close";
+			const name = fuel === 'crude' ? 'Brent crude' : `US ${fuel}`;
+			if (Math.abs(d) < 0.01) return { caption: `1 BTC buys the same ${name} as at ${since}.` };
+			const fig =
+				fuel === 'crude' && $system === 'imperial'
+					? `${(Math.abs(d) / LITRES_PER_BARREL).toFixed(1)} barrels`
+					: formatVolume(Math.abs(d), $system);
+			return { caption: `1 BTC buys ${d > 0 ? 'more' : 'less'} ${name} than at ${since} (${d > 0 ? '+' : '−'}${fig}).` };
+		}
+		if (!(DELTA_COMMODITIES as string[]).includes(active.id)) return null;
+
 		return computeDelta(
 			deltaObjects,
 			active.id as DeltaCommodityId,
@@ -184,16 +312,44 @@
 	// satisfies that; for cocaine we only advertise the attr once the brick SVG
 	// has actually mounted (bound below), so the card never captures a blank
 	// frame mid-swap.
-	let brickEl: HTMLElement | undefined = $state();
-	const brickReady = $derived(isCocaine && !!brickEl);
+	// CocaineStage reports readiness itself (first frame + Sat resolved, or its
+	// SVG fallback mounted), same contract as BillStage below.
+	let cokeRendered = $state(false);
+	let cokeStaged = $state(false);
+	const brickReady = $derived(isCocaine && cokeRendered);
 	// BillStage reports readiness itself (first frame rendered + Shiba
 	// resolved) — gating on the frame div alone would advertise
 	// data-commodity before the WebGL scene exists, and the bot's card
 	// could capture a blank stage.
 	let billRendered = $state(false);
 	const billReady = $derived(isCash && billRendered);
+	// LandStage: first frame of the map rendered + Sat resolved (or its
+	// no-WebGL note shown).
+	let landRendered = $state(false);
+	let landStaged = $state(false);
+	const landReady = $derived(isLand && landRendered);
+	// OilStage: first frame rendered + Sat resolved (or its no-WebGL note).
+	let oilRendered = $state(false);
+	let oilStaged = $state(false);
+	const oilReady = $derived(isOil && oilRendered);
 	const dataCommodity = $derived(
-		isCocaine ? (brickReady ? 'cocaine' : '') : isCash ? (billReady ? 'cash' : '') : selectedId
+		isCocaine
+			? brickReady
+				? 'cocaine'
+				: ''
+			: isCash
+				? billReady
+					? 'cash'
+					: ''
+				: isLand
+					? landReady
+						? 'manhattan'
+						: ''
+					: isOil
+						? oilReady
+							? 'oil'
+							: ''
+						: selectedId
 	);
 
 	// Pu-238 readout extras (mirrors CommoditySection's derivations).
@@ -252,11 +408,27 @@
 					onclick={() => selectTab(m.id)}
 					onkeydown={(e) => onTabKey(e, i)}
 				>
-					{m.displayName}
+					<span class="tab__dot" aria-hidden="true"></span>
+					<span class="tab__full">{m.displayName}</span>
+					{#if m.id === 'pu238'}<span class="tab__short" aria-hidden="true">Pu-238</span>{/if}
 				</button>
 			{/each}
 		</div>
-		{#if isCocaine}
+		{#if isOil}
+			<div class="fuel-slot" role="radiogroup" aria-label="Fuel">
+				{#each FUEL_ORDER as f (f)}
+					<button
+						type="button"
+						role="radio"
+						aria-checked={fuel === f}
+						class="fuel"
+						class:on={fuel === f}
+						style:--accent={accent}
+						onclick={() => (fuel = f)}
+					>{FUELS[f].label}</button>
+				{/each}
+			</div>
+		{:else if isCocaine || isLand}
 			<div class="badge-slot">
 				<QualityBadge quality={active.dataQuality} />
 			</div>
@@ -274,15 +446,34 @@
 			stack fills the same frame; brickReady flips once it mounts so the
 			bot's data-commodity attr only advertises a rendered frame.
 		-->
-		<div class="brick-frame" bind:this={brickEl}>
-			<CocaineBrickStack {massGrams} />
+		<div class="brick-frame">
+			<CocaineStage {massGrams} bind:staged={cokeStaged} bind:ready={cokeRendered} />
+		</div>
+	{:else if isOil}
+		<div class="oil-frame">
+			<OilStage litres={oilLitres} bind:staged={oilStaged} bind:ready={oilRendered} />
+		</div>
+	{:else if isLand}
+		<div class="land-frame">
+			<LandStage areaM2={amount} bind:staged={landStaged} bind:ready={landRendered} />
 		</div>
 	{:else if isCash}
 		<div class="bill-frame">
-			<BillStage noteCount={amount} bind:staged={billStaged} bind:ready={billRendered} />
+			<BillStage noteCount={amount} btcUsd={btcUsdPrice} bind:staged={billStaged} bind:ready={billRendered} />
 		</div>
 	{:else}
-		<LiveStage commodity={active} {amount} bind:staged bind:this={liveStageEl} />
+		<LiveStage
+			commodity={active}
+			{amount}
+			bind:staged
+			bind:this={liveStageEl}
+			{held}
+			{dropSignal}
+			{grabEnabled}
+			{ongrab}
+			{clipInfo}
+			{accent}
+		/>
 	{/if}
 
 	{#if controls}
@@ -299,6 +490,27 @@
 	{#if isCocaine}
 		<div class="readout-wrap">
 			<CocaineReadout {massGrams} {btcAmount} {btcUsdPrice} {accent} />
+			{#if cokeStaged}
+				<p class="staging-line">Sat is standing nearer the camera — true perspective, not rescaled.</p>
+			{/if}
+		</div>
+	{:else if isOil}
+		<div class="readout-wrap">
+			<OilReadout litres={oilLitres} {fuel} price={oilQuote} {accent} />
+			<p class="delta-line">
+				{#if deltaCaptionParts}
+					{deltaCaptionParts.main}<span class="delta-figure">{deltaCaptionParts.figure}</span>{deltaCaptionParts.tail}
+				{/if}
+			</p>
+		</div>
+	{:else if isLand}
+		<div class="readout-wrap">
+			<LandReadout m2={amount} {accent} />
+			<p class="delta-line">
+				{#if deltaCaptionParts}
+					{deltaCaptionParts.main}<span class="delta-figure">{deltaCaptionParts.figure}</span>{deltaCaptionParts.tail}
+				{/if}
+			</p>
 		</div>
 	{:else if isCash}
 		<div class="readout-wrap">
@@ -345,6 +557,14 @@
 					{deltaCaptionParts.main}<span class="delta-figure">{deltaCaptionParts.figure}</span>{deltaCaptionParts.tail}
 				{/if}
 			</p>
+			{#if dropLine}
+				<!--
+					The Drop, stated: fall time, impact energy, bearing pressure and
+					(past the clay allowance) the building-code comparison. Every
+					figure derives from the live cube — see src/lib/scene/drop.ts.
+				-->
+				<p class="drop-line">{dropLine}</p>
+			{/if}
 			{#if isOneSat}
 				<p class="sat-line">1 sat. Also: one Sat.</p>
 			{/if}
@@ -396,38 +616,84 @@
 	}
 
 	.tabs {
-		display: inline-flex;
-		gap: 6px;
-		background: #18181b;
-		padding: 4px;
-		border-radius: 8px;
+		display: flex;
+		gap: 2px;
+		background: #111113;
+		padding: 3px;
+		border-radius: 10px;
 		border: 1px solid #27272a;
-		flex-wrap: wrap;
+		max-width: 100%;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.tabs::-webkit-scrollbar {
+		display: none;
 	}
 	.tab {
 		appearance: none;
+		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
 		background: transparent;
 		color: #a1a1aa;
 		border: 1px solid transparent;
-		border-radius: 6px;
-		padding: 6px 14px;
+		border-radius: 7px;
+		padding: 7px 13px;
 		font-family: 'Inter Tight', -apple-system, system-ui, sans-serif;
 		font-size: 14px;
 		font-weight: 600;
+		line-height: 1;
+		white-space: nowrap;
 		cursor: pointer;
 		transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+	}
+	.tab__dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--accent);
+		opacity: 0.45;
+		transition: opacity 120ms ease, box-shadow 120ms ease;
+	}
+	.tab__short {
+		display: none;
 	}
 	.tab:hover {
 		color: #e4e4e7;
 	}
+	.tab:hover .tab__dot {
+		opacity: 0.8;
+	}
 	.tab.on {
-		color: var(--accent);
-		border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-		background: color-mix(in srgb, var(--accent) 10%, transparent);
+		color: #f5f0e6;
+		border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+		background: color-mix(in srgb, var(--accent) 11%, #18181b);
+	}
+	.tab.on .tab__dot {
+		opacity: 1;
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 	}
 	.tab:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
+	}
+	@media (max-width: 520px) {
+		.tab {
+			padding: 7px 8px;
+			gap: 5px;
+			font-size: 13.5px;
+		}
+		.tab__dot {
+			width: 6px;
+			height: 6px;
+		}
+		.tab__full:has(+ .tab__short) {
+			display: none;
+		}
+		.tab__short {
+			display: inline;
+		}
 	}
 
 	.geiger-slot {
@@ -445,6 +711,48 @@
 
 	.bill-frame {
 		width: 100%;
+	}
+
+	.land-frame {
+		width: 100%;
+	}
+
+	.oil-frame {
+		width: 100%;
+	}
+
+	/* Oil tab's fuel switch — the tab bar's idiom, smaller. */
+	.fuel-slot {
+		margin-left: auto;
+		display: flex;
+		gap: 2px;
+		background: #111113;
+		padding: 3px;
+		border-radius: 9px;
+		border: 1px solid #27272a;
+	}
+	.fuel {
+		appearance: none;
+		background: transparent;
+		color: #a1a1aa;
+		border: 1px solid transparent;
+		border-radius: 6px;
+		padding: 5px 10px;
+		font: 600 12.5px/1 'Inter Tight', -apple-system, system-ui, sans-serif;
+		cursor: pointer;
+		transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+	}
+	.fuel:hover {
+		color: #e4e4e7;
+	}
+	.fuel.on {
+		color: #f5f0e6;
+		border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+		background: color-mix(in srgb, var(--accent) 11%, #18181b);
+	}
+	.fuel:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 
 	/* Pu-238 brand-voice clarification (mirrors CommoditySection). */
@@ -505,6 +813,17 @@
 		line-height: 1.5;
 		color: #71717a; /* zinc-500 */
 		letter-spacing: 0.005em;
+	}
+
+	/* The Drop line — same quiet register as the staging line. */
+	.drop-line {
+		margin: 0;
+		font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+		font-size: 11px;
+		line-height: 1.6;
+		color: #71717a;
+		letter-spacing: 0.01em;
+		max-width: 760px;
 	}
 
 	.staging-line {

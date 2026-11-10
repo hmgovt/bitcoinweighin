@@ -35,6 +35,8 @@ const RELATED_DEFAULT = [
 	{ href: '/btc/pu238', label: 'BTC → plutonium-238' },
 	{ href: '/btc/cocaine', label: 'BTC → cocaine' },
 	{ href: '/btc/cash', label: 'BTC → cash' },
+	{ href: '/btc/manhattan', label: 'BTC → Manhattan land' },
+	{ href: '/btc/oil', label: 'BTC → oil' },
 ];
 
 export const COMMODITY_CONTENT: Record<string, CommodityContent> = {
@@ -244,6 +246,89 @@ export const COMMODITY_CONTENT: Record<string, CommodityContent> = {
 				question: 'Is this in the downloadable dataset?',
 				answer:
 					'The BTC-USD price that drives this page is in the /data archive; the note-dimension constants are documented at /methodology but are not a separate data series, since they never change.',
+			},
+		],
+		relatedPages: RELATED_DEFAULT,
+	},
+	manhattan: {
+		title: 'Bitcoin to Manhattan: How Much of Manhattan Does 1 BTC Buy?',
+		h1: 'Bitcoin to Manhattan: how much of Manhattan does 1 BTC buy?',
+		metaDescription:
+			"How much Manhattan land does 1 bitcoin buy? Priced at the island's land value — about $1.74 trillion for all its developable ground — and drawn lot by lot on a 3-D map of every tax lot and building in Manhattan.",
+		intro: [
+			"One bitcoin currently buys roughly {ratio} of Manhattan — the ground itself. The price comes from the most thorough estimate of what the island's land is worth: economists Jason Barr, Fred Smith and Sayali Kulkarni valued all of Manhattan's developable land at about $1.74 trillion in 2014 (a range of $1.54–1.95 trillion), from some 3,600 sales of vacant lots (Regional Science and Urban Economics, 2018). Spread evenly over the island's developable lots, that is about $4,990 a square foot of land — not counting the buildings on it.",
+			"On the homepage the Manhattan tab draws every tax lot and building on the island from New York City's own open data and fills your land in orange, lot by lot from the Battery northward. A small amount is a patch of open ground at the southern tip; a million bitcoin reaches Chambers Street. All 21 million bitcoin that will ever exist buy the whole island's developable land once one bitcoin is worth about $82,900 — $1.74 trillion divided by 21 million.",
+		],
+		context: [
+			"Why land, and not apartment prices? A Manhattan apartment's price per square foot — around $1,700 on average in 2026 — measures floor space stacked many storeys up. A square foot of ground under a forty-storey building is worth far more than one square foot of one apartment in it. The land-value estimate prices the ground itself, which is what an area on a map shows. It is a 2014 figure — there is no rigorous later total — so the site treats it as illustrative, like its cocaine prices.",
+			"The map is built from the city's records: the Department of Finance's digital tax map (41,560 developable lots, clipped to the shoreline), the Department of City Planning's land-use data (parks and open space left out, as in the land-value study) and building footprints with measured roof heights. Manhattan's developable land comes to about 32 km² (12.5 square miles) — a little over half the borough; the rest is parks, streets and highways.",
+		],
+		faqs: [
+			{
+				question: 'How much of Manhattan does 1 bitcoin buy?',
+				answer:
+					"About {ratio} of land, priced at Manhattan's average land value: $1.74 trillion for all its developable land (Barr, Smith & Kulkarni, 2014 values) spread evenly over the island's lots.",
+			},
+			{
+				question: 'Could all the bitcoin in existence buy Manhattan?',
+				answer:
+					"Roughly, yes. All 21 million bitcoin buy all of Manhattan's developable land once one bitcoin is worth about $82,900 ($1.74 trillion ÷ 21 million); above that price there is land to spare. That is the land alone — the buildings on it would cost a good deal more.",
+			},
+			{
+				question: 'Why not use apartment prices per square foot?',
+				answer:
+					"Because an apartment's price is for floor space, often dozens of storeys above the ground. An area on a map is ground, and the value of ground is what the land-value study measured, from sales of vacant lots.",
+			},
+			{
+				question: 'Where does the land start, and which way does it fill?',
+				answer:
+					'At the Battery, the island\'s southern tip, and northward lot by lot — the way the city grew — up to Inwood, then the outer islands (Roosevelt, Randalls and Wards, Governors, Liberty and Ellis) and Marble Hill. Amounts smaller than a lot are drawn as a true-size patch of open ground at the Battery.',
+			},
+			{
+				question: 'How current is the price?',
+				answer:
+					"The land value is a 2014 estimate, the latest rigorous total for the whole island, so the figure is illustrative. The bitcoin side moves daily with the BTC-USD price; the methodology page gives the sources for both.",
+			},
+		],
+	},
+	oil: {
+		title: 'Bitcoin to Oil: How Many Barrels Does 1 BTC Buy Today?',
+		h1: 'Bitcoin to oil: how much crude, diesel or gasoline does 1 BTC buy?',
+		metaDescription:
+			'How many barrels of oil does 1 bitcoin buy? Live BTC-to-Brent ratio, plus US diesel and gasoline at the pump — drawn at true size from a car tank to a supertanker and an oil field.',
+		intro: [
+			'One bitcoin currently buys roughly {ratio} of Brent crude. The ratio is recomputed every day from the BTC-USD price (CoinGecko) and the Brent spot price per barrel, which FRED republishes from the US Energy Information Administration. A barrel is 42 US gallons, or about 159 litres.',
+			"On the homepage the Oil tab switches between three fuels — Brent crude, US diesel and US gasoline, the last two at the EIA's weekly average pump price — and draws what you could buy at true size: the fuel in a mid-size car's tank, a yard of 55-gallon drums, the hold of a two-million-barrel supertanker, and past ten tankers a field of pump jacks standing for Prudhoe Bay, North America's largest oil field.",
+		],
+		context: [
+			'Crude and pump fuel are different kinds of price. Brent is a wholesale spot price for unrefined oil at sea; a gallon of gasoline or diesel at a US pump carries refining, distribution, retail margin and tax on top. So the same bitcoin buys roughly three times as many litres of crude as of gasoline, and the tab says which kind of price each fuel uses.',
+			"Oil is also a useful yardstick for the scale of bitcoin itself. The world uses about 104 million barrels a day (IEA, 2025); all 21 million bitcoin buy roughly as much crude as Prudhoe Bay has produced in nearly fifty years. The Brent series goes back to 2013 in the daily dataset at /data; the weekly pump prices sit alongside it in the site's prices.json.",
+		],
+		faqs: [
+			{
+				question: 'How many barrels of oil does 1 bitcoin buy today?',
+				answer:
+					'About {ratio} of Brent crude, from the latest daily BTC-USD price and the Brent spot price per barrel (FRED, DCOILBRENTEU).',
+			},
+			{
+				question: 'Why does bitcoin buy so much less gasoline than crude?',
+				answer:
+					'Because the gasoline and diesel prices are retail pump prices — the EIA weekly US averages, taxes included — while Brent is a wholesale price for crude before refining, shipping and tax.',
+			},
+			{
+				question: 'What is the difference between a barrel and a drum?',
+				answer:
+					'A barrel of oil is a unit: 42 US gallons, about 159 litres. The steel drums drawn on the site are the common 55-gallon kind, about 208 litres each.',
+			},
+			{
+				question: 'How much oil is a supertanker?',
+				answer:
+					'A VLCC (very large crude carrier), about 330 metres long, carries around 2 million barrels; the EIA gives 1.9 to 2.2 million. The site draws its hold cut open, with the oil at its true depth.',
+			},
+			{
+				question: 'Could all the bitcoin in existence buy an oil field?',
+				answer:
+					'At recent prices, about one Prudhoe Bay: the Alaskan field has produced some 13.2 billion barrels since 1977, and 21 million bitcoin buy a similar volume of crude when one bitcoin is worth around $80,000 and Brent is around $125.',
 			},
 		],
 		relatedPages: RELATED_DEFAULT,

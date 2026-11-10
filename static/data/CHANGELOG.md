@@ -5,6 +5,23 @@ This dataset follows semantic versioning for breaking column changes
 (major: removed or renamed columns; minor: added columns or sources;
 patch: bug fixes that do not change schema).
 
+## v1.1.0 — 2026-10-09
+
+- **New columns: US road fuel at the pump.** `gasoline_usd` and
+  `diesel_usd` (USD per US gallon, taxes included) from the EIA's weekly
+  retail surveys via FRED (`GASREGW`, `GASDESW`), with derived
+  `gasoline_per_btc` and `diesel_per_btc` (US gallons per BTC).
+  Back-filled to 2013-01-02.
+- The surveys are weekly, dated each Monday. Every daily row carries the
+  latest survey on or before its date, so most rows repeat the week's
+  figure. `forward_filled` names these columns only on rows dated after
+  the latest published survey.
+- The new columns are **appended after `forward_filled`**, so every
+  v1.0.x column keeps its name, type and position. No existing values
+  change.
+- v1.0.1 stays at `/data/v1.0.1/`, frozen at its last daily update
+  (2026-10-08).
+
 ## v1.0.1 — 2026-05-17
 
 - **Coffee unit normalisation (data correction).** `coffee_usd` is now

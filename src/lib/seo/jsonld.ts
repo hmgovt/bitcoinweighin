@@ -27,9 +27,8 @@ export function organizationJsonLd(): string {
 		'@id': `${SITE_URL}/#organization`,
 		name: SITE_NAME,
 		url: SITE_URL,
-		// Google wants a roughly square logo, min 112x112. header@1x.webp is a
-		// 280x98 banner and fails that; logo-square.png is the scale mark from
-		// the same header, cropped square at 512x512.
+		// Google wants a roughly square logo, min 112x112: logo-square.png is
+		// the cast-weight mark (static/brand/mark.svg) on the site ground, 512x512.
 		logo: `${SITE_URL}/logo-square.png`,
 		email: 'info@sortathing.com',
 		sameAs: ['https://github.com/hmgovt/bitcoinweighin'],

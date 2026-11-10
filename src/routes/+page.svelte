@@ -12,10 +12,13 @@
 		setDateFromPicker,
 		activatePreset,
 		hydrateFromUrl,
+		DEFAULT_BTC,
 	} from '$lib/stores/url.js';
-	import { formatBtc } from '$lib/format.js';
+	import { formatArea, formatBtc, formatMass, formatMassConsumer, formatNum } from '$lib/format.js';
+	import { system } from '$lib/stores/system.js';
 	import { parseAmountInput } from '$lib/amount-input.js';
 	import { applyDetent, DETENT_BTC_VALUES } from '$lib/detent.js';
+	import { clampBtc, roundBtc } from '$lib/scene/grab.js';
 	import { getEntity } from '$lib/holdings.js';
 	import { createKonamiTracker } from '$lib/konami.js';
 	import {
@@ -26,7 +29,11 @@
 	} from '$lib/playback.js';
 	import HeroStage from '$lib/components/HeroStage.svelte';
 	import PresetBar from '$lib/components/PresetBar.svelte';
+	import SiteHeader from '$lib/components/brand/SiteHeader.svelte';
+	import BrandMark from '$lib/components/brand/BrandMark.svelte';
+	import { commodityAccent } from '$lib/accents.js';
 	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
+	import MiningStrip from '$lib/components/mining/MiningStrip.svelte';
 	import {
 		organizationJsonLd,
 		websiteJsonLd,
@@ -35,6 +42,7 @@
 		breadcrumbJsonLd,
 	} from '$lib/seo/jsonld.js';
 	import { HOMEPAGE_FAQS } from '$lib/seo/faqs.js';
+	import { FUELS, LITRES_PER_BARREL, formatVolume as formatFuelVolume, litresFor, usdPerLitre, type Fuel } from '$lib/oil.js';
 
 	let { data } = $props();
 
@@ -83,17 +91,12 @@
 
 	function sliderToBtc(pos: number): number {
 		const log = LOG_MIN + (pos / SLIDER_STEPS) * (LOG_MAX - LOG_MIN);
-		const raw = Math.pow(10, log);
-		if (raw >= 1000) return Math.round(raw);
-		if (raw >= 1) return Math.round(raw * 100) / 100;
-		if (raw >= 0.001) return Math.round(raw * 10000) / 10000;
-		if (raw >= 0.00001) return Math.round(raw * 100000000) / 100000000;
-		return Math.round(raw * 100000000) / 100000000;
+		return roundBtc(Math.pow(10, log)); // shared with the cube grab (scene/grab.ts)
 	}
 
 	// Dual-mode slider: 'btc' adjusts BTC amount; 'date' locks BTC and scrubs through history.
 	let sliderMode = $state<'btc' | 'date'>('btc');
-	let lockedBtcForDateMode = $state(1);
+	let lockedBtcForDateMode = $state(DEFAULT_BTC);
 
 	const sortedDates = $derived(prices ? Object.keys(prices).sort() : []);
 
@@ -113,7 +116,7 @@
 		return dates[Math.max(0, Math.min(dates.length - 1, idx))];
 	}
 
-	let sliderPos = $state(btcToSlider(1));
+	let sliderPos = $state(btcToSlider(DEFAULT_BTC));
 
 	// ── Scene BTC + preset tween ────────────────────────────────
 	// `sceneBtc` is the value the hero stage, hero readout, and slider display
@@ -123,7 +126,7 @@
 	// — pre-launch review §1's "missed trick". The committed $btcAmount / URL /
 	// preset slug are set immediately by activatePreset (URL contract untouched);
 	// the tween is a visual animation on top, never written to the URL.
-	let sceneBtc = $state(1);
+	let sceneBtc = $state(DEFAULT_BTC);
 	let tweening = $state(false);
 	let tweenRaf = 0;
 	let reduceMotion = $state(false);
@@ -169,6 +172,38 @@
 			if (Math.abs(newPos - sliderPos) > 1) sliderPos = newPos;
 		}
 	});
+
+	// ── The Drop: hold while dragging, drop on release ──────────
+	// While the visitor holds the BTC slider (or a preset tweens), the hero
+	// stage freezes its camera and lets the cube grow or shrink in place; on
+	// release it stumbles back to frame it and drops the cube from its own
+	// height (src/lib/scene/LiveStage.svelte, drop.ts). Commits that have no
+	// hold — a typed amount, a decade key jump — drop it via `dropSignal`.
+	let sliderHeld = $state(false);
+	let dropSignal = $state(0);
+	const heroHeld = $derived(sliderHeld || tweening);
+
+	function handleSliderPointerDown() {
+		if (sliderMode === 'btc') sliderHeld = true;
+	}
+	function releaseSlider() {
+		if (sliderHeld) sliderHeld = false;
+	}
+
+	// Direct manipulation: dragging / pinching the cube itself reports a
+	// ratio against the amount at grab start; it commits through the same
+	// setter as the slider so the URL contract is unchanged.
+	let grabStartBtc = 1;
+	function handleGrab(phase: 'start' | 'move' | 'end', ratio: number) {
+		if (sliderMode !== 'btc') return;
+		if (phase === 'start') {
+			cancelTween();
+			stopPlayback();
+			grabStartBtc = $btcAmount;
+		} else if (phase === 'move') {
+			setBtcFromSlider(roundBtc(clampBtc(grabStartBtc * ratio)));
+		}
+	}
 
 	// ── Detents (delight brief §1.5b) ───────────────────────────
 	// Magnetic snap in slider space at the meaningful BTC values. Positions
@@ -364,6 +399,7 @@
 		if (sliderMode === 'btc') {
 			const next = Math.min(BTC_MAX, Math.max(BTC_MIN, $btcAmount * (up ? 10 : 0.1)));
 			setBtcFromSlider(next);
+			dropSignal++;
 		} else if (sortedDates.length > 1 && $selectedDate) {
 			const targetYear = Number($selectedDate.slice(0, 4)) + (up ? 1 : -1);
 			const target = `${targetYear}${$selectedDate.slice(4)}`;
@@ -379,7 +415,7 @@
 	const konamiTracker = createKonamiTracker();
 	let heroStageEl: HeroStage | undefined = $state();
 
-	// Global keys: g/s/p/c switch hero tabs, t toggles BTC/date mode, space
+	// Global keys: g/s/p/c/o switch hero tabs, t toggles BTC/date mode, space
 	// toggles date playback, and the Konami code triggers the dog's tricks.
 	// Only when nothing focusable owns the keystroke and no ctrl/alt/meta
 	// chord — same guard for all of them.
@@ -403,7 +439,7 @@
 		}
 
 		const key = e.key.toLowerCase();
-		const tabByKey: Record<string, string> = { g: 'gold', s: 'silver', p: 'pu238', c: 'cocaine' };
+		const tabByKey: Record<string, string> = { g: 'gold', s: 'silver', p: 'pu238', c: 'cocaine', o: 'oil' };
 		if (key in tabByKey) {
 			selectedCommodity = tabByKey[key];
 		} else if (key === 't') {
@@ -434,6 +470,7 @@
 		cancelTween();
 		stopPlayback(); // defensive — amount edit only reachable in btc mode anyway
 		setBtcFromSlider(parsed);
+		dropSignal++;
 	}
 
 	function handleAmountKeydown(e: KeyboardEvent) {
@@ -526,6 +563,8 @@
 	// Active hero tab. Seeded from a ?commodity= deep-link (scrollToCommodity),
 	// default gold; tab clicks update it locally (no URL write — contract intact).
 	let selectedCommodity = $state('gold');
+	// Oil tab's fuel (crude / diesel / gasoline) — owned by the hero, read here for the 1 BTC answer.
+	let selectedFuel = $state<Fuel>('crude');
 	$effect(() => {
 		const c = $scrollToCommodity;
 		if (c && HERO_COMMODITIES.some((m) => m.id === c)) selectedCommodity = c;
@@ -538,6 +577,44 @@
 			HERO_COMMODITIES.map((c) => [c.id, computeCommodityAmount(sceneBtc, c, dayPrices)])
 		) as Record<string, number | null>
 	);
+
+	// ── The answer beside the h1: what exactly 1 BTC buys ───────
+	// Follows the selected tab; independent of the slider (the stage below
+	// is where the amount changes). Same prices as everything else.
+	const ratio = $derived.by(() => {
+		const c = HERO_COMMODITIES.find((m) => m.id === selectedCommodity);
+		if (!c || !dayPrices) return null;
+		const amt = computeCommodityAmount(1, c, dayPrices);
+		if (amt === null || !isFinite(amt) || amt <= 0) return null;
+		const grams = amt * (c.unitMassGrams ?? 1);
+		const name = c.id === 'pu238' ? 'plutonium-238' : c.displayName.toLowerCase();
+		let big: string;
+		let of: string;
+		if (c.unit === 'troy_oz') {
+			big = `${formatNum(amt)} oz`;
+			of = `troy ounces of ${name} · ${formatMass(grams, $system)}`;
+		} else if (c.unit === 'note') {
+			big = Math.round(amt).toLocaleString('en-US');
+			of = `$1 bills, weighing ${formatMassConsumer(grams, $system)}`;
+		} else if (c.unit === 'm2') {
+			big = formatArea(amt, $system);
+			of = 'of Manhattan land';
+		} else if (c.id === 'oil') {
+			const L = litresFor(1, dayPrices.btc, usdPerLitre(selectedFuel, dayPrices));
+			if (!(L > 0)) return null;
+			if (selectedFuel === 'crude') {
+				big = `${formatNum(L / LITRES_PER_BARREL)} bbl`;
+				of = `barrels of Brent crude · ${formatFuelVolume(L, $system)}`;
+			} else {
+				big = formatFuelVolume(L, $system);
+				of = `of US ${FUELS[selectedFuel].label.toLowerCase()} at the pump`;
+			}
+		} else {
+			big = c.id === 'cocaine' ? formatMassConsumer(grams, $system) : formatMass(grams, $system);
+			of = `of ${name}`;
+		}
+		return { big, of, accent: commodityAccent(c.id) };
+	});
 
 	// ── Open Graph metadata (reactive) ──────────────────────────
 	// og:image points at /og-image (functions/og-image.ts) so the share
@@ -562,6 +639,9 @@
 						: amt.toPrecision(3);
 			return `${formatted} troy oz`;
 		}
+		if (ogCommodity.unit === 'm2') return formatArea(amt, 'imperial');
+		if (ogCommodity.unit === 'barrel')
+			return `${amt >= 100 ? Math.round(amt).toLocaleString('en-US') : amt.toFixed(2)} barrels`;
 		// Grams-unit commodities use the consumer ladder (kg/tonnes at scale).
 		if (ogCommodity.unit === 'gram' && ogCommodity.unitMassGrams) {
 			// Inline grams formatter — mirrors functions/_lib.ts formatHeadlineAmount
@@ -601,14 +681,14 @@
 			: pageDescription
 	);
 
-	// Default state (1 BTC, latest date, no preset/commodity) emits the
+	// Default state (DEFAULT_BTC, latest date, no preset/commodity) emits the
 	// bare canonical and an undated og-image. The SSR pass seeds
 	// selectedDate to the build day, which baked a dated og:url into the
 	// prerendered HTML — fragmenting the share graph by day and dating
 	// the share card for anyone sharing the bare homepage later (SEO
 	// audit C2). Dynamic values still apply after user interaction.
 	const isDefaultState = $derived(
-		$btcAmount === 1 &&
+		$btcAmount === DEFAULT_BTC &&
 			!$activePreset &&
 			!$scrollToCommodity &&
 			(!$selectedDate || $selectedDate === lastDate)
@@ -617,7 +697,7 @@
 	const ogPageUrl = $derived.by(() => {
 		if (isDefaultState) return 'https://bitcoinweighin.com/';
 		const params = new URLSearchParams();
-		if ($btcAmount !== 1) params.set('btc', String($btcAmount));
+		if ($btcAmount !== DEFAULT_BTC) params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
 		if ($activePreset) params.set('preset', $activePreset);
 		if ($scrollToCommodity) params.set('commodity', $scrollToCommodity);
@@ -626,7 +706,7 @@
 	});
 
 	const ogImageUrl = $derived.by(() => {
-		if (isDefaultState) return 'https://bitcoinweighin.com/og-image?btc=1';
+		if (isDefaultState) return `https://bitcoinweighin.com/og-image?btc=${DEFAULT_BTC}`;
 		const params = new URLSearchParams();
 		params.set('btc', String($btcAmount));
 		if ($selectedDate) params.set('date', $selectedDate);
@@ -735,30 +815,12 @@
 
 <!-- Global keys (brief §1.5c): g/s/p/c switch hero tabs, t toggles BTC/date.
      Guarded inside the handler — never fires while an input owns focus. -->
-<svelte:window onkeydown={handleGlobalKeydown} />
+<svelte:window onkeydown={handleGlobalKeydown} onpointerup={releaseSlider} onpointercancel={releaseSlider} />
 
 <svelte:head>
 	<title>{pageTitle}</title>
 	<meta name="description" content={pageDescription} />
 	<link rel="canonical" href="https://bitcoinweighin.com/" />
-	<!--
-		header.webp is the confirmed LCP element (PageSpeed's LCP breakdown)
-		but had no preload hint, so the browser couldn't discover/start
-		fetching it until HTML parsing reached the <img> tag deep in the
-		body — well after the head's own preloaded fonts + shiba sprite were
-		already competing for bandwidth. Homepage-only (this file is the
-		only place header.webp is used), so this lives here rather than in
-		the shared app.html, which would waste the preload on every other
-		route.
-	-->
-	<link
-		rel="preload"
-		as="image"
-		href="/header.webp"
-		imagesrcset="/header@1x.webp 1x, /header.webp 2x"
-		type="image/webp"
-		fetchpriority="high"
-	/>
 	<!--
 		Open Graph + Twitter cards. The og:image hits the /og-image Pages
 		Function (functions/og-image.ts) with the current slider state, so
@@ -791,6 +853,9 @@
 	<!-- Compact pinned bar — slides in once user has scrolled past the full controls. -->
 	<div class="sticky-bar" class:visible={showStickyBar} aria-hidden={!showStickyBar}>
 		<div class="mx-auto flex h-11 max-w-2xl items-center gap-3 px-4">
+			<a href="/" class="sticky-mark" aria-label="Bitcoin Weigh-In home" tabindex={showStickyBar ? 0 : -1}>
+				<BrandMark size={22} />
+			</a>
 			<span class="min-w-[3.25rem] whitespace-nowrap font-mono text-xs text-amber-400">
 				{sliderMode === 'btc' ? formatBtc(sceneBtc) : formatBtc(lockedBtcForDateMode)}
 			</span>
@@ -804,6 +869,7 @@
 					max={SLIDER_STEPS}
 					value={sliderPos}
 					oninput={handleSliderInput}
+					onpointerdown={handleSliderPointerDown}
 					ondblclick={handleSliderDblClick}
 					onkeydown={handleSliderKeydown}
 					class="w-full"
@@ -828,52 +894,51 @@
 	</div>
 
 	<!--
-		Header: two-zone layout. Brand left (image + subtitle), preset pills
-		right. The subscribe form lives in its own visible section after the
-		Hashweight panel (see .subscribe-section below) — not in the header.
+		Top: the site bar, then the page's question and its live answer. The
+		h1 stays keyword-stable (SEO); the answer beside it follows the
+		selected commodity tab, always for exactly 1 BTC.
 	-->
-	<div class="mx-auto max-w-[1280px] px-6 pt-4 sm:pt-6">
-		<header class="site-header">
-			<a href="/" class="brand" aria-label="Bitcoin Weigh-In home">
-				<picture>
-					<source
-						srcset="/header@1x.webp 1x, /header.webp 2x"
-						type="image/webp"
-					/>
-					<img
-						src="/header.jpg"
-						alt="Bitcoin Weigh-In"
-						width="960"
-						height="340"
-						fetchpriority="high"
-						decoding="async"
-						class="brand__mark"
-					/>
-				</picture>
-				<h1 class="brand__h1">
-					Bitcoin's purchasing power in physical commodities
-				</h1>
-				<p class="brand__subtitle">
+	<div class="mx-auto max-w-2xl md:max-w-[1100px] px-4 pt-2 sm:pt-3">
+		<SiteHeader />
+		<section class="intro" aria-labelledby="page-h1">
+			<div class="intro__copy">
+				<p class="intro__eyebrow">What does a bitcoin weigh?</p>
+				<h1 id="page-h1" class="intro__h1">Bitcoin's purchasing power in physical commodities</h1>
+				<p class="intro__lede">
 					How much gold, silver, cash or plutonium does 1 BTC buy? Live ratios, daily, since 2013.
 				</p>
-			</a>
-			<div class="header-pills">
-				<PresetBar activePresetId={$activePreset} onSelect={handlePresetSelect} />
 			</div>
-		</header>
+			{#if ratio}
+				<aside class="ratio" style:--accent={ratio.accent} aria-live="polite">
+					<div class="ratio__label">1 BTC buys</div>
+					<div class="ratio__big">{ratio.big}</div>
+					<div class="ratio__of">{ratio.of}</div>
+					<div class="ratio__meta">
+						{#if $selectedDate === lastDate && livePrice}<span class="ratio__live" aria-hidden="true"></span>live ·
+						{:else}{formatDateReadout($selectedDate)} ·{/if}
+						${Math.round(dayPrices?.btc ?? 0).toLocaleString('en-US')}
+					</div>
+				</aside>
+			{/if}
+		</section>
 	</div>
 
 	<!-- Hero: one live WebGL stage + Au/Ag/Pu tabs + slider + readout (one-stage layout, pre-launch review §2) -->
-	<div class="mx-auto mt-8 max-w-2xl md:max-w-[1100px] px-4 pb-6 sm:pb-10">
+	<div class="mx-auto mt-5 max-w-2xl md:max-w-[1100px] px-4 pb-6 sm:pb-10">
 		<HeroStage
 			bind:this={heroStageEl}
 			commodities={HERO_COMMODITIES}
 			bind:selectedId={selectedCommodity}
+			bind:fuel={selectedFuel}
 			amounts={heroAmounts}
 			btcAmount={sceneBtc}
 			btcUsdPrice={dayPrices?.btc ?? 0}
 			{prices}
 			selectedDate={$selectedDate}
+			held={heroHeld}
+			{dropSignal}
+			grabEnabled={sliderMode === 'btc'}
+			ongrab={handleGrab}
 		>
 			{#snippet controls()}
 			<!-- Controls — two-row compact panel (~120px tall) -->
@@ -908,6 +973,7 @@
 								max={SLIDER_STEPS}
 								value={sliderPos}
 								oninput={handleSliderInput}
+								onpointerdown={handleSliderPointerDown}
 								ondblclick={handleSliderDblClick}
 								onkeydown={handleSliderKeydown}
 								class="slider"
@@ -1043,6 +1109,13 @@
 						</button>
 					</div>
 				</div>
+
+				<div class="controls-presets">
+					<PresetBar
+						activePresetId={$activePreset}
+						onSelect={handlePresetSelect}
+					/>
+				</div>
 			</div>
 
 			<!--
@@ -1058,6 +1131,11 @@
 			<div bind:this={sentinelEl} aria-hidden="true" class="h-px"></div>
 			{/snippet}
 		</HeroStage>
+
+		<!-- The way into /mining, right above the Hashweight panel. -->
+		<div class="mt-12">
+			<MiningStrip />
+		</div>
 
 		<!-- Hashweight panel — unchanged. -->
 		<div class="mt-12">
@@ -1147,6 +1225,12 @@
 						<a href="/btc/cash" class="seo-card">
 							<span class="seo-card__title">BTC → Cash</span>
 							<span class="seo-card__sub">A literal stack of $1 bills, to true thickness.</span>
+						</a>
+					</li>
+					<li>
+						<a href="/btc/oil" class="seo-card">
+							<span class="seo-card__title">BTC → Oil</span>
+							<span class="seo-card__sub">Crude, diesel or gasoline: a car's tank to an oil field.</span>
 						</a>
 					</li>
 				</ul>
@@ -1436,48 +1520,133 @@
 		color: #38bdf8;
 	}
 
-	.site-header {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-		padding-bottom: 0;
-	}
-	.brand {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		flex-shrink: 0;
-		text-decoration: none;
-		color: inherit;
-	}
-	.brand__mark {
-		display: block;
-		height: 80px;
-		width: auto;
-		max-width: 100%;
-	}
-	.brand__h1 {
-		margin: 4px 0 0;
-		font-size: 17px;
-		font-weight: 600;
-		line-height: 1.25;
-		color: #f5f0e6;
-		letter-spacing: -0.005em;
-		text-wrap: balance;
+	/* ── Intro: the question, and its live answer ─────────── */
+	.intro {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 18px;
+		padding: 22px 0 4px;
 	}
 	@media (min-width: 768px) {
-		.brand__h1 {
-			font-size: 18px;
+		.intro {
+			grid-template-columns: minmax(0, 1fr) auto;
+			align-items: end;
+			gap: 40px;
+			padding-top: 30px;
 		}
 	}
-	.brand__subtitle {
+	.intro__eyebrow {
+		margin: 0 0 10px;
+		font: 500 11px/1 'JetBrains Mono', ui-monospace, monospace;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: #71717a;
+	}
+	.intro__h1 {
 		margin: 0;
-		color: #71717a; /* zinc-500 — slightly more recessive */
-		font-size: 13px;
-		font-weight: 400;
-		line-height: 1.4;
+		max-width: 17em;
+		font: 600 clamp(28px, 4.2vw, 44px)/1.04 'Inter Tight', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+		letter-spacing: -0.03em;
+		color: #f5f0e6;
 		text-wrap: balance;
 	}
+	.intro__lede {
+		margin: 12px 0 0;
+		max-width: 52ch;
+		font-size: 15px;
+		line-height: 1.55;
+		color: #a1a1aa;
+		text-wrap: pretty;
+	}
+	.ratio {
+		min-width: 0;
+		padding: 14px 16px 13px;
+		border: 1px solid #27272a;
+		border-radius: 12px;
+		background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, #111113), #111113 70%);
+	}
+	@media (min-width: 768px) {
+		.ratio {
+			min-width: 250px;
+			text-align: right;
+			padding: 16px 18px 15px;
+		}
+	}
+	.ratio__label {
+		font: 500 10.5px/1 'JetBrains Mono', ui-monospace, monospace;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: #71717a;
+	}
+	.ratio__big {
+		margin-top: 9px;
+		font: 600 34px/1 'JetBrains Mono', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: -0.02em;
+		color: var(--accent);
+		transition: color 200ms ease;
+	}
+	.ratio__of {
+		margin-top: 7px;
+		font-size: 13px;
+		color: #d4d4d8;
+	}
+	.ratio__meta {
+		margin-top: 8px;
+		font: 11.5px/1.3 'JetBrains Mono', ui-monospace, monospace;
+		font-variant-numeric: tabular-nums;
+		color: #71717a;
+	}
+	@media (max-width: 767px) {
+		/* Phones: one compact card, so the stage stays near the top. */
+		.ratio {
+			display: grid;
+			grid-template-columns: auto 1fr;
+			align-items: baseline;
+			column-gap: 12px;
+			padding: 11px 13px;
+		}
+		.ratio__label {
+			grid-column: 1 / -1;
+		}
+		.ratio__big {
+			margin-top: 7px;
+			font-size: 24px;
+		}
+		.ratio__of {
+			margin-top: 0;
+		}
+		.ratio__meta {
+			grid-column: 1 / -1;
+			margin-top: 6px;
+		}
+	}
+	.ratio__live {
+		display: inline-block;
+		width: 6px;
+		height: 6px;
+		margin-right: 6px;
+		vertical-align: 1px;
+		border-radius: 50%;
+		background: #4ade80;
+		box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.14);
+	}
+
+	.controls-presets {
+		margin: 2px -4px 0;
+		padding-top: 12px;
+		border-top: 1px solid #27272a;
+	}
+	.sticky-mark {
+		display: inline-flex;
+		flex-shrink: 0;
+		border-radius: 4px;
+	}
+	.sticky-mark:focus-visible {
+		outline: 2px solid #f7931a;
+		outline-offset: 2px;
+	}
+
 	.seo-section {
 		border-top: 1px solid #27272a; /* zinc-800 */
 		background: #09090b; /* zinc-950 */
@@ -1566,33 +1735,6 @@
 		line-height: 1.6;
 		color: #a1a1aa;
 	}
-	.header-pills {
-		width: 100%;
-	}
-
-	@media (min-width: 768px) {
-		.site-header {
-			flex-direction: row;
-			align-items: flex-start;
-			gap: 28px;
-		}
-		.brand {
-			/* Tighter brand column so pills have comfortable room to wrap */
-			flex: 0 0 260px;
-		}
-		.header-pills {
-			flex: 1 1 0;
-			min-width: 0;
-			/* Align pill rows' top with the logo top */
-			padding-top: 0;
-		}
-	}
-	@media (min-width: 1280px) {
-		.brand {
-			flex: 0 0 300px;
-		}
-	}
-
 	.sticky-bar {
 		position: fixed;
 		top: 0;

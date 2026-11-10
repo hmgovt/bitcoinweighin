@@ -9,8 +9,16 @@ import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { getEntity } from '../holdings.js';
 
+/**
+ * The amount the page opens on, and the one the URL leaves implicit (no
+ * `?btc=` param). 500 BTC puts a ~25 cm gold cube beside Sat — both in the
+ * same shot, big enough to land with a proper thud. Shared links always
+ * carry an explicit `btc`, so they're unaffected.
+ */
+export const DEFAULT_BTC = 500;
+
 // ── Raw stores ──────────────────────────────────────────────────
-export const btcAmount = writable<number>(1);
+export const btcAmount = writable<number>(DEFAULT_BTC);
 export const selectedDate = writable<string>('');
 export const activePreset = writable<string | null>(null);
 export const scrollToCommodity = writable<string | null>(null);
@@ -34,13 +42,30 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 // whenever the archive fetch (which gates hydration) takes >debounce ms.
 let hydrated = false;
 
+// The link as it arrived, read before pushToUrl's first rewrite (which
+// keeps only the params below it knows).
+const arrival = browser ? new URLSearchParams(window.location.search) : new URLSearchParams();
+/** Campaign tags (utm_*) ride along on every rewrite, so analytics still sees them. */
+const campaign = [...arrival].filter(([k]) => k.startsWith('utm_'));
+let autoRidePending = arrival.get('ride') === 'play';
+
+/**
+ * True once, if the link asked for the Moon ride to start by itself
+ * (`?ride=play`, for links shared on X). The cash stage asks when it's ready.
+ */
+export function takeAutoRide(): boolean {
+	const r = autoRidePending;
+	autoRidePending = false;
+	return r;
+}
+
 function pushToUrl() {
 	if (!browser || !hydrated) return;
 	if (debounceTimer) clearTimeout(debounceTimer);
 	debounceTimer = setTimeout(() => {
 		const params = new URLSearchParams();
 		const btc = get(btcAmount);
-		if (btc !== 1) params.set('btc', String(btc));
+		if (btc !== DEFAULT_BTC) params.set('btc', String(btc));
 
 		const date = get(selectedDate);
 		if (date) params.set('date', date);
@@ -53,6 +78,8 @@ function pushToUrl() {
 
 		const audio = get(audioEnabled);
 		if (audio) params.set('audio', 'on');
+
+		for (const [k, v] of campaign) params.set(k, v);
 
 		const qs = params.toString();
 		const url = qs ? `?${qs}` : window.location.pathname;
