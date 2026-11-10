@@ -3,7 +3,7 @@ import type { DayPrices } from '$lib/prices.js';
 
 export const prerender = true;
 
-export const load: PageLoad = async ({ fetch }) => {
+export const load: PageLoad = async ({ fetch, data }) => {
 	const metaRes = await fetch('/meta.json');
 	const meta = await metaRes.json();
 	const lastDate = meta.dateRange.last as string;
@@ -23,6 +23,8 @@ export const load: PageLoad = async ({ fetch }) => {
 	const initialPrices = (await latestRes.json()) as Record<string, DayPrices>;
 
 	return {
+		// From +page.server.ts (build-time power-law teaser).
+		...data,
 		firstDate: meta.dateRange.first as string,
 		lastDate,
 		initialPrices,
