@@ -461,10 +461,43 @@
 				forever either: by 2100 the Perrenod line alone passes {fmtUsd(evaluate(Date.UTC(2100, 11, 31), data.coefficients).perrenod)}
 				per coin.
 			</p>
-			<p class="text-xs text-zinc-500">
-				Prices from the <a href="/data" class="underline hover:no-underline">Bitcoin Weigh-In dataset</a>.
-				Adapted from a community notebook.
-			</p>
+		</section>
+
+		<section class="notes credits" id="credits">
+			<h2>Credits and sources</h2>
+			<p>This page brings together other people's work. We reimplemented it; the ideas and parameters are theirs.</p>
+			<ul>
+				<li>
+					<strong>Dacoinminster power law</strong>: first published on the Bitcointalk forum by the user
+					<em>dacoinminster</em> on 13 Feb 2013. The original fit was
+					price = 4.41877×10<sup>−17</sup> × days<sup>5.598</sup> (rounded here to 4.42×10<sup>−17</sup>
+					and 5.6). Reported by
+					<a href="https://www.tokenpost.com/news/investing/31568" rel="noopener" class="underline hover:no-underline">TokenPost</a>.
+				</li>
+				<li>
+					<strong>Perrenod global power law and both log-periodic modes</strong>: Stephen Perrenod,
+					<a href="https://stephenperrenod.substack.com/p/two-year-scenario-for-bitcoin-two" rel="noopener" class="underline hover:no-underline"><cite>Two-Year Scenario for Bitcoin: Two Log-Periodic Modes</cite></a>,
+					<em>Money or Debt Newsletter</em>, 9 Aug 2026. The baseline price = 0.00688 × T<sup>5.848</sup>
+					and the scaling ratios λ₁ = {LAMBDA_1} and λ₂ = {LAMBDA_2} come from that post. Our fitted
+					amplitudes are our own and may differ from his.
+				</li>
+				<li>
+					<strong>Power law in time more broadly</strong>: the idea of modelling bitcoin's price as a
+					power of its age is most closely tied to the physicist Giovanni Santostasi, who has worked on it
+					since 2018, some of it with Perrenod.
+				</li>
+				<li>
+					<strong>The notebook</strong>: the combined chart, the five-year fit window and the 2029–30 peak
+					search follow an anonymous Python notebook posted to
+					<a href="https://pastebin.com/1171prcG" rel="noopener nofollow" class="underline hover:no-underline">Pastebin</a>
+					on 9 Nov 2026. Its author didn't leave a name; if it's yours, get in touch and we'll credit you.
+				</li>
+				<li>
+					<strong>Prices</strong>: the
+					<a href="/data" class="underline hover:no-underline">Bitcoin Weigh-In dataset</a> (CC-BY-4.0).
+					The extended horizon and the peak finder past 2030 are this site's own additions.
+				</li>
+			</ul>
 		</section>
 	</main>
 </div>
@@ -683,6 +716,13 @@
 	}
 	.notes p {
 		margin-bottom: 0.75rem;
+	}
+	.credits ul {
+		list-style: disc;
+		padding-left: 1.25rem;
+	}
+	.credits li {
+		margin-bottom: 0.6rem;
 	}
 	.caveat {
 		border-left: 3px solid #eda100;

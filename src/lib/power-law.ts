@@ -1,8 +1,18 @@
 /**
  * Power-law + log-periodic oscillation model for BTC/USD.
  *
- * A TypeScript port of a community notebook ("Bitcoin: Power Laws and
- * Log-Periodic Oscillations"). Two published power laws act as the
+ * A TypeScript port of an anonymous Python notebook ("Bitcoin: Power Laws
+ * and Log-Periodic Oscillations", https://pastebin.com/1171prcG, 9 Nov 2026).
+ *
+ * Credits:
+ *   - Dacoinminster power law: Bitcointalk user dacoinminster, 13 Feb 2013
+ *     (price = 4.41877e-17 × days^5.598, rounded to 4.42e-17 and 5.6).
+ *   - Perrenod global power law (0.00688 × T^5.848) and log-periodic scaling
+ *     ratios λ₁ = 2.081, λ₂ = 1.305: Stephen Perrenod, "Two-Year Scenario for
+ *     Bitcoin: Two Log-Periodic Modes", Money or Debt Newsletter, 9 Aug 2026,
+ *     https://stephenperrenod.substack.com/p/two-year-scenario-for-bitcoin-two
+ *
+ * Two published power laws act as the
  * baseline; two log-periodic waves (fixed scale ratios λ₁, λ₂) are
  * least-squares fitted to log10(actual / Perrenod) over the most recent
  * FIT_YEARS of price history.
