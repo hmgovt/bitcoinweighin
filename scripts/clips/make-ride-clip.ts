@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { ffmpeg } from '../dive-capture.ts';
 import { installVirtualClock, startVirtualClock, advance } from './virtual-clock.ts';
+import { presetBtc } from '../../functions/_card.ts';
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split('=').slice(1).join('=');
 
@@ -59,7 +60,9 @@ html, body { overflow: hidden !important; }
 
 async function main() {
 	const { price, date } = await lastClose();
-	const moonPrice = Math.round(384_400_000 / 0.00010922 / 21_000_000);
+	// The price a coin at which this preset's own stack (not all 21M) reaches the Moon.
+	const coins = presetBtc(preset) ?? 21_000_000;
+	const moonPrice = Math.round(384_400_000 / 0.00010922 / coins);
 	await mkdir(dirname(out), { recursive: true });
 	const dir = await mkdtemp(join(tmpdir(), 'ride-'));
 	const browser = await chromium.launch({

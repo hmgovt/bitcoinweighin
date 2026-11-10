@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkOption, evalExpr, isGeneric, numbersIn } from '../scripts/radar/validate';
+import { checkOption, evalExpr, isGeneric, numbersIn, staleness } from '../scripts/radar/validate';
 
 const FACTS = [
 	'[holder-strategy] Strategy holds 847,666 BTC, worth $71.7 billion: 537 tonnes of gold.',
@@ -91,5 +91,31 @@ describe('isGeneric', () => {
 	});
 	it('ignores replies with no figures', () => {
 		expect(isGeneric('Not your keys, not your coins.', SHEET, CUSTODY)).toBe(false);
+	});
+});
+
+describe('staleness', () => {
+	const now = 1_793_600_000;
+	const recent = [
+		{ text: 'Orange, but make it Brent: Strategy\'s 848,517 BTC would fill 267 supertankers. The world would burn the whole cargo in about five days.', at: now - 3 * 3600, author: 'saylor' },
+		{ text: 'Miners make about 450 new bitcoin a day. The oil tab is roughly 300 times that.', at: now - 26 * 3600, author: 'KobeissiLetter' },
+	];
+	it('refuses the same figures twice within three days', () => {
+		const p = staleness('Strategy\'s 848,517 BTC would pay for 267 supertanker loads of Brent.', recent, 'Starting today, $STRC dividends go daily.', now);
+		expect(p[0]).toMatch(/reuses figures .*848,517, 267/);
+	});
+	it('allows one shared figure, and figures the post itself names', () => {
+		expect(staleness('Strategy\'s 848,517 BTC is 537 tonnes of gold.', recent, 'Strategy update', now)).toEqual([]);
+		expect(staleness('848,517 BTC and 267 tankers, as you said.', recent, 'We hold 848,517 BTC, about 267 tankers', now)).toEqual([]);
+	});
+	it('refuses borrowed wording and crutch phrases', () => {
+		const older = [{ ...recent[1], at: now - 5 * 86400 }];
+		expect(staleness('Miners make about 450 new bitcoin a day. The oil tab is roughly 300 times that, again.', older, 'Oil hits $90', now)[0]).toMatch(/wording/);
+		expect(staleness('Daily is the right cadence for a company this size.', [], 'x', now)[0]).toMatch(/crutch/);
+		expect(staleness('Custody, made physical: a 3.2 cm cube.', [], 'x', now)[0]).toMatch(/crutch/);
+	});
+	it('forgets after a week', () => {
+		const old = recent.map((r) => ({ ...r, at: r.at - 8 * 86400 }));
+		expect(staleness('Strategy\'s 848,517 BTC would pay for 267 supertanker loads of Brent.', old, 'x', now)).toEqual([]);
 	});
 });
