@@ -34,6 +34,7 @@
 	import { commodityAccent } from '$lib/accents.js';
 	import NetworkWeightPanel from '$lib/components/NetworkWeightPanel.svelte';
 	import MiningStrip from '$lib/components/mining/MiningStrip.svelte';
+	import PowerLawStrip from '$lib/components/PowerLawStrip.svelte';
 	import {
 		organizationJsonLd,
 		websiteJsonLd,
@@ -1131,6 +1132,13 @@
 			<div bind:this={sentinelEl} aria-hidden="true" class="h-px"></div>
 			{/snippet}
 		</HeroStage>
+
+		<!-- The way into /power-law, above the mining strip. -->
+		{#if data.powerLawTeaser}
+			<div class="mt-12">
+				<PowerLawStrip teaser={data.powerLawTeaser} />
+			</div>
+		{/if}
 
 		<!-- The way into /mining, right above the Hashweight panel. -->
 		<div class="mt-12">
