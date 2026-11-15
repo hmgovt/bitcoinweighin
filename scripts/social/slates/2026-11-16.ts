@@ -39,7 +39,7 @@ const SLATE: Item[] = [
 		text: `El Salvador holds ${f0(sv)} bitcoin.\n\nSwapped for silver at ${closeWord}’s close: ${f0(svT)} tonnes.\n\nShared out among its ${(POP / 1e6).toFixed(2)} million people, that’s about ${f0(gEach)} grams each: ${(gEach / OZ).toFixed(1)} troy ounces. A national treasure, or pocket change?`,
 		reply: 'Population: 6,029,976 (2024 census, Banco Central de Reserva). Weigh any holder in silver:\n' + L('preset=el-salvador&commodity=silver') },
 	{ id: 'ibit-ride-video', at: '2026-11-16T17:00:00Z', media: () => 'scripts/social/media/ride-blackrock-ibit.mp4',
-		text: `BlackRock’s bitcoin ETF holds ${f0(ibit)} coins.\n\nWe changed them into $1 bills at ${weekday(VID)}’s close, stacked them in one column, and rode to the top.\n\n${f0(ibitKm)} km up: about ${(ibitKm / ISS_KM).toFixed(0)} times higher than the Space Station.`,
+		text: `BlackRock’s bitcoin ETF holds ${f0(ibit)} coins.\n\nWe changed them into $1 bills at ${weekday(VID)}’s close, stacked them in one column, and rode to the top.\n\n${f0(ibitKm)} km up (${f0(ibitKm / 1.609344)} miles): about ${(ibitKm / ISS_KM).toFixed(0)} times higher than the Space Station.`,
 		reply: 'Every note true to scale, 0.11 mm thick; the ISS orbits about 408 km up. Ride it yourself:\n' + L('preset=blackrock-ibit&commodity=cash&ride=play') },
 	{ id: 'govt-gold-vs-us-gold', at: '2026-11-16T21:30:00Z', media: () => jpg(get('gold_p-us-govt'), 'govt-gold'),
 		text: `Washington owns two reserves: 8,133 tonnes of gold, and ${f0(govt)} bitcoin, mostly seized from criminals.\n\nSwap the coins for gold at ${closeWord}’s close: ${f0(govtT)} tonnes.\n\nThe nation’s gold pile would grow by ${govtPct.toFixed(1)}%. Sell the coins, or keep them?`,
