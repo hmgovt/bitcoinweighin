@@ -38,7 +38,7 @@ const SLATE: Item[] = [
 		reply: 'Fort Knox: 147,341,858 troy oz (US Treasury). Weigh any holder in gold:\n' + L('preset=satoshi&commodity=gold') },
 	{ id: 'el-salvador-ride', at: '2026-11-17T17:00:00Z', media: () => 'scripts/social/media/ride-el-salvador.mp4',
 		text: `El Salvador holds ${f0(sv)} bitcoin.\n\nWe changed them into $1 bills at ${weekday(VID)}’s close, stacked them in one column, and rode to the top.\n\nSpace starts at 100 km. Does a country’s bitcoin get there?`,
-		reply: `${svKm.toFixed(1)} km: about ${f0(KARMAN_KM - svKm)} km short of the Kármán line. Every note true to scale, 0.11 mm thick. Ride it yourself:\n` + L('preset=el-salvador&commodity=cash&ride=play') },
+		reply: `${svKm.toFixed(1)} km (${(svKm / 1.609344).toFixed(1)} miles): about ${f0(KARMAN_KM - svKm)} km short of the Kármán line. Every note true to scale, 0.11 mm thick. Ride it yourself:\n` + L('preset=el-salvador&commodity=cash&ride=play') },
 	{ id: 'govt-silver-eiffel', at: '2026-11-17T21:30:00Z', media: () => jpg(get('silver_p-us-govt'), 'govt-silver'),
 		text: `Most of Washington’s ${f0(govt)} bitcoin were seized in criminal cases.\n\nSwap them for silver at ${closeWord}’s close: ${f0(govtT)} tonnes of metal.\n\nThe Eiffel Tower weighs ${f0(EIFFEL_T)} tonnes. The silver is ${govtT >= EIFFEL_T ? `about ${(govtT / EIFFEL_T).toFixed(1)} times heavier` : `${((govtT / EIFFEL_T) * 100).toFixed(0)}% of that`}. Could you even move it?`,
 		reply: 'Eiffel Tower: 10,100 t (Société d’Exploitation de la Tour Eiffel). Weigh any holder in silver:\n' + L('preset=us-govt&commodity=silver') },
