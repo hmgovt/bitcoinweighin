@@ -5064,3 +5064,4 @@
 {"date":"2026-11-17","btc_supply":19999650,"btc":64671.74081425819,"xau":3843.9095705772706,"xag":45.849,"brent":92.94,"forward_filled":["gasoline","diesel"],"gasoline":3.805,"diesel":5.937}
 {"date":"2026-11-18","btc_supply":20000100,"btc":62181.04496152972,"xau":3717.0856822506075,"xag":45.237,"brent":92.94,"forward_filled":["brent","gasoline","diesel"],"gasoline":3.805,"diesel":5.937}
 {"date":"2026-11-19","btc_supply":20000550,"btc":62126.33215456202,"xau":3620.130468762694,"xag":42.525,"brent":92.94,"forward_filled":["brent","gasoline","diesel"],"gasoline":3.805,"diesel":5.937}
+{"date":"2026-11-20","btc_supply":20001000,"btc":59056.18923173556,"xau":3530.8205901321357,"xag":41.2525,"brent":92.94,"forward_filled":["brent","gasoline","diesel"],"gasoline":3.805,"diesel":5.937}
