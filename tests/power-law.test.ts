@@ -11,6 +11,7 @@ import {
 	evaluate,
 	peakBetween,
 	forecastPeaks,
+	firstCrossing,
 	perrenod,
 	dacoinminster,
 	daysSinceGenesis,
@@ -76,5 +77,20 @@ describe('peaks', () => {
 		expect(peaks.some((p) => new Date(p.t).toISOString().startsWith('2030-08-16'))).toBe(true);
 		expect(peaks.some((p) => p.t > Date.UTC(2031, 0, 1))).toBe(true);
 		for (let i = 1; i < peaks.length; i++) expect(peaks[i].t).toBeGreaterThan(peaks[i - 1].t);
+	});
+});
+
+describe('firstCrossing', () => {
+	const { coefficients, fitEnd } = fitOscillations(series);
+
+	it('returns the first day the combined curve reaches the level', () => {
+		const t = firstCrossing(fitEnd, Date.UTC(2040, 0, 1), 1e6, coefficients);
+		expect(t).not.toBeNull();
+		expect(evaluate(t!, coefficients).combined).toBeGreaterThanOrEqual(1e6);
+		expect(evaluate(t! - 86_400_000, coefficients).combined).toBeLessThan(1e6);
+	});
+
+	it('returns null when the level is never reached', () => {
+		expect(firstCrossing(fitEnd, fitEnd + 30 * 86_400_000, 1e12, coefficients)).toBeNull();
 	});
 });

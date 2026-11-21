@@ -1,8 +1,10 @@
 /**
  * Power-law + log-periodic oscillation model for BTC/USD.
  *
- * A TypeScript port of an anonymous Python notebook ("Bitcoin: Power Laws
- * and Log-Periodic Oscillations", https://pastebin.com/1171prcG, 9 Nov 2026).
+ * A TypeScript port of a Python notebook ("Bitcoin: Power Laws and
+ * Log-Periodic Oscillations") shared by @CaffeSatoshi on X
+ * (https://x.com/CaffeSatoshi/status/2119977416038965561; code at
+ * https://pastebin.com/1171prcG, 9 Nov 2026).
  *
  * Credits:
  *   - Dacoinminster power law: Bitcointalk user dacoinminster, 13 Feb 2013
@@ -199,4 +201,17 @@ export function forecastPeaks(from: number, to: number, coefficients: number[]):
 		cur = next;
 	}
 	return peaks;
+}
+
+/** First day in [from, to] the Combined curve reaches `level`, or null. */
+export function firstCrossing(
+	from: number,
+	to: number,
+	level: number,
+	coefficients: number[]
+): number | null {
+	for (let t = from; t <= to; t += DAY_MS) {
+		if (evaluate(t, coefficients).combined >= level) return t;
+	}
+	return null;
 }

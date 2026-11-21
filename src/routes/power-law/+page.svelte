@@ -488,9 +488,9 @@
 				</li>
 				<li>
 					<strong>The notebook</strong>: the combined chart, the five-year fit window and the 2029–30 peak
-					search follow an anonymous Python notebook posted to
-					<a href="https://pastebin.com/1171prcG" rel="noopener nofollow" class="underline hover:no-underline">Pastebin</a>
-					on 9 Nov 2026. Its author didn't leave a name; if it's yours, get in touch and we'll credit you.
+					search follow a Python notebook shared by
+					<a href="https://x.com/CaffeSatoshi/status/2119977416038965561" rel="noopener" class="underline hover:no-underline">@CaffeSatoshi on X</a>
+					(code on <a href="https://pastebin.com/1171prcG" rel="noopener nofollow" class="underline hover:no-underline">Pastebin</a>).
 				</li>
 				<li>
 					<strong>Prices</strong>: the
