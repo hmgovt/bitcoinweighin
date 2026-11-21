@@ -19,6 +19,8 @@ export interface Watchlist {
 	hours: { tz: string; from: string; to: string };
 	limits: { perAccountPerDay: number; perDay: number; maxPostAgeMinutes: number };
 	sweep: { recheckAfterMinutes: number; giveUpAfterMinutes: number; minHeat: number; minLikes: number; maxDraftsPerRun: number };
+	/** Posts matching this pattern (case-insensitive) are never drafted: politics, parties, elections, wars. */
+	skipTopics?: { pattern: string };
 	groups: Record<string, { angle: string; accounts: string[] }>;
 	priority: string[];
 }

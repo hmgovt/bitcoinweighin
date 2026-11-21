@@ -17,7 +17,7 @@
 import { readFileSync } from 'node:fs';
 import { loadWatchlist } from './api.ts';
 import { loadState, saveState, type Candidate } from './sweep.ts';
-import { checkOption, type Option } from './validate.ts';
+import { checkOption, staleness, type Option } from './validate.ts';
 
 interface Draft { id: string; skip?: boolean; reason?: string; options?: Option[] }
 
@@ -51,6 +51,7 @@ async function main() {
 	const wl = await loadWatchlist();
 	const state = loadState();
 	const recent = state.recentReplies.map((r) => r.text);
+	const nowSec = Math.floor(Date.now() / 1000);
 	const skipped: string[] = [];
 	let sent = 0;
 
@@ -65,7 +66,10 @@ async function main() {
 			const link = raw.link && (c.links[raw.link] ?? raw.link);
 			const o: Option = { ...raw, link: link && links.includes(link) ? link : '' };
 			const r = checkOption(o, sources, links, recent, c.text);
-			if (r.ok) passing.push(o); else rejected.push({ o, problems: r.problems });
+			// Also checked against the other option just passed, so the two aren't the same story.
+			const stale = staleness(o.text, [...state.recentReplies, ...passing.map((p) => ({ text: p.text, at: nowSec }))], c.text, nowSec);
+			const problems = [...r.problems, ...stale];
+			if (!problems.length) passing.push(o); else rejected.push({ o, problems });
 		}
 		if (d?.skip && !passing.length) { skipped.push(`@${c.author}: ${d.reason ?? 'no angle'} <${c.url}>`); continue; }
 		// Claude drafted, but nothing usable came of it: skip rather than send the
@@ -105,7 +109,7 @@ async function main() {
 		lines.push(`Open: <${c.url}>`);
 		await send(lines.join('\n'));
 		sent++;
-		for (const o of passing.slice(0, 2)) state.recentReplies.push({ text: o.text, at: Math.floor(Date.now() / 1000) });
+		for (const o of passing.slice(0, 2)) state.recentReplies.push({ text: o.text, at: nowSec, author: c.author, stick: o.stick, move: o.move });
 	}
 	if (skipped.length) await send(`-# Radar skipped ${skipped.length} hot post${skipped.length > 1 ? 's' : ''} with no strong angle:\n${skipped.map((s) => `-# ${s}`).join('\n')}`);
 
