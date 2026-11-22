@@ -37,7 +37,10 @@ export const usage = { requests: 0, returned: 0, credits: 0 };
 const charge = (n: number) => { usage.returned += n; usage.credits += Math.max(15, 15 * n); };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function api<T>(path: string, retried = false): Promise<T> {
+/** Waits before each retry of a 5xx: the upstream's 503s are flaky, and usually clear within seconds. */
+const RETRY_BACKOFF_MS = [5_000, 15_000];
+
+export async function api<T>(path: string, attempt = 0): Promise<T> {
 	const key = process.env.TWITTERAPI_IO_KEY;
 	if (!key) throw new Error('TWITTERAPI_IO_KEY is not set');
 	const wait = lastCall + GAP_MS - Date.now();
@@ -45,9 +48,22 @@ export async function api<T>(path: string, retried = false): Promise<T> {
 	lastCall = Date.now();
 	usage.requests++;
 	const res = await fetch(`${API}${path}`, { headers: { 'x-api-key': key } });
-	if (res.status === 429 && !retried) { await sleep(GAP_MS); return api<T>(path, true); }
-	const body = (await res.json().catch(() => ({}))) as T & { status?: string; msg?: string; message?: string };
-	if (!res.ok || body.status === 'error') throw new Error(`${path.split('?')[0]}: ${res.status} ${body.msg ?? body.message ?? ''}`);
+	if (res.status === 429 && attempt === 0) { await sleep(GAP_MS); return api<T>(path, 1); }
+	// HTTP/2 sends no reason phrase, so statusText may be empty.
+	const what = `${path.split('?')[0]}: ${[res.status, res.statusText].filter(Boolean).join(' ')}`;
+	if (res.status >= 500 && attempt < RETRY_BACKOFF_MS.length) {
+		console.warn(`${what}; retrying in ${RETRY_BACKOFF_MS[attempt] / 1000}s`);
+		await sleep(RETRY_BACKOFF_MS[attempt]);
+		return api<T>(path, attempt + 1);
+	}
+	const raw = await res.text().catch(() => '');
+	let body = {} as T & { status?: string; msg?: string; message?: string };
+	try { const parsed = JSON.parse(raw); if (parsed && typeof parsed === 'object') body = parsed; } catch { /* not JSON: the snippet below says what it was */ }
+	if (!res.ok || body.status === 'error') {
+		// A gateway's 503 is often an HTML or plain-text page, so say what came back.
+		const detail = body.msg ?? body.message ?? raw.replace(/\s+/g, ' ').trim().slice(0, 200);
+		throw new Error(detail ? `${what} ${detail}` : what);
+	}
 	return body;
 }
 
