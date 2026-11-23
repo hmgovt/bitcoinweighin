@@ -39,7 +39,11 @@ permissions:
 
 jobs:
   post:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, which Playwright 1.60 can't install
+    # its browser dependencies on ("Cannot install dependencies for
+    # ubuntu26.04-x64"). Every run failed from Nov 12. Move off the pin once
+    # Playwright supports the newer image.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
