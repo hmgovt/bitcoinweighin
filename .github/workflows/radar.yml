@@ -93,6 +93,15 @@ jobs:
           path: .radar-state
           key: radar-state-${{ github.run_id }}-${{ github.run_attempt }}
 
+      # sweep.ts rides out TwitterAPI.io failures with a warning. When an outage
+      # has run for hours it sets this once, so it reaches you as a single red run
+      # (and email) rather than one every 15 minutes. State is saved above first.
+      - name: Flag a long TwitterAPI.io outage
+        if: steps.sweep.outputs.outage == 'long'
+        run: |
+          echo "::error::TwitterAPI.io has been failing for hours, so the radar is not seeing new posts. Check their status page and the credits on TWITTERAPI_IO_KEY."
+          exit 1
+
   draft:
     needs: sweep
     if: needs.sweep.outputs.candidates != '0'

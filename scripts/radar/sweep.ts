@@ -19,7 +19,7 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { draftReply, onTopic } from './angles.ts';
-import { costLine, handlesOf, heat, hm, isOriginal, loadWatchlist, localDay, localMinutes, postsByIds, postsSince, type Post } from './api.ts';
+import { costLine, handlesOf, heat, hm, isOriginal, isTransient, loadWatchlist, localDay, localMinutes, postsByIds, postsSince, type Post } from './api.ts';
 import { dailyFacts, datedFacts, postFacts } from './facts.ts';
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split('=').slice(1).join('=');
@@ -33,7 +33,13 @@ export interface State {
 	alerted: Record<string, number>;
 	days: Record<string, { count: number; accounts: string[] }>;
 	recentReplies: { text: string; at: number }[];
+	/** Sweeps in a row that TwitterAPI.io failed on (reset by a clean one). */
+	searchFailures?: number;
+	/** The current outage has already turned a run red. */
+	outageFlagged?: boolean;
 }
+/** Sweeps in a row that TwitterAPI.io may fail before one red run says so (16 is about four hours of live sweeps). */
+export const ESCALATE_AFTER = 16;
 export interface Candidate {
 	id: string; url: string; author: string; followers: number; group: string; createdAt: string; ageMinutes: number;
 	text: string; likes: number; reposts: number; replies: number; quotes: number; views: number; heat: number;
@@ -54,7 +60,7 @@ function output(name: string, value: string | number) {
 	if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
 }
 
-async function main() {
+export async function main() {
 	const wl = await loadWatchlist();
 	const now = arg('now') ? Date.parse(arg('now')!) : Date.now();
 	const nowSec = Math.floor(now / 1000);
@@ -77,9 +83,22 @@ async function main() {
 	// 1. New posts since the last sweep (a minute's overlap). First run, or after a gap:
 	// only as far back as a post could still be weighed.
 	const since = Math.max(state.lastSweepSec ? state.lastSweepSec - 60 : 0, nowSec - giveUpAfterMinutes * 60);
-	const fresh = fx
-		? fx.filter((p) => { const t = Date.parse(p.createdAt) / 1000; return t >= since && t <= nowSec; })
-		: lm <= to ? await postsSince(handles.map((x) => x.h), since, nowSec) : [];
+	// TwitterAPI.io is the one thing here that breaks from outside, and its outages run for hours.
+	// When it struggles, ride it out: warn instead of failing, hold the sweep time (the next good
+	// search covers the gap) and weigh whatever is already pending. A bad key or no credits (4xx)
+	// still fails the run, since only a person can fix those.
+	let apiFailed = false;
+	let searchFailed = false;
+	const ride = (what: string, e: unknown) => {
+		if (!isTransient(e)) throw e;
+		apiFailed = true;
+		console.log(`::warning::TwitterAPI.io ${what} failed (${(e as Error).message}); carrying on.`);
+	};
+	let fresh: Post[] = [];
+	if (fx) fresh = fx.filter((p) => { const t = Date.parse(p.createdAt) / 1000; return t >= since && t <= nowSec; });
+	else if (lm <= to) {
+		try { fresh = await postsSince(handles.map((x) => x.h), since, nowSec); } catch (e) { searchFailed = true; ride('search', e); }
+	}
 	let added = 0;
 	for (const p of fresh.filter(isOriginal)) {
 		const author = p.author.userName.toLowerCase();
@@ -90,13 +109,17 @@ async function main() {
 		state.pending[p.id] = { author, group, createdAt: p.createdAt };
 		added++;
 	}
-	state.lastSweepSec = nowSec;
+	if (!searchFailed) state.lastSweepSec = nowSec;
 
 	// 2. Weigh the pending posts that are old enough; drop the stale ones.
 	const age = (createdAt: string) => (now - Date.parse(createdAt)) / 60_000;
 	for (const [id, p] of Object.entries(state.pending)) if (age(p.createdAt) > giveUpAfterMinutes) delete state.pending[id];
 	const due = Object.entries(state.pending).filter(([, p]) => age(p.createdAt) >= recheckAfterMinutes).map(([id]) => id);
-	const current = due.length ? (fx ? fx.filter((p) => due.includes(p.id)) : await postsByIds(due)) : [];
+	let current: Post[] = [];
+	if (fx) current = fx.filter((p) => due.includes(p.id));
+	else if (due.length) {
+		try { current = await postsByIds(due); } catch (e) { ride('recheck', e); }
+	}
 
 	const today = localDay(new Date(now), tz);
 	const day = (state.days[today] ??= { count: 0, accounts: [] });
@@ -131,10 +154,22 @@ async function main() {
 	for (const d of Object.keys(state.days)) if (d < localDay(new Date(now - 7 * 86_400_000), tz)) delete state.days[d];
 	state.recentReplies = state.recentReplies.filter((r) => nowSec - r.at < 7 * 86400);
 
+	// Count the sweeps in a row that TwitterAPI.io failed on. Each one only warns; once an outage has
+	// run ESCALATE_AFTER sweeps the workflow turns one run red, so a long outage reaches a person
+	// once rather than as an email every 15 minutes. Not while candidates are waiting to be alerted:
+	// a red sweep would stop them going out.
+	if (apiFailed) state.searchFailures = (state.searchFailures ?? 0) + 1;
+	else if (!fx && (lm <= to || due.length > 0)) { state.searchFailures = 0; state.outageFlagged = false; }
+	if (apiFailed && (state.searchFailures ?? 0) >= ESCALATE_AFTER && !state.outageFlagged && !candidates.length) {
+		state.outageFlagged = true;
+		output('outage', 'long');
+	}
+
 	saveState(state);
 	writeFileSync(`${OUT}/candidates.json`, JSON.stringify({ generatedAt: new Date(now).toISOString(), candidates }, null, '\t'));
 	output('candidates', candidates.length);
 	console.log(`${fresh.length} new posts, ${added} on topic; ${due.length} weighed, ${hot.length} hot, ${candidates.length} to draft. ${Object.keys(state.pending).length} still pending. Today: ${day.count}/${wl.limits.perDay}.`);
+	if (apiFailed) console.log(`TwitterAPI.io has failed ${state.searchFailures} sweep(s) in a row.`);
 	if (!fx) console.log(costLine());
 }
 

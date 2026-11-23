@@ -40,6 +40,18 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Waits before each retry of a 5xx: the upstream's 503s are flaky, and usually clear within seconds. */
 const RETRY_BACKOFF_MS = [5_000, 15_000];
 
+/** A failed call, with its HTTP status (0 when the request never got an answer). */
+export class ApiError extends Error {
+	status: number;
+	constructor(message: string, status: number) { super(message); this.name = 'ApiError'; this.status = status; }
+}
+
+/**
+ * Worth riding out: the upstream is struggling, rate-limiting us or unreachable.
+ * A bad key or no credits (other 4xx) needs a person, so those still fail the run.
+ */
+export const isTransient = (e: unknown): boolean => e instanceof ApiError && (e.status === 0 || e.status === 429 || e.status >= 500);
+
 export async function api<T>(path: string, attempt = 0): Promise<T> {
 	const key = process.env.TWITTERAPI_IO_KEY;
 	if (!key) throw new Error('TWITTERAPI_IO_KEY is not set');
@@ -47,7 +59,9 @@ export async function api<T>(path: string, attempt = 0): Promise<T> {
 	if (wait > 0) await sleep(wait);
 	lastCall = Date.now();
 	usage.requests++;
-	const res = await fetch(`${API}${path}`, { headers: { 'x-api-key': key } });
+	let res: Response;
+	try { res = await fetch(`${API}${path}`, { headers: { 'x-api-key': key } }); }
+	catch (e) { throw new ApiError(`${path.split('?')[0]}: ${(e as Error).message}`, 0); }
 	if (res.status === 429 && attempt === 0) { await sleep(GAP_MS); return api<T>(path, 1); }
 	// HTTP/2 sends no reason phrase, so statusText may be empty.
 	const what = `${path.split('?')[0]}: ${[res.status, res.statusText].filter(Boolean).join(' ')}`;
@@ -62,7 +76,7 @@ export async function api<T>(path: string, attempt = 0): Promise<T> {
 	if (!res.ok || body.status === 'error') {
 		// A gateway's 503 is often an HTML or plain-text page, so say what came back.
 		const detail = body.msg ?? body.message ?? raw.replace(/\s+/g, ' ').trim().slice(0, 200);
-		throw new Error(detail ? `${what} ${detail}` : what);
+		throw new ApiError(detail ? `${what} ${detail}` : what, res.status);
 	}
 	return body;
 }
