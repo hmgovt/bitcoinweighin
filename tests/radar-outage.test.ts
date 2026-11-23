@@ -1,8 +1,14 @@
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, isTransient } from '../scripts/radar/api';
+
+// Each test loads a fresh copy of sweep.ts, whose first import pulls in the whole facts and
+// card-model graph. That took over the default 5s on a cold CI runner (and finished in
+// ~140ms on a warm laptop), so warm it once up front and give the tests room.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+beforeAll(async () => { await import('../scripts/radar/sweep'); });
 
 const NOW = '2026-11-23T12:00:00Z'; // 12:00 in London: inside the radar's window
 const NOW_SEC = Date.parse(NOW) / 1000;
