@@ -26,7 +26,7 @@ A single long-scroll page that renders — at true relative scale — what a use
 - **Shareable state.** Every slider + date position is a URL. Copy-paste reproduces the view exactly.
 - **Substance over packaging.** Where possible, render the substance itself at true volume rather than its commercial container or unit. A cube of gold is more honest than 200 pallets of bars; both contain the same gold, but only one is true to the slider's claim.
 - **Graceful degradation at extremes.** At 1 sat the gold cube is sub-millimetre and the Shiba fills its side of the viewport; at 21M BTC the cube is the height of a 10-storey building and the Shiba is a small but present reference. Both should look intentional, not broken. The viewport scales to the dominant element so neither side ever clips.
-- **Privacy-respecting.** No account system. Plausible or Umami analytics only. No third-party trackers.
+- **Privacy-respecting.** No account system. Anonymous, cookieless analytics only (PostHog EU via `/e/` and Cloudflare Web Analytics; see `/privacy`). No third-party trackers.
 - **Mobile-first.** Majority of shares will be read on phones. Touch-scrub the timeline. Vertical scroll is the primary axis.
 
 ---

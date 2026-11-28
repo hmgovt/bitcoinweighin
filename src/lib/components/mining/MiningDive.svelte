@@ -5,7 +5,6 @@
 	 */
 	import { onMount } from 'svelte';
 	import type { MiningController } from '$lib/mining/controller.svelte.js';
-	import { track } from '$lib/mining/controller.svelte.js';
 	import type { DiveController } from '$lib/mining/dive-scene.js';
 
 	let { ctl, onHandoff }: { ctl: MiningController | null; onHandoff: () => void } = $props();
@@ -33,7 +32,6 @@
 	async function playDive() {
 		const tok = ++playTok;
 		autoplaying = true;
-		track('mining-dive-play');
 		const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 		const hold = [2600, 4200, 5600, 5200];
 		for (let i = 0; i < 4; i++) {

@@ -16,11 +16,6 @@ export const SPEEDS = [1, 4, 15, 60, 240, 1000];
 export const CLOCK_HZ = 5e8;
 export const S21_HS = 234e12;
 
-type Umami = { track: (event: string, data?: Record<string, string | number>) => void };
-export const track = (event: string, data?: Record<string, string | number>): void => {
-	try { (window as unknown as { umami?: Umami }).umami?.track(event, data); } catch { /* analytics is best-effort */ }
-};
-
 export class MiningController {
 	readonly pipe: HashPipeline;
 	readonly reduced: boolean;
@@ -172,7 +167,6 @@ export class MiningController {
 	setSound(on: boolean): void {
 		this.sound.setOn(on);
 		this.soundOn = this.sound.on;
-		if (this.soundOn) track('mining-sound-on');
 	}
 
 	replay(): void {
@@ -181,7 +175,6 @@ export class MiningController {
 		this.status = `Replaying. The gold-outlined stage holds nonce 0x${(this.pipe.tpl.nonce >>> 0).toString(16).padStart(8, '0')}, the one that won block ${n0(this.pipe.tpl.height)}. On the way through it looks like every other stage.`;
 		this.playing = true;
 		this.dirty = true;
-		track('mining-replay', { block: this.pipe.tpl.height });
 	}
 
 	private onFound(tok: Token): void {
@@ -206,6 +199,5 @@ export class MiningController {
 		if (this.view !== 'silicon') this.setView('silicon');
 		this.canvas?.setLevel('die');
 		window.setTimeout(() => this.zoomTo('core'), this.reduced ? 0 : 1100);
-		track('mining-dive-complete');
 	}
 }

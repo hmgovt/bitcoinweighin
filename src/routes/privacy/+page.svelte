@@ -76,14 +76,12 @@
 				travel through this site's own address, so your browser doesn't contact PostHog directly.
 			</p>
 			<p>
-				The site also uses two other cookie-free counters:
+				The site also uses one other cookie-free counter,
 				<a href="https://www.cloudflare.com/web-analytics/" class="underline hover:no-underline"
 					>Cloudflare Web Analytics</a
-				>
-				and <a href="https://umami.is/" class="underline hover:no-underline">Umami</a>. They load
-				from those companies' own addresses and count page views in a similar anonymous way. The
-				button and browser settings below apply to the PostHog count only; a content blocker stops
-				all three.
+				>, which loads from Cloudflare's own address and counts page views in a similar anonymous
+				way. The button and browser settings below apply to the PostHog count; a content blocker
+				stops both.
 			</p>
 		</section>
 

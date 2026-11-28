@@ -50,7 +50,7 @@
 	});
 </script>
 
-<a class="ms" href="/mining" bind:this={el} data-umami-event="home-mining-strip">
+<a class="ms" href="/mining" bind:this={el}>
 	<div class="ms-media" aria-hidden="true">
 		{#if loadVideo}
 			<video bind:this={video} src="/video/mining-loop.mp4" poster="/images/mining-loop-poster.jpg" muted loop playsinline autoplay preload="auto"></video>

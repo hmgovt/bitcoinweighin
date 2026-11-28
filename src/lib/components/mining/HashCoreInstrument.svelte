@@ -126,7 +126,7 @@
 		<span class="clockread"><span class="led" class:on={ctl.playing && (ctl.speed > 15 || clock % 2 === 0)}></span>clock {n0(clock)}</span>
 		<button class="btn snd" type="button" aria-pressed={ctl.soundOn} onclick={() => ctl.setSound(!ctl.soundOn)}><span class="dot"></span>Sound</button>
 		<span class="spacer"></span>
-		<button class="btn gold" type="button" disabled={found || replayed} onclick={() => ctl.replay()} data-umami-event="mining-replay-click">
+		<button class="btn gold" type="button" disabled={found || replayed} onclick={() => ctl.replay()}>
 			{found ? `Block ${n0(tpl.height)} found` : replayed ? 'Replaying…' : `Replay block ${n0(tpl.height)}'s find`}
 		</button>
 		<button class="btn" type="button" disabled={!hasNext} title={hasNext ? undefined : 'No newer block is loaded yet.'} onclick={() => ctl.cleanJobs()}>New block: clean_jobs</button>

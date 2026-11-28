@@ -43,7 +43,7 @@ Surfaces, in order of build cost:
 3. **Panel presenting partner** — "Gold, weighed daily — presented by [bullion dealer]" on a commodity panel. Natural advertiser fit: bullion dealers, hardware wallets, exchanges, mining hosts. One panel, one sponsor, never inside the readout.
 4. **Embed sponsor line** — rides the widget (see 5).
 
-What sponsors will ask for and the answer: audience numbers (Plausible/Umami public dashboard — analytics is currently unwired, Phase 4; it becomes a prerequisite for any sponsor conversation), and click attribution (UTM on the single sponsor link; nothing more invasive).
+What sponsors will ask for and the answer: audience numbers (PostHog EU counts, live since 2026-11-28 — a shareable dashboard is still to do; it becomes a prerequisite for any sponsor conversation), and click attribution (UTM on the single sponsor link; nothing more invasive).
 
 No rate guidance here — that's a market conversation once there's a traffic baseline, not a figure to invent.
 
