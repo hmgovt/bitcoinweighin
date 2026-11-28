@@ -15,7 +15,7 @@
  * the query string, which is not a new page.
  */
 (function () {
-	var POSTHOG_KEY = ''; // public project key (write-only, safe in pages); empty = counting off
+	var POSTHOG_KEY = 'phc_sEtfzvqhQGSu6aAqSnBY6rC6kJ28yND43s5qAAVn8BDB'; // public project key of PostHog EU project 372658 (org "Bitcoin Weigh-In"): write-only, safe in pages; empty = counting off
 	var NO_COUNT_KEY = 'bwi-no-count'; // set by the button on /privacy
 
 	var optedOut = false;

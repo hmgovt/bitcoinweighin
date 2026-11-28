@@ -106,7 +106,7 @@ The following commodities have schema entries in `src/lib/commodities.ts` flagge
 | Custom domain mapping | Not yet configured (Phase 4) |
 | Lightning address | Not yet set up (Phase 4) |
 | Newsletter platform | Not yet registered (Phase 4) |
-| Analytics | Cloudflare Web Analytics + Umami (app.html); PostHog EU cookieless via `/e/` added 2026-11-28 (`static/count.js`, off until its project key is set). Described on `/privacy` |
+| Analytics | Cloudflare Web Analytics + Umami (app.html); PostHog EU cookieless via `/e/` added 2026-11-28 (`static/count.js`, PostHog EU project 372658 in its own organisation "Bitcoin Weigh-In"). Described on `/privacy` |
 
 ## Hashweight panel (shipped, 2 June 2026)
 
