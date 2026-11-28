@@ -70,12 +70,18 @@ describe('a sweep while TwitterAPI.io is failing', () => {
 	const state = () => JSON.parse(readFileSync(statePath, 'utf8'));
 	const outputs = () => readFileSync(ghOutput, 'utf8');
 
-	/** Runs main() while stepping the faked retry backoffs until it settles. */
+	/**
+	 * Runs main() while stepping the faked retry backoffs until it settles. Bounded by real
+	 * time, not a step count: on a busy CI runner the real file reads between backoffs can
+	 * outlast a fixed number of steps, which left main() waiting on a timer nobody advanced.
+	 * performance.now() isn't faked here (only setTimeout and Date are).
+	 */
 	async function run(main: () => Promise<void>) {
 		let done = false;
 		const p = main().finally(() => { done = true; });
 		p.catch(() => {});
-		for (let i = 0; i < 200 && !done; i++) {
+		const start = performance.now();
+		while (!done && performance.now() - start < 25_000) {
 			await vi.advanceTimersByTimeAsync(5_000);
 			await new Promise((r) => setImmediate(r));
 		}
