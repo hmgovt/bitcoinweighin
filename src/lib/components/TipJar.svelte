@@ -71,6 +71,8 @@
 				</div>
 			</div>
 		</details>
+
+		<p class="tip-jar__legal"><a href="/privacy">Privacy</a> · no cookies, anonymous visit counts</p>
 	</div>
 </footer>
 
@@ -168,6 +170,15 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
+	}
+	.tip-jar__legal {
+		margin: 18px 0 0;
+		font-size: 12px;
+		color: #71717a;
+	}
+	.tip-jar__legal a {
+		color: #9aa0a6;
+		text-decoration: underline;
 	}
 	.tip-jar__hint {
 		margin: 0;
